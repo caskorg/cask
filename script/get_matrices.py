@@ -6,34 +6,44 @@ class MyHtmlParser(HTMLParser):
 
     def __init__(self):
         HTMLParser.__init__(self)
-				self.state = 'NONE'
+        self.state = 'NONE'
+        self.skipped_header = False
+        self.value_fields = []
 
     def handle_starttag(self, tag, attrs):
         if self.state == 'FINISHED':
             return
 
-        if tag == '<table>':
+        if tag == 'table':
             self.state = 'PARSING_TABLE'
-            print tag
-        elif tag == '<td>':
+
+        elif tag == 'td':
             self.state ='PARSING_VALUE'
-        elif tag == '<tr>':
-            if skipped_header:
+        elif tag == 'tr':
+            if self.skipped_header:
                 self.state = 'PARSING_ENTRY'
-
-
+            else:
+                self.skipped_header = True
+            
     def handle_endtag(self, tag):
-        if tag == '<table>':
+        if tag == 'table':
             self.state ='FINISHED'
-        elif tag == '<td>':
+        elif tag == 'td':
             self.state = 'PARSING_ENTRY'
-        elif tag == '<tr>':
+        elif tag == 'tr':
             self.state = 'PARSING_TABLE'
-
+            self.handle_matrix_entry()
+            self.value_fields = []
+            
+            
     def handle_data(self, data):
         if self.state == 'PARSING_VALUE':
-            print data
+            data = data.strip()
+            if "/,\n".find(data) == -1:
+                self.value_fields.append(data)
 
+    def handle_matrix_entry(self):
+        print self.value_fields
 
 def main():
     if len(sys.argv) != 2:
@@ -47,7 +57,7 @@ def main():
 
 
     text = ""
-    max_lines = 100
+    max_lines = 2000
     c = 0
     for line in f:
         text = text + '\n' + line
@@ -55,8 +65,9 @@ def main():
             break
         c += 1
 
+
     parser = MyHtmlParser()
-    parser.feed('<table>bau</table>')
+    parser.feed(text)
 
 
 if __name__ == '__main__':
