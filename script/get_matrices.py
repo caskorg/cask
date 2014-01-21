@@ -9,6 +9,9 @@ from HTMLParser import HTMLParser
 
 Matrix=namedtuple('Matrix', ['group', 'name', 'id', 'rows', 'cols', 'nonZeros', 'file'])
 
+benchmarks=[
+    ('matrix-vector', 'armadillo.cpp', 'g++ armadillo.cpp -o armadillo -O1 -larmadillo', 'armadillo')]
+
 # Max number of matrices to fetch
 MATRIX_LIMIT=1
 
@@ -104,7 +107,6 @@ class MyHtmlParser(HTMLParser):
         return self.matrices
 
 def RunBenchmark(matrix):
-    pass    
     
 
 def main():
