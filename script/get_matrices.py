@@ -21,9 +21,13 @@ Rows = [16, 32, 64, 128, 256, 512]
 # The range of legal cols
 Cols = [16, 32, 64, 128, 256, 512]
 
+def ToInt(stringVal):
+    return int(stringVal.replace(',', ''))
+
 def ShouldDownload(group, name, rows, cols, nonZeros):
-    print rows
-    if Rows and int(rows.replace(',', '')) not in Rows:
+    if Rows and ToInt(rows) not in Rows:
+        return False
+    if Cols and ToInt(cols) not in Cols:
         return False
     return True
 
@@ -35,12 +39,13 @@ class MyHtmlParser(HTMLParser):
         self.skipped_header = False
         self.value_fields = []
         self.downloaded_matrices = 0
+        self.matrices = []
 
     def handle_starttag(self, tag, attrs):
         if self.state == 'FINISHED':
             return
-        if tag == 'table':
-            self.state = 'PARSING_TABLE'
+            if tag == 'table':
+                self.state = 'PARSING_TABLE'
 
         elif tag == 'td':
             self.state ='PARSING_VALUE'
@@ -71,23 +76,22 @@ class MyHtmlParser(HTMLParser):
 
         group = self.value_fields[0]
         name = self.value_fields[1]
-        matriId = self.value_fields[2]
+        matrixId = self.value_fields[2]
         rows = self.value_fields[6]
         cols = self.value_fields[7]
         nonZeros = self.value_fields[8]
 
-        print self.value_fields
-        
         if ShouldDownload(group, name, rows, cols, nonZeros):
-
             url = 'http://www.cise.ufl.edu/research/sparse/MM/' + group + '/' + name + '.tar.gz'
             print 'Fetching matrix: ' + group + ' ' + name
             filename = wget.download(url)
-            print 'Done'
             self.downloaded_matrices += 1
+            self.matrices.append((group, name, matrixId, rows, cols, nonZeros))
             if self.downloaded_matrices == MATRIX_LIMIT:
                 self.state = 'FINISHED'
 
+    def GetDownloadedMatrices(self):
+        return self.matrices
 
 
 def main():
@@ -95,17 +99,20 @@ def main():
     #     print "Usage: python get_matrices.py <html_file>"
     #     return
 
-    # print 'Fetching matrix list...'
-    # url = 'http://www.cise.ufl.edu/research/sparse/matrices/list_by_nnz.html'
-    # filename = wget.download(url)
-    # print 'Done'
+    print 'Fetching matrix list...'
+    url = 'http://www.cise.ufl.edu/research/sparse/matrices/list_by_nnz.html'
+    filename = wget.download(url)
+    print 'Done'
 
-
-    filename = 'list_by_nnz.html'
     f = open(filename)
 
     parser = MyHtmlParser()
     parser.feed(f.read())
+
+    matrices = parser.GetDownloadedMatrices()
+
+    print 'Fetched: '
+    print matrices
 
 
 if __name__ == '__main__':
