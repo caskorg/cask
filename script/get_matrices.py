@@ -13,7 +13,7 @@ benchmarks=[
     ('matrix-vector', 'armadillo.cpp', 'g++ armadillo.cpp -o armadillo -O1 -larmadillo', 'armadillo')]
 
 # Max number of matrices to fetch
-MATRIX_LIMIT=1
+MATRIX_LIMIT=100
 
 # What groups to fetch matrices from
 MATRIX_GROUPS = []
@@ -25,18 +25,28 @@ MATRIX_NAMES = []
 NonZeros = []
 
 # The range of legal rows
-Rows = [16, 32, 64, 128, 256, 512]
+Rows = []
 
 # The range of legal cols
-Cols = [16, 32, 64, 128, 256, 512]
+Cols = []
+
+# Legal values for symmetry
+Sym = ['yes']
+
+# Legal values for positive definite
+Spd = ['yes']
 
 def ToInt(stringVal):
     return int(stringVal.replace(',', ''))
 
-def ShouldDownload(group, name, rows, cols, nonZeros):
+def ShouldDownload(group, name, rows, cols, nonZeros, spd, sym):
     if Rows and ToInt(rows) not in Rows:
         return False
     if Cols and ToInt(cols) not in Cols:
+        return False
+    if Spd and not spd in Spd:
+        return False
+    if Sym and not sym in Sym:
         return False
     return True
 
@@ -92,9 +102,12 @@ class MyHtmlParser(HTMLParser):
         rows = self.value_fields[6]
         cols = self.value_fields[7]
         nonZeros = self.value_fields[8]
+        spd = self.value_fields[10]
+        sym = self.value_fields[11]
 
-        if ShouldDownload(group, name, rows, cols, nonZeros):
+        if ShouldDownload(group, name, rows, cols, nonZeros, spd, sym):
             url = 'http://www.cise.ufl.edu/research/sparse/MM/' + group + '/' + name + '.tar.gz'
+
             print 'Fetching matrix: ' + group + ' ' + name
             filename = wget.download(url)
             print '... Done'
@@ -107,7 +120,7 @@ class MyHtmlParser(HTMLParser):
         return self.matrices
 
 def RunBenchmark(matrix):
-    
+    pass
 
 def main():
     # if len(sys.argv) != 2:
@@ -127,7 +140,7 @@ def main():
 
     matrices = parser.GetDownloadedMatrices()
 
-    print 'Fetched: '
+    print 'Fetched {} matrices: '.format(len(matrices))
     print matrices
 
     # prepare matrices (move to directory, extract archive...)
@@ -139,6 +152,6 @@ def main():
         shutil.move(matrix.file, 'matrices')
         call(['tar','-xvzf', 'matrices/' + matrix.file, '-C', 'matrices/'])
         RunBenchmark(matrix)
-        
+
 if __name__ == '__main__':
     main()
