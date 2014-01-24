@@ -13,13 +13,17 @@ benchmarks=[
     ('matrix-vector', 'armadillo.cpp', 'g++ armadillo.cpp -o armadillo -O1 -larmadillo', 'armadillo')]
 
 # Max number of matrices to fetch
-MATRIX_LIMIT=100
+MATRIX_LIMIT=1000
 
 # What groups to fetch matrices from
 MATRIX_GROUPS = []
 
 # What matrices to fetch
 MATRIX_NAMES = []
+
+# Max row and col sizes to fetch. Set to None if no limit is required
+MAX_ROW_SIZE = 512
+MAX_COL_SIZE = 512
 
 # The range of legal non-zero values
 NonZeros = []
@@ -40,13 +44,17 @@ def ToInt(stringVal):
     return int(stringVal.replace(',', ''))
 
 def ShouldDownload(group, name, rows, cols, nonZeros, spd, sym):
-    if Rows and ToInt(rows) not in Rows:
+    if Rows and rows not in Rows:
         return False
-    if Cols and ToInt(cols) not in Cols:
+    if Cols and cols not in Cols:
         return False
     if Spd and not spd in Spd:
         return False
     if Sym and not sym in Sym:
+        return False
+    if MAX_COL_SIZE and cols > MAX_COL_SIZE:
+        return False
+    if MAX_ROW_SIZE and rows > MAX_ROW_SIZE:
         return False
     return True
 
@@ -105,7 +113,7 @@ class MyHtmlParser(HTMLParser):
         spd = self.value_fields[10]
         sym = self.value_fields[11]
 
-        if ShouldDownload(group, name, rows, cols, nonZeros, spd, sym):
+        if ShouldDownload(group, name, ToInt(rows), ToInt(cols), nonZeros, spd, sym):
             url = 'http://www.cise.ufl.edu/research/sparse/MM/' + group + '/' + name + '.tar.gz'
 
             print 'Fetching matrix: ' + group + ' ' + name
