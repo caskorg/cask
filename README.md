@@ -24,6 +24,8 @@ algebra packs (see their documentation for details)
 2. For GPU benchmarking:
 - [CUDA](http://www.nvidia.com/object/cuda_home_new.html) and its dependecies
 - [cusp](https://github.com/cusplibrary/cusplibrary)
+- Note! Make sure you use a version of cusp that is compatible with
+  CUDA (e.g. cusp 0.4.0 with CUDA 5.5)
 - Note! cuda external libraries (such as cusp) are assumed to be
 installed in the user's home directory (`~/cuda`); you can specify
 a different directory using the `CUDA_PATH` Makefile variable
