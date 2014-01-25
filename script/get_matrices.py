@@ -22,8 +22,9 @@ MATRIX_GROUPS = []
 MATRIX_NAMES = []
 
 # Max row and col sizes to fetch. Set to None if no limit is required
-MAX_ROW_SIZE = 512
-MAX_COL_SIZE = 512
+MAX_ROW_SIZE = None
+MAX_COL_SIZE = Noneg
+MAX_NON_ZEROS = 200000
 
 # The range of legal non-zero values
 NonZeros = []
@@ -55,6 +56,8 @@ def ShouldDownload(group, name, rows, cols, nonZeros, spd, sym):
     if MAX_COL_SIZE and cols > MAX_COL_SIZE:
         return False
     if MAX_ROW_SIZE and rows > MAX_ROW_SIZE:
+        return False
+    if MAX_NON_ZEROS and nonZeros) > MAX_NON_ZEROS:
         return False
     return True
 
@@ -104,16 +107,17 @@ class MyHtmlParser(HTMLParser):
 
     def handle_matrix_entry(self):
 
-        group = self.value_fields[0]
-        name = self.value_fields[1]
-        matrixId = self.value_fields[2]
-        rows = self.value_fields[6]
-        cols = self.value_fields[7]
-        nonZeros = self.value_fields[8]
-        spd = self.value_fields[10]
-        sym = self.value_fields[11]
+        fields = self.value_fields
+        group = fields[0]
+        name = fields[1]
+        matrixId = fields[2]
+        rows = fields[6]
+        cols = fields[7]
+        nonZeros = ToInt(fields[8])
+        spd = ToInt(fields[10])
+        sym = ToInt(fields[11])
 
-        if ShouldDownload(group, name, ToInt(rows), ToInt(cols), nonZeros, spd, sym):
+        if ShouldDownload(group, name, rows, cols, nonZeros, spd, sym):
             url = 'http://www.cise.ufl.edu/research/sparse/MM/' + group + '/' + name + '.tar.gz'
 
             print 'Fetching matrix: ' + group + ' ' + name
