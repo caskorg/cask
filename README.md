@@ -38,7 +38,7 @@ a different directory using the `CUDA_PATH` Makefile variable
 Installation
 ============
 
-After installing dependencies run `
+After installing dependencies run:
 
 ```
 git clone https://github.com/paul-g/sparse-bench.git`
