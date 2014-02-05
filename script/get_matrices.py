@@ -23,7 +23,7 @@ MATRIX_NAMES = []
 
 # Max row and col sizes to fetch. Set to None if no limit is required
 MAX_ROW_SIZE = None
-MAX_COL_SIZE = Noneg
+MAX_COL_SIZE = None
 MAX_NON_ZEROS = 200000
 
 # The range of legal non-zero values
@@ -57,7 +57,7 @@ def ShouldDownload(group, name, rows, cols, nonZeros, spd, sym):
         return False
     if MAX_ROW_SIZE and rows > MAX_ROW_SIZE:
         return False
-    if MAX_NON_ZEROS and nonZeros) > MAX_NON_ZEROS:
+    if MAX_NON_ZEROS and nonZeros > MAX_NON_ZEROS:
         return False
     return True
 
@@ -111,11 +111,11 @@ class MyHtmlParser(HTMLParser):
         group = fields[0]
         name = fields[1]
         matrixId = fields[2]
-        rows = fields[6]
-        cols = fields[7]
+        rows = ToInt(fields[6])
+        cols = ToInt(fields[7])
         nonZeros = ToInt(fields[8])
-        spd = ToInt(fields[10])
-        sym = ToInt(fields[11])
+        spd = fields[10]
+        sym = fields[11]
 
         if ShouldDownload(group, name, rows, cols, nonZeros, spd, sym):
             url = 'http://www.cise.ufl.edu/research/sparse/MM/' + group + '/' + name + '.tar.gz'
