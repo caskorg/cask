@@ -1,23 +1,34 @@
 sparse-bench
 ============
 
-Benchmarking linear algebra libraries on CPU, GPU and FPGA.
+Benchmarking sparse linear algebra libraries on CPU, GPU and FPGA.
+
+Real-life sparse matrices from this
+[collection](http://www.cise.ufl.edu/research/sparse/matrices/) are
+used.
 
 
 Prerequisites
 =============
 
-TODO: add links, more specific instructions
-
 You should have installed:
 
 1. For CPU benchmarking:
-  - armadillo and its dependencies -- this doesn't seem to have CG solver
-  - PetSC
-  - trilinos?
-  
+  - [armadillo](http://arma.sourceforge.net/) and its dependencies
+  - [PetSC](http://www.mcs.anl.gov/petsc/)
+  - [trilinos](http://trilinos.sandia.gov/)
+  - Note! For maximum performance these libraries usually require
+  vendor specific libraries (e.g. Intel MKL) or optimized linear
+  algebra packs (see their documentation for details)
+
 2. For GPU benchmarking:
-  - CUDA and its dependecies, including cuSparse, cusp
+  - [CUDA](http://www.nvidia.com/object/cuda_home_new.html) and its dependecies
+  - [cusp](https://github.com/cusplibrary/cusplibrary)
+  - Note! Make sure you use a version of cusp that is compatible with
+  CUDA (e.g. cusp 0.4.0 with CUDA 5.5)
+  - Note! cuda external libraries (such as cusp) are assumed to be
+  installed in the user's home directory (`~/cuda`); you can specify a
+  different directory using the `CUDA_PATH` Makefile variable
 
 3. For FPGA benchmarking:
   - coming soon...
@@ -29,9 +40,20 @@ You should have installed:
 Installation
 ============
 
-Coming soon...
+After installing dependencies run:
+
+```
+git clone https://github.com/paul-g/sparse-bench.git`
+cd sparse-bench/benchmark/<specific benchmark>
+make
+./<binary name>
+```
+
+That's it!
+
 
 Running the Benchmarks
 ======================
 
+TODO: add a script to run all the benchmarks and produce some nice results.
 Coming soon...
