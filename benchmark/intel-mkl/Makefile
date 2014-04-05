@@ -2,9 +2,9 @@ ifndef MKLROOT
  $(error "MKLROOT not set")
 endif
 
-# icc
+# Use Intel C Compiler
 CC=icc
-CC_FLAGS = -w
+CC_FLAGS ?= -Wall
 
 MKL_PATH = $(MKLROOT)/lib/intel64
 CMPLR_PATH = $(MKLROOT)/../compiler/lib/intel64
@@ -16,17 +16,19 @@ THREADING_LIB=$(MKL_LIB)mkl_intel_thread.a
 OMP_LIB = -L"$(CMPLR_PATH)" -liomp5
 CORE_LIB=$(MKL_LIB)mkl_core.a
 
-MAT=sts4098
-MAT=nasa1824
-# MAT=nasa2146
-# MAT=nasa2910
-MAT = test3
+COMMON_LIB=../lib
 
-cg:
-	$(CC) -O3 -m64 $(CC_FLAGS) -I"$(MKLROOT)/include" \
-	$@.c  $(IFACE_LIB) $(THREADING_LIB) $(CORE_LIB) $(OMP_LIB) -lpthread -lm -o $@.out
+MAT ?= sts4098
+
+lib:
+	@ $(CC) -O3 -m64 $(CC_FLAGS) -c $(COMMON_LIB)/*.c
+
+cg: lib
+	@ $(CC) -O3 -m64 $(CC_FLAGS) -I"$(MKLROOT)/include" -I"$(COMMON_LIB)" -c $@.c
+	@ $(CC) $@.o $(COMMON_LIB)/*.o $(IFACE_LIB) $(THREADING_LIB) $(CORE_LIB) $(OMP_LIB) -lpthread -lm -o $@.out
+run:
 	@ export LD_LIBRARY_PATH="$(MKL_PATH)":$(LD_LIBRARY_PATH):$(CMPLR_PATH); \
-	time ./$@.out $(MAT).mtx $(MAT)_b.mtx $(MM)
+	./cg.out $(MAT).mtx $(MAT)_b.mtx $(MM)
 
 #-------------------------------------------------------------------------------
 clean:

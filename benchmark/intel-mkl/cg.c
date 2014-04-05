@@ -8,101 +8,12 @@
 #include "mkl_service.h"
 #include <string.h>
 
-
-void read_array_from_mm_file(char *filename, bool mm, double *values, int size) {
-  FILE *fin = fopen(filename, "r");
-
-  if (fin == NULL) {
-    printf("Couldn't open file %s\n", filename);
-    exit(1);
-  }
-
-  char *line = NULL;
-  int read, n;
-
-  int l = 0;
-  // skip empty lines
-  while ((read = getline(&line, &n, fin)) != -1) {
-    if (line[0] != '%')
-      break;
-    l++;
-  }
-
-  l = 0;
-  // read the actual values
-  while (!feof(fin)) {
-    int row, col;
-    double val;
-    if (mm) {
-      fscanf(fin, "%d %d %lf", &row, &col, &val);
-      *(values + row - 1) = val;
-    } else {
-      fscanf(fin, "%lf", &val);
-      *(values + l) = val;
-      l++;
-    }
-  }
-
-}
-
-void read_matrix_from_mm_file(char *filename, bool mm,
-                              double **vals, int **cols, int **row_idxs,
-                              int *size, int* nnzs) {
-  FILE *fin = fopen(filename, "r");
-
-  if (fin == NULL) {
-    printf("Couldn't open file %s\n", filename);
-    exit(1);
-  }
-
-  char *line = NULL;
-  int read, n;
-
-  int l = 0;
-  // skip empty lines
-  while ((read = getline(&line, &n, fin)) != -1) {
-    if (line[0] != '%')
-      break;
-    l++;
-  }
-
-  int nrows;
-  sscanf(line, "%d %d %d", &nrows, size, nnzs);
-  *vals = (double *)malloc(sizeof(double) * *nnzs);
-  *cols = (int *)malloc(sizeof(int) * *nnzs);
-  *row_idxs = (int *)malloc(sizeof(int) * (nrows + 1));
-
-  int nvals = 0;
-  // read the actual vals
-  int prev_row = -1;
-  while (!feof(fin)) {
-    int row, col;
-    double val;
-    fscanf(fin, "%d %d %lf", &row, &col, &val);
-    row--;
-    col--;
-
-    *(*vals + nvals) = val;
-    *(*cols + nvals) = col + 1;
-
-    if (prev_row != row) {
-      int i;
-      for (i = prev_row; i < row - 1; i++) {
-        *(*row_idxs + i) = prev_row;
-      }
-      *(*row_idxs + row) = nvals;
-    }
-    prev_row = row;
-    nvals++;
-  }
-
-  *(*row_idxs + nrows) = *nnzs + 1;
-}
+#include "mmio.h"
 
 void print_array(double *values, int size) {
   int i;
   for (i = 0; i < size; i++) {
-    printf("%.10lf\n ", values[i]);
+    printf("%.10lg\n ", values[i]);
   }
   printf ("\n");
 }
@@ -123,9 +34,148 @@ void print_matrix(double *values, int size) {
   }
 }
 
+/** Reads the dimensions of the matrix (n - number of rows, m - number
+    of columns, nnzs - number of non-zeros) from the given Matrix
+    Market file.  If the given file contains an array rather than a
+    COO matrix, nnzs will be set to n;
+*/
+void read_mm_matrix_size(FILE *f, int *n, int *m, int *nnzs, MM_typecode* mcode) {
+  if (mm_read_banner(f, mcode) != 0) {
+    printf("Could not process Matrix Market banner.\n");
+    exit(1);
+  }
+
+  if (mm_is_array(*mcode)) {
+    mm_read_mtx_array_size(f, n, m);
+    *nnzs = *n;
+  } else {
+    mm_read_mtx_crd_size(f, n, m, nnzs);
+  }
+}
+
+/** Reads a matrix market file for a symmetric real valued sparse
+    matrix and returns the matrix in 0-indexed CSR form. */
+void read_mm_sym_matrix(FILE* f, MM_typecode mcode,
+                        int n, int nnzs,
+                        double *values, int* col_ind, int *row_ptr
+                        ) {
+
+  if (!(mm_is_real(mcode) && mm_is_matrix(mcode) &&
+        mm_is_sparse(mcode) && mm_is_symmetric(mcode)) ) {
+    printf("First argument must be a symmetric, real-valued, sparse matrix\n");
+    printf("Market Market type: [%s]\n", mm_typecode_to_str(mcode));
+    exit(1);
+  }
+
+  int* I = (int *) malloc(nnzs * sizeof(int));
+  int *J = (int *) malloc(nnzs * sizeof(int));
+  double *val = (double *) malloc(nnzs * sizeof(double));
+
+  int i;
+  for (i=0; i<nnzs; i++) {
+    fscanf(f, "%d %d %lg\n", &I[i], &J[i], &val[i]);
+    I[i]--;
+    J[i]--;
+  }
+
+  MKL_INT job[] = {
+    1, // convert COO to CSR
+    0,
+    0,
+    0, // Is this used?
+    nnzs,
+    0
+  };
+
+  MKL_INT info;
+
+  mkl_dcsrcoo(job,
+              &n,
+              values,
+              col_ind,
+              row_ptr,
+              &nnzs,
+              val,
+              I,
+              J,
+              &info);
+
+  if (info != 0) {
+    printf("CSR to COO conversion failed: not enough memory!\n");
+    exit(1);
+  }
+}
+
+/** Returns the zero indexed array of values. */
+void read_mm_array(FILE *f, MM_typecode code, int nnzs, double *values) {
+  if (mm_is_symmetric(code)) {
+    printf("Array can't be symmetric!\n");
+    exit(1);
+  }
+
+  int i, x, y;
+  double val;
+  if (mm_is_array(code)) {
+    // Is this actually stored in an array format?
+    for (i = 0; i < nnzs; i++) {
+      fscanf(f, "%lg", &val);
+      values[i] = val;
+    }
+  } else {
+    // the array was stored in COO format
+    for (i = 0; i < nnzs; i++) {
+      fscanf(f, "%d %d %lg", &x, &y, &val);
+      if (y != 1) {
+        printf("An array should only have ONE column!\n");
+        exit(1);
+      }
+      values[x - 1] = val;
+    }
+  }
+}
+
+double* read_rhs(FILE* g, int* n, int *nnzs) {
+  int vn, vm, vnnzs;
+  MM_typecode vcode;
+  read_mm_matrix_size(g, &vn, &vm, &vnnzs, &vcode);
+
+  double* rhs = malloc(sizeof(double) * vnnzs);
+  memset(rhs, 0, sizeof(double) * vnnzs);
+  read_mm_array(g, vcode, vnnzs, rhs);
+
+  *n = vn;
+  *nnzs = vnnzs;
+
+  return rhs;
+}
+
+void read_system_matrix_sym_csr(FILE* f, int* n, int *nnzs, int** col_ind, int** row_ptr, double** values) {
+  MM_typecode mcode;
+
+  int m;
+  read_mm_matrix_size(f, n, &m, nnzs, &mcode);
+
+  if (*n != m) {
+    printf("Matrix should be square!\n");
+    exit(1);
+  }
+
+  int nzs = *nnzs;
+  double *acsr = (double *)malloc(sizeof(double) * nzs);
+  MKL_INT *ia = (MKL_INT *)malloc(sizeof(MKL_INT) * (*n + 1)); // row_ref
+  MKL_INT *ja = (MKL_INT *)malloc(sizeof(MKL_INT) * nzs); // column indices
+
+  read_mm_sym_matrix(f, mcode, *n, nzs, acsr, ja, ia);
+
+  *row_ptr = ia;
+  *col_ind = ja;
+  *values = acsr;
+}
 
 // Solve an SPD sparse system using the conjugate gradient method with Intel MKL
 int main (int argc, char** argv) {
+
+  FILE *f, *g;
 
   // read data from matrix market files
   if (argc < 3) {
@@ -133,34 +183,35 @@ int main (int argc, char** argv) {
     return -1;
   }
 
-  bool use_mm = false;
-  if (argc == 4) {
-    use_mm = true;
+  if ((f = fopen(argv[1], "r")) == NULL) {
+    printf("Could not open %s", argv[1]);
+    return 1;
   }
 
-  int size = 4098;
+  if ((g = fopen(argv[2], "r")) == NULL) {
+    printf("Could not open %s", argv[2]);
+    return 1;
+  }
 
-  double *rhs = malloc(sizeof(double) * size);
-  memset(rhs, 0, sizeof(double) * size);
-  read_array_from_mm_file(argv[2], use_mm, rhs, size);
+  printf("Read system matrix: ");
+  int n, nnzs;
+  double* values;
+  int *col_ind, *row_ptr;
+  read_system_matrix_sym_csr(f, &n, &nnzs, &col_ind, &row_ptr, &values);
+  printf("n: %d, nnzs: %d\n", n, nnzs);
 
-  double *vals = NULL;
-  int *cols = NULL, *row_idxs = NULL;
-  int nnzs;
-  read_matrix_from_mm_file(argv[1], use_mm, &vals, &cols, &row_idxs, &size, &nnzs);
-  printf("%d %d\n", size, nnzs);
+  printf("Read RHS: ");
+  int vn, vnnzs;
+  double* rhs = read_rhs(g, &vn, &vnnzs);
+  //  print_array(rhs, vn);
+  printf("n: %d, nnzs: %d\n", vn, vnnzs);
 
-  /* printf("Done reading\n"); */
-  print_array(rhs, size);
-  /* print_array(vals, nnzs); */
-  /* print_array_int(cols, nnzs); */
-  print_array_int(row_idxs, size + 1);
+  // -- Start solving the system --
+  int rci_request, itercount, i;
+  itercount = 0;
+  double *a = values;
 
-  int rci_request, itercount, expected_itercount = 8, i;
-  double *a = vals;
-
-  int length = 128;
-  double expected_sol[8] = {1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0};
+  int size = n;
 
   double *x = (double *)malloc(sizeof(double) * size);
   memset(x, 0, sizeof(double) * size);
@@ -169,7 +220,9 @@ int main (int argc, char** argv) {
 
   double dpar[128], tmp[4 * size];
 
-
+  for (i = 0; i < size; i++) {
+    x[i] = 0;
+  }
 
   dcg_init (&size, x, rhs, &rci_request, ipar, dpar, tmp);
   if (rci_request != 0) {
@@ -177,10 +230,21 @@ int main (int argc, char** argv) {
     return 1;
   }
 
-  ipar[4] = 10000; // set maximum iterations
+  /* printf("Matrix values\n"); */
+  /* for (i = 0; i < nnzs; i ++) */
+  /*   printf("%f ", values[i]); */
+  /* printf("\n"); */
+  /* for (i = 0; i < nnzs; i ++) */
+  /*   printf("%d ", col_ind[i]); */
+  /* printf("\n"); */
+  /* for (i = 0; i < n + 1; i ++) */
+  /*   printf("%d ", row_ptr[i]); */
+  /* printf("\n"); */
+
+  ipar[4] = 1000000; // set maximum iterations
   ipar[8] = 1;     // enable residual test
   ipar[9] = 0;     // no user stopping test
-  dpar[0] = 1.E-5; // set relative error
+  dpar[0] = 1.E-2;// set relative error
 
   printf("HERE\n");
   dcg_check (&size, x, rhs, &rci_request, ipar, dpar, tmp); // check params are correct
@@ -198,6 +262,14 @@ int main (int argc, char** argv) {
     printf ("Solution\n");
     print_array(x, size);
 
+    FILE *fout = fopen("nasa1824_sol.mtx", "w");
+    fprintf(fout, "%%MatrixMarket matrix array real general\n");
+    fprintf(fout, "%%-------------------------------------------------------------------------------\n");
+    fprintf(fout, "1824 1\n");
+    for (i = 0; i < size; i++)
+      fprintf(fout, "%.12lf\n", x[i]);
+    fclose(fout);
+
     MKL_FreeBuffers ();
 
     bool good = true;
@@ -205,17 +277,22 @@ int main (int argc, char** argv) {
     /*   good = fabs(expected_sol[i] - x[i]) < 1.0e-12; */
 
     if (good) {
-    printf("[OK] Converged after %d iterations\n", itercount);
-    return 0;
-  }
+      printf("[OK] Converged after %d iterations\n", itercount);
+      return 0;
+    }
   } else if (rci_request == 1) {
-    char tr = 'u';
-    mkl_dcsrsymv (&tr, &size, a, row_idxs, cols, tmp, &tmp[size]);
+    char tr = 'l';
+    mkl_dcsrsymv (&tr, &size, a, row_ptr, col_ind, tmp, &tmp[size]);
     goto rci;
+  } else {
+    printf("This example FAILED as the solver has returned the ERROR ");
+    printf("code %d\n", rci_request);
   }
 
-    //  print_array(x, size);
-    MKL_FreeBuffers ();
-    printf("[FAIL] Hasn't converged!\n");
-    return 1;
-  }
+  fclose(f);
+  fclose(g);
+  //  print_array(x, size);
+  MKL_FreeBuffers ();
+  printf("[FAIL] Hasn't converged %d iterations!\n", itercount);
+  return 1;
+}
