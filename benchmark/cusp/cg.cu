@@ -14,7 +14,7 @@ using namespace cusp;
 // where to perform the computation
 typedef cusp::device_memory MemorySpace;
 
-// which floating point type to use
+// which doubleing point type to use
 typedef float ValueType;
 
 // Reads an array from a Matrix Market sparse matrix file
@@ -91,10 +91,11 @@ int main(int argc, char ** argv) {
   cusp::array1d<ValueType, MemorySpace> x(A.num_rows, 0);
 
   // Set stopping criteria (iteration count, relative error)
-  cusp::verbose_monitor<ValueType> monitor(bb, 10 * A.num_rows, 1e-3);
+  cusp::verbose_monitor<ValueType> monitor(bb, 100 * A.num_rows, 1e-20);
 
   // set preconditioner (identity)
   cusp::identity_operator<ValueType, MemorySpace> M(A.num_rows, A.num_rows);
+
 
   printf("Starting cg...\n");
   gettimeofday(&ts_compute, NULL);
@@ -111,6 +112,15 @@ int main(int argc, char ** argv) {
   printf("Done...\n");
   printf("Compute time %f ms\n", elapsed/1000.0);
   printf("Total time %f s\n", elapsed_total/(1000.0 * 1000.0));
+
+  ofstream g("nasa1824_sol.mtx");
+  g << "%%MatrixMarket matrix array real general" << endl;
+  g << "%-------------------------------------------------------------------------------" << endl;
+  g << "1824 1" << endl;
+  for (int i = 0; i < x.size(); i++)
+    g << x[i] << endl;
+
+  g.close();
 
   return 0;
 }
