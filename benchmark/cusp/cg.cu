@@ -113,7 +113,7 @@ int main(int argc, char ** argv) {
   printf("Compute time %f ms\n", elapsed/1000.0);
   printf("Total time %f s\n", elapsed_total/(1000.0 * 1000.0));
 
-  ofstream g("nasa1824_sol.mtx");
+  ofstream g("sol.mtx");
   g << "%%MatrixMarket matrix array real general" << endl;
   g << "%-------------------------------------------------------------------------------" << endl;
   g << "1824 1" << endl;
