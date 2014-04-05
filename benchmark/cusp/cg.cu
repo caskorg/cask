@@ -18,119 +18,99 @@ typedef cusp::device_memory MemorySpace;
 typedef float ValueType;
 
 // Reads an array from a Matrix Market sparse matrix file
-void read_array_from_mm_file(array1d<ValueType, MemorySpace> &array, const char* filename) {
+void read_array_from_mm_file(array1d<ValueType,
+                             MemorySpace> &array, const char* filename,
+                             bool readAsMmFile) {
   ifstream f(filename);
 
   string line;
 
   while (getline(f, line)) {
+    // this also skips the first line containing the matrix size
     if (line[0] != '%')
       break;
   }
 
-  while (!f.eof()) {
-    int row, col;
-    float val;
-    f >> row >> col >> val;
-    array[row] = val;
+  if (readAsMmFile) {
+    while (!f.eof()) {
+      int row, col;
+      float val;
+      f >> row >> col >> val;
+      array[row - 1] = val;
+    }
+    return;
   }
 
-  cout << line << endl;
+  int nrows;
+  istringstream(line) >> nrows;
+
+  for (int i = 0; i < nrows; i++) {
+    float val;
+    f >> val;
+    array[i] = val;
+  }
 }
 
-int main(int argc, char ** argv)
-{
+int main(int argc, char ** argv) {
 
   array1d<ValueType, MemorySpace> rhs;
-  bool allZeroRhs = false;
 
-  if (argc < 2) {
-    cout << "Usage: ./cg <path_to_matrix> [<path_to_rhs>]" << endl;
+  if (argc < 3) {
+    cout << "Usage: ./cg <path_to_matrix> <path_to_rhs> [-mm]" << endl;
     return 1;
-  } else if (argc == 2) {
-    allZeroRhs = true;
   }
 
+  cout << argc << endl;
+  string flag("-mm");
+  bool readAsMmFile = false;
+  if (argc == 4) {
+    readAsMmFile = (flag.compare(argv[3]) == 0);
+  }
+
+  printf("%s %s\n", argv[1], argv[2]);
 
   struct timeval ts_total, tf_total;
   struct timeval ts_compute, tf_compute;
 
-  printf("%s\n", argv[1]);
-
+  gettimeofday(&ts_total, NULL);
+  printf("Loading matrix...\n");
   cusp::csr_matrix<int, float, MemorySpace> A;
-  // TODO read b in host memory first
   cusp::io::read_matrix_market_file(A, argv[1]);
 
+  cusp::array1d<ValueType, MemorySpace> bb(A.num_rows, 0);
+  printf("Reading RHS array...\n");
 
-  int rhs_size = A.num_rows;
-  cusp::array1d<ValueType, MemorySpace> bb(rhs_size, 0);
-  //  cusp::io::read_matrix_market_file(bb, argv[1]);
+  read_array_from_mm_file(bb, argv[2], readAsMmFile);
 
-  read_array_from_mm_file(bb, argv[2]);
-  cusp::print(bb);
-  return;
+  //  cusp::print(A);
+  //  cusp::print(bb);
+  printf("Read matrix A: %d rows %d cols\n", A.num_rows, 1);
 
 
+  // Solution vector
   cusp::array1d<ValueType, MemorySpace> x(A.num_rows, 0);
 
+  // Set stopping criteria (iteration count, relative error)
+  cusp::verbose_monitor<ValueType> monitor(bb, 10 * A.num_rows, 1e-3);
 
-  // TODO need to convert b to array1d
-
-  cusp::print(A);
-
-
+  // set preconditioner (identity)
   cusp::identity_operator<ValueType, MemorySpace> M(A.num_rows, A.num_rows);
-  cusp::verbose_monitor<ValueType> monitor(bb, 512, 1e-3);
 
+  printf("Starting cg...\n");
+  gettimeofday(&ts_compute, NULL);
   cusp::krylov::cg(A, x, bb, monitor, M);
+  gettimeofday(&tf_compute, NULL);
+  gettimeofday(&tf_total, NULL);
 
-  /* gettimeofday(&ts_total, NULL); */
-  /* // create an empty sparse matrix structure (HYB format) */
-  /* cusp::hyb_matrix<int, ValueType, MemorySpace> A; */
+  long long elapsed = (tf_compute.tv_sec-ts_compute.tv_sec)*1000000 +
+    tf_compute.tv_usec-ts_compute.tv_usec;
 
-  /* // create a 2d Poisson problem on a 10x10 mesh */
-  /* gettimeofday(&ts_compute, NULL); */
-  /* cusp::gallery::poisson5pt(A, 512, 512); */
-  /* gettimeofday(&tf_compute, NULL); */
+  long long elapsed_total = (tf_total.tv_sec-ts_total.tv_sec)*1000000 +
+    tf_total.tv_usec-ts_total.tv_usec;
 
-  /* long elapsed = (tf_compute.tv_sec-ts_compute.tv_sec)*1000000 + */
-  /*   tf_compute.tv_usec-ts_compute.tv_usec; */
-  /* printf("Poisson compute time %d.%d ms\n", elapsed/1000); */
+  printf("Done...\n");
+  printf("Compute time %f ms\n", elapsed/1000.0);
+  printf("Total time %f s\n", elapsed_total/(1000.0 * 1000.0));
 
-  /* // allocate storage for solution (x) and right hand side (b) */
-  /* cusp::array1d<ValueType, MemorySpace> x(A.num_rows, 0); */
-  /* cusp::array1d<ValueType, MemorySpace> b(A.num_rows, 1); */
-
-  /* // set stopping criteria: */
-  /* // iteration_limit = 100 */
-  /* // relative_tolerance = 1e-3 */
-  /* cusp::verbose_monitor<ValueType> monitor(b, 512, 1e-3); */
-
-  /* // set preconditioner (identity) */
-  /* cusp::identity_operator<ValueType, MemorySpace> M(A.num_rows, A.num_rows); */
-
-
-  /* gettimeofday(&ts_compute, NULL); */
-  /* cusp::krylov::cg(A, x, b, monitor, M); */
-  /* gettimeofday(&tf_compute, NULL); */
-
-  /* gettimeofday(&tf_total, NULL); */
-
-  /* elapsed = (tf_compute.tv_sec-ts_compute.tv_sec)*1000000 + */
-  /*   tf_compute.tv_usec-ts_compute.tv_usec; */
-
-  /* long elapsed_total = (tf_total.tv_sec-ts_total.tv_sec)*1000000 + */
-  /*   tf_total.tv_usec-ts_total.tv_usec; */
-
-  /* printf("ts_compute.sec: %d ts_compute.usec: %d\n", */
-  /*        ts_compute.tv_sec, ts_compute.tv_usec); */
-  /* printf("tf_compute.sec: %d tf_compute.usec: %d\n", */
-  /*        tf_compute.tv_sec, tf_compute.tv_usec); */
-
-  /* printf("Compute time %d.%d ms\n", elapsed/1000); */
-  /* printf("Total time %d.%d ms\n", elapsed_total/1000); */
-
-
-
-  /* return 0; */
+  return 0;
 }
