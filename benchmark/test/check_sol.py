@@ -105,5 +105,5 @@ print 'Computed rhs'
 computed_rhs = mat.dot(x)
 
 for i in range(nx):
-    if abs(computed_rhs[i] - rhs[i]) > 1e-5:
+    if abs(computed_rhs[i] - rhs[i]) > EPSILON:
         print 'Error:', i, 'expected', '{0:.12f}'.format(rhs[i]), 'got', computed_rhs[i]
