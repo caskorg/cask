@@ -262,7 +262,7 @@ int main (int argc, char** argv) {
     printf ("Solution\n");
     print_array(x, size);
 
-    FILE *fout = fopen("nasa1824_sol.mtx", "w");
+    FILE *fout = fopen("sol.mtx", "w");
     fprintf(fout, "%%MatrixMarket matrix array real general\n");
     fprintf(fout, "%%-------------------------------------------------------------------------------\n");
     fprintf(fout, "1824 1\n");
