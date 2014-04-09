@@ -80,7 +80,7 @@ void read_mm_sym_matrix(FILE* f, MM_typecode mcode,
 
   MKL_INT job[] = {
     1, // convert COO to CSR
-    0,
+    1, // use 1 based indexing (required by mkl_dcsrsymv)
     0,
     0, // Is this used?
     nnzs,
@@ -244,15 +244,13 @@ int main (int argc, char** argv) {
   ipar[4] = 1000000; // set maximum iterations
   ipar[8] = 1;     // enable residual test
   ipar[9] = 0;     // no user stopping test
-  dpar[0] = 1.E-2;// set relative error
+  dpar[0] = 1e-10;// set relative error
 
-  printf("HERE\n");
   dcg_check (&size, x, rhs, &rci_request, ipar, dpar, tmp); // check params are correct
   if (rci_request != 0) {
-    printf("paramters incorrectly set\n");
+    printf("parameters incorrectly set\n");
     return 1;
   }
-  printf("HERE\n");
 
  rci:dcg (&size, x, rhs, &rci_request, ipar, dpar, tmp); // compute solution
   //  print_array(x, size);
@@ -265,7 +263,7 @@ int main (int argc, char** argv) {
     FILE *fout = fopen("sol.mtx", "w");
     fprintf(fout, "%%MatrixMarket matrix array real general\n");
     fprintf(fout, "%%-------------------------------------------------------------------------------\n");
-    fprintf(fout, "1824 1\n");
+    fprintf(fout, "%d 1\n", size);
     for (i = 0; i < size; i++)
       fprintf(fout, "%.12lf\n", x[i]);
     fclose(fout);
