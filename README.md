@@ -25,14 +25,16 @@ algorithm (hand-written, Intel MKL, CUDA, etc.)
 <!--   vendor specific libraries (e.g. Intel MKL) or optimized linear -->
 <!--   algebra packs (see their documentation for details) -->
 
-* CPU Code:
+* For CPU implementations
   * Intel MKL
-* GPU code
+* For GPU implementations
   * [CUDA](http://www.nvidia.com/object/cuda_home_new.html) and its dependecies
   * [cusp](https://github.com/cusplibrary/cusplibrary)
-  - __Note__ Make sure you use a version of cusp that is compatible with
+
+__Note__ Make sure you use a version of cusp that is compatible with
   CUDA (e.g. cusp 0.4.0 with CUDA 5.5)
-  - __Note__ cuda external libraries (such as cusp) are assumed to be
+
+__Note__ cuda external libraries (such as cusp) are assumed to be
   installed in the user's home directory (`~/cuda`); you can specify a
   different directory using the `CUDA_PATH` Makefile variable
 
