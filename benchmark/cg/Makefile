@@ -21,8 +21,7 @@ lib:
 	@ $(CC) -O3 -m64 $(CC_FLAGS) -c $(COMMON_LIB)/*.c
 
 intel-mkl: lib
-	@ $(CC) -O3 -m64 $(CC_FLAGS) -I"$(MKLROOT)/include" -I"$(COMMON_LIB)" -c $@.c
-	@ $(CC) $@.o mmio.o -L"$(MKL_LIB)" $(OMP_LIB) -lmkl_intel_ilp64 -lmkl_core -lmkl_intel_thread -lm -o $@.out
+	$(CC) -O3 -m64 $(CC_FLAGS) -I"$(MKLROOT)/include" -I"$(COMMON_LIB)" -c $@.c -L"$(MKL_LIB)" $(OMP_LIB) -lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core -liomp5 -lpthread  -o $@.out
 
 run:
 	@ export LD_LIBRARY_PATH="$(MKL_PATH)":$(LD_LIBRARY_PATH):$(CMPLR_PATH); \
@@ -30,4 +29,5 @@ run:
 
 #-------------------------------------------------------------------------------
 clean:
+	rm *.o
 	rm *.out
