@@ -23,9 +23,9 @@ MAT ?= sts4098
 lib:
 	@ $(CC) -O3 -m64 $(CC_FLAGS) -c $(COMMON_LIB)/*.c
 
-cg: lib
+intel-mkl: lib
 	@ $(CC) -O3 -m64 $(CC_FLAGS) -I"$(MKLROOT)/include" -I"$(COMMON_LIB)" -c $@.c
-	@ $(CC) $@.o $(COMMON_LIB)/*.o $(IFACE_LIB) $(THREADING_LIB) $(CORE_LIB) $(OMP_LIB) -lpthread -lm -o $@.out
+	@ $(CC) $@.o mmio.o $(IFACE_LIB) $(THREADING_LIB) $(CORE_LIB) $(OMP_LIB) -lpthread -lm -o $@.out
 run:
 	@ export LD_LIBRARY_PATH="$(MKL_PATH)":$(LD_LIBRARY_PATH):$(CMPLR_PATH); \
 	./cg.out $(MAT).mtx $(MAT)_b.mtx $(MM)
