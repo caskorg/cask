@@ -10,7 +10,7 @@ MKL_PATH = $(MKLROOT)/lib/intel64
 CMPLR_PATH = $(MKLROOT)/../compiler/lib/intel64
 
 # All the required libraries
-MKL_LIB=$(MKL_PATH)/lib
+MKL_LIB=$(MKL_PATH)
 OMP_LIB = -L"$(CMPLR_PATH)"
 
 COMMON_LIB=../lib
