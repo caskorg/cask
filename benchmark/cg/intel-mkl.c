@@ -268,7 +268,7 @@ int main (int argc, char** argv) {
       fprintf(fout, "%.12lf\n", x[i]);
     fclose(fout);
 
-    MKL_FreeBuffers ();
+    mkl_freebuffers();
 
     bool good = true;
     /* for (i = 0; i < size && good; i++) */
@@ -290,7 +290,7 @@ int main (int argc, char** argv) {
   fclose(f);
   fclose(g);
   //  print_array(x, size);
-  MKL_FreeBuffers ();
+  mkl_freebuffers();
   printf("[FAIL] Hasn't converged %d iterations!\n", itercount);
   return 1;
 }
