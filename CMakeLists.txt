@@ -65,9 +65,9 @@ ADD_C_EXECUTABLE(cg-mkl-rci
   ./benchmark/cg/mkl-rci/cg.c
 )
 
-#ADD_CPP_EXECUTABLE(cg-mkl-explicit
-#  ./benchmark/cg/mkl-explicit/cg.cpp
-#)
+ADD_CPP_EXECUTABLE(cg-mkl-explicit
+  ./benchmark/cg/mkl-explicit/cg.cpp
+)
 
 
 

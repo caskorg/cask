@@ -4,9 +4,9 @@
 #include "mmio.h"
 
 
-void print_array(double *values, int size);
-void print_array_int(int *values, int size);
-void print_matrix(double *values, int size);
+void print_array(const char* message, double *values, int size);
+void print_array_int(const char* message, int *values, int size);
+void print_matrix(const char* message, double *values, int size);
 
 /** Reads the dimensions of the matrix (n - number of rows, m - number
     of columns, nnzs - number of non-zeros) from the given Matrix

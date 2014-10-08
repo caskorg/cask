@@ -5,24 +5,27 @@
 #include "mkl_service.h"
 
 
-void print_array(double *values, int size) {
+void print_array(const char* message, double *values, int size) {
   int i;
+  printf("%s", message);
   for (i = 0; i < size; i++) {
     printf("%.10lg\n ", values[i]);
   }
   printf ("\n");
 }
 
-void print_array_int(int *values, int size) {
+void print_array_int(const char* message, int *values, int size) {
   int i;
+  printf("%s", message);
   for (i = 0; i < size; i++) {
     printf("%d\n", values[i]);
   }
   printf ("\n");
 }
 
-void print_matrix(double *values, int size) {
+void print_matrix(const char* message, double *values, int size) {
   int i, j;
+  printf("%s", message);
   for (i = 0; i < size; i++) {
     for (j = 0; j < size; j++)
       printf("%lf ", values[i * size + j]);

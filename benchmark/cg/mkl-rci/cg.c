@@ -97,7 +97,7 @@ int main (int argc, char** argv) {
     dcg_get (&size, x, rhs, &rci_request, ipar, dpar, tmp, &itercount);
 
     printf ("Solution\n");
-    print_array(x, size);
+    print_array("x = ", x, size);
 
     FILE *fout = fopen("sol.mtx", "w");
     fprintf(fout, "%%MatrixMarket matrix array real general\n");
