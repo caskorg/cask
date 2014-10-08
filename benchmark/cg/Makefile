@@ -11,7 +11,7 @@ CMPLR_PATH = $(MKLROOT)/../compiler/lib/intel64
 
 # All the required libraries
 MKL_LIB=$(MKL_PATH)/lib
-OMP_LIB = -L"$(CMPLR_PATH)" -liomp5
+OMP_LIB = -L"$(CMPLR_PATH)"
 
 COMMON_LIB=../lib
 
