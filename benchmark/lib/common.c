@@ -1,5 +1,6 @@
 #include "common.h"
 #include <stdio.h>
+#include "string.h"
 #include "mkl_blas.h"
 #include "mkl_spblas.h"
 #include "mkl_service.h"

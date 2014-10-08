@@ -4,13 +4,14 @@
 #include <string>
 #include <cmath>
 
+#include "common.h"
+#include "mmio.h"
+
 // Intel MKL libraries
 #include "mkl_blas.h"
 #include "mkl_spblas.h"
 #include "mkl_service.h"
 
-#include "mmio.h"
-#include "common.h"
 
 
 using namespace std;

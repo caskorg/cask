@@ -3,6 +3,9 @@
 
 #include "mmio.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 void print_array(const char* message, double *values, int size);
 void print_array_int(const char* message, int *values, int size);
@@ -28,5 +31,8 @@ double* read_rhs(FILE* g, int* n, int *nnzs);
 void read_system_matrix_sym_csr(FILE* f, int* n, int *nnzs, int** col_ind, int** row_ptr, double** values);
 void write_vector_to_file(const char* filename, double* vector, int size);
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif
