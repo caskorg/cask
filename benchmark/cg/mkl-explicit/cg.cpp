@@ -35,13 +35,16 @@ bool cg(int n, int nnzs, int* col_ind, int* row_ptr, double* matrix_values, doub
     /* for (i = 0; i < nnzs; i ++) */
     /*   printf("%d ", col_ind[i]); */
     /* printf("\n"); */
-    /* for (i = 0; i < n + 1; i ++) */
+    /* for (i = 0; i < n + 1; i ++) *
     /*   printf("%d ", row_ptr[i]); */
     /* printf("\n"); */
 
     int size = n;
     int maxiter = 1000000; // maximum iterations
-    double tolerance = 1e-10;    // relative error
+
+    // NB: residual norm needs to be < this is tolerance^2
+    // equivalent to tol = 1-e10 in mkl-rci benchmark
+    double tolerance = 1e-5;    // relative error
 
 
     // -------------------- Start solving the system ---------------------
@@ -54,7 +57,7 @@ bool cg(int n, int nnzs, int* col_ind, int* row_ptr, double* matrix_values, doub
     std::vector<double>    r(size, 0.0);
     std::vector<double>    q(size, 0.0);
 
-    std::vector<double>    precon(size, 0.0);
+    std::vector<double>    precon(size, 1.0);
 
     T alpha, beta, rho_new;
 
@@ -66,11 +69,19 @@ bool cg(int n, int nnzs, int* col_ind, int* row_ptr, double* matrix_values, doub
 
     // Initialise preconditioner; run through the matrix:
     //   if current nonzero entry is on diagonal, invert it
-    for (int i = 0; i < size; i++)
+    int k = 0;
+    for (int i = 0; i < nnzs; i++)
     {
-        precon[i] = 1.0/matrix_values[i];
+        printf("%d (%d) ", col_ind[i], i);
+        if (col_ind[i] == k+1)
+        {
+            precon[k] = 1.0/matrix_values[i];
+            printf("saving %d: matrix=%f, precon=%f |", col_ind[i],matrix_values[i],precon[k]);
+            k++;
+        }
+        printf(" | ");
     }
-
+    printf("precond: k = %d (size=%d)\n", k, size);
 
     // evaluate initial residual error for exit check
     T eps = 0;
@@ -94,7 +105,7 @@ bool cg(int n, int nnzs, int* col_ind, int* row_ptr, double* matrix_values, doub
     // apply diagonal preconditioner:  w = P*r;
     for (int i = 0; i < size; i++)
     {
-        w[i] = r[i]; //*m_precon[i];
+        w[i] = r[i]*precon[i];
     }
 
     // matrix multiply: s = A*w;
@@ -153,7 +164,7 @@ bool cg(int n, int nnzs, int* col_ind, int* row_ptr, double* matrix_values, doub
         // Apply preconditioner
         for (int i = 0; i < size; i++)
         {
-            w[i] = r[i];//*m_precon[i];
+            w[i] = r[i]*precon[i];
         }
 
         // matrix multiply: s = A*w;
@@ -183,7 +194,7 @@ bool cg(int n, int nnzs, int* col_ind, int* row_ptr, double* matrix_values, doub
         // test if norm is within tolerance
         if (eps < tolerance * tolerance)
         {
-            if (verbose)
+//            if (verbose)
             {
                 std::cout << "CG iterations made = " << itercount
                      << " using tolerance of "  << tolerance 
@@ -195,7 +206,8 @@ bool cg(int n, int nnzs, int* col_ind, int* row_ptr, double* matrix_values, doub
 
         // Compute search direction and solution coefficients
         beta  = rho_new/rho;
-        alpha = rho_new/(mu - rho_new*beta/alpha);
+        alpha = //rho_new/(mu - rho_new*beta/alpha);
+                rho_new * alpha / ( mu * alpha - rho_new * beta );
         rho   = rho_new;
         itercount++;
 
@@ -247,14 +259,14 @@ int main (int argc, char** argv)
 
     std::vector<double> sol(n, 0);
 
-    bool verbose = true;
+    bool verbose = false;
     bool status = cg<double>(n, nnzs, col_ind, row_ptr, values, rhs, &sol[0], verbose);
 
 
     printf ("Solution\n");
     print_array("sol = ", &sol[0], n);
 
-    //write_vector_to_file("sol.mtx", &x[0], x.size());
+    write_vector_to_file("sol.mtx.expl", &sol[0], sol.size());
 
     // check for expected solution
     /* for (i = 0; i < size && good; i++) */

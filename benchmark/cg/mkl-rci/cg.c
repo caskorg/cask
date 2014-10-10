@@ -91,7 +91,11 @@ int main (int argc, char** argv) {
     return 1;
   }
 
+ double residual = 0.0;
  rci:dcg (&size, x, rhs, &rci_request, ipar, dpar, tmp); // compute solution
+ 
+ residual = dpar[5];
+ 
   //  print_array(x, size);
   if (rci_request == 0) {
     dcg_get (&size, x, rhs, &rci_request, ipar, dpar, tmp, &itercount);
@@ -114,8 +118,10 @@ int main (int argc, char** argv) {
     /* for (i = 0; i < size && good; i++) */
     /*   good = fabs(expected_sol[i] - x[i]) < 1.0e-12; */
 
+    // check residual
+
     if (good) {
-      printf("[OK] Converged after %d iterations\n", itercount);
+      printf("[OK] Converged after %d iterations, sq. norm of residual = %1.12f\n", itercount, residual);
       return 0;
     }
   } else if (rci_request == 1) {
