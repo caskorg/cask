@@ -30,6 +30,7 @@ INCLUDE_DIRECTORIES( ${MKL_INCLUDE_DIR} )
 SET(common_sources
   ./benchmark/lib/mmio.c
   ./benchmark/lib/common.c
+  ./benchmark/lib/timer.cpp
 )
 
 ADD_LIBRARY(common SHARED ${common_sources})
@@ -51,7 +52,7 @@ ENDMACRO(ADD_BENCHMARK name filename)
 
 
 ADD_BENCHMARK(cg-mkl-rci
-  ./benchmark/cg/mkl-rci/cg.c
+  ./benchmark/cg/mkl-rci/cg.cpp
 )
 
 ADD_BENCHMARK(cg-mkl-explicit

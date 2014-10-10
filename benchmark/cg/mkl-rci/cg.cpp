@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdbool.h>
 
+#include "timer.hpp"
+
 // Intel MKL libraries
 #include "mkl_rci.h"
 #include "mkl_blas.h"
@@ -109,6 +111,9 @@ int main (int argc, char** argv) {
     return 1;
   }
 
+ Timer t;
+ t.start();
+
  double residual = 0.0;
  rci:dcg (&size, x, rhs, &rci_request, ipar, dpar, tmp); // compute solution
  
@@ -116,6 +121,9 @@ int main (int argc, char** argv) {
  
   //  print_array(x, size);
   if (rci_request == 0) {
+
+    t.stop();
+
     dcg_get (&size, x, rhs, &rci_request, ipar, dpar, tmp, &itercount);
 
     printf ("Solution\n");
@@ -138,7 +146,7 @@ int main (int argc, char** argv) {
     // check residual
 
     if (good) {
-      printf("[OK] Converged after %d iterations, sq. norm of residual = %1.12f\n", itercount, residual);
+      printf("[OK] Converged after %d iterations in %1.6f sec, sq. norm of residual = %1.12f\n", itercount, t.elapsed(), residual);
       return 0;
     }
   }

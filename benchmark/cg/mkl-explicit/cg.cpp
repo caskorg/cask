@@ -5,6 +5,8 @@
 #include <cmath>
 #include <cstring>
 
+#include "timer.hpp"
+
 #include "common.h"
 #include "mmio.h"
 
@@ -53,6 +55,10 @@ template <typename T>
 bool cg(int n, int nnzs, int* col_ind, int* row_ptr, double* matrix_values,
         double* precon, double* rhs, double* sol,  bool verbose = false)
 {
+    Timer t;
+    t.start();
+
+
     int size = n;
     int maxiter = 1000000; // maximum iterations
 
@@ -172,7 +178,10 @@ bool cg(int n, int nnzs, int* col_ind, int* row_ptr, double* matrix_values,
         // test if norm is within tolerance
         if (eps < tolerance * tolerance)
         {
+            t.stop();
+
             std::cout << "CG iterations made = " << itercount
+                 << " in " << t.elapsed() << " sec"
                  << " using tolerance of "  << tolerance 
                  << " (error = " << std::sqrt(eps) << ")" 
                  << std::endl;
