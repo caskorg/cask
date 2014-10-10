@@ -11,4 +11,4 @@ Implementation
 TODO
 ====
 
- * fix vector updates to BLAS L1 calls
+ - ?
