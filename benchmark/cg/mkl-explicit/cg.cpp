@@ -3,11 +3,13 @@
 #include <vector>
 #include <string>
 #include <cmath>
+#include <cstring>
 
 #include "common.h"
 #include "mmio.h"
 
 // Intel MKL libraries
+#include "mkl.h"
 #include "mkl_blas.h"
 #include "mkl_spblas.h"
 #include "mkl_service.h"
@@ -17,37 +19,46 @@
 using namespace std;
 
 /***
+    solve A * x = b
 
     This implements reduced-communication reordering of  
     the standard PCG method (Demmel, Heath and Vorst, 1993)  
 
-    
+    r_{0}     = b
+    w_{0}     = P*r_{0}
+    s_{0}     = A*w_{0}
+    eps_{0}   = (r_{0},r_{0})
+    rho_{0}   = (r_{0},w_{0})
+    mu_{0}    = (s_{0},w_{0})
+    alpha_{0} = rho_{0}/mu_{0}
+    beta_{0}  = 0
 
+    while (eps < tol^2) from k = 1
+        p_{k} = w_{k-1} + beta_{k-1} p_{k-1}
+        q_{k} = s_{k-1} + beta_{k-1} q_{k-1}
+        x_{k} += alpha_{k-1}*p_{k}
+        r_{k} -= alpha_{k-1}*q_{k}
+        w_{k} = P*r_{k}
+        s_{k} = A*w_{k}
+
+        rho_{k} = (r_{k},w_{k})
+        mu_{k}  = (s_{k},w_{k})
+        eps_{k} = (r_{k},r_{k})
+        beta_{k}  = rho_{k}/rho_{k-1};
+        alpha_{k} = rho_{k} / ( mu_{k} - rho_{k} * beta_{k}/alpha_{k-1} );
+
+    this way all dot products are postponed to the end of the loop.
 */
 template <typename T>
-bool cg(int n, int nnzs, int* col_ind, int* row_ptr, double* matrix_values, double* rhs, double* sol,
-        bool verbose = false)
+bool cg(int n, int nnzs, int* col_ind, int* row_ptr, double* matrix_values,
+        double* precon, double* rhs, double* sol,  bool verbose = false)
 {
-    /* printf("Matrix values\n"); */
-    /* for (i = 0; i < nnzs; i ++) */
-    /*   printf("%f ", values[i]); */
-    /* printf("\n"); */
-    /* for (i = 0; i < nnzs; i ++) */
-    /*   printf("%d ", col_ind[i]); */
-    /* printf("\n"); */
-    /* for (i = 0; i < n + 1; i ++) *
-    /*   printf("%d ", row_ptr[i]); */
-    /* printf("\n"); */
-
     int size = n;
     int maxiter = 1000000; // maximum iterations
 
     // NB: residual norm needs to be < this is tolerance^2
     // equivalent to tol = 1-e10 in mkl-rci benchmark
     double tolerance = 1e-5;    // relative error
-
-
-    // -------------------- Start solving the system ---------------------
 
 
     // Allocate array storage
@@ -57,38 +68,14 @@ bool cg(int n, int nnzs, int* col_ind, int* row_ptr, double* matrix_values, doub
     std::vector<double>    r(size, 0.0);
     std::vector<double>    q(size, 0.0);
 
-    std::vector<double>    precon(size, 1.0);
-
-    T alpha, beta, rho_new;
+    long double alpha, beta, rho_new;
 
     // Copy initial residual from input
-    for (int i = 0; i < size; i++)
-    {
-        r[i] = rhs[i];
-    }
+    std::memcpy(&r[0], &rhs[0], size*sizeof(T));
 
-    // Initialise preconditioner; run through the matrix:
-    //   if current nonzero entry is on diagonal, invert it
-    int k = 0;
-    for (int i = 0; i < nnzs; i++)
-    {
-        printf("%d (%d) ", col_ind[i], i);
-        if (col_ind[i] == k+1)
-        {
-            precon[k] = 1.0/matrix_values[i];
-            printf("saving %d: matrix=%f, precon=%f |", col_ind[i],matrix_values[i],precon[k]);
-            k++;
-        }
-        printf(" | ");
-    }
-    printf("precond: k = %d (size=%d)\n", k, size);
 
-    // evaluate initial residual error for exit check
-    T eps = 0;
-    for (int i = 0; i < size; i++)
-    {
-        eps += r[i]*r[i];
-    }
+    // evaluate initial residual error for exit check: eps = (r,r)
+    T eps = cblas_dnrm2(size, &r[0], 1);
 
     // If input residual is less than tolerance skip solve.
     if (eps < tolerance * tolerance)
@@ -103,26 +90,24 @@ bool cg(int n, int nnzs, int* col_ind, int* row_ptr, double* matrix_values, doub
     }
 
     // apply diagonal preconditioner:  w = P*r;
-    for (int i = 0; i < size; i++)
-    {
-        w[i] = r[i]*precon[i];
-    }
+    elementwise_xty(size, &precon[0], &r[0], &w[0]);
 
     // matrix multiply: s = A*w;
     char tr = 'l';
     mkl_dcsrsymv (&tr, &size, matrix_values, row_ptr, col_ind, &w[0], &s[0]);
 
-    print_array("r", &r[0], r.size());
-    print_array("w", &w[0], w.size());
-    print_array("s", &s[0], s.size());
-
-    T rho = 0.0;
-    T mu  = 0.0;
-    for (int i = 0; i < size; i++)
+    if (verbose)
     {
-        rho += r[i]*w[i];
-        mu  += s[i]*w[i];
+        print_array("r", &r[0], r.size());
+        print_array("w", &w[0], w.size());
+        print_array("s", &s[0], s.size());
     }
+
+    // scalar products:
+    //   rho = (r,w),
+    //   mu = (s, w)
+    T rho = cblas_ddot(size, &r[0], 1, &w[0], 1);;
+    T mu  = cblas_ddot(size, &s[0], 1, &w[0], 1);;
 
     int itercount = 0;
     beta      = 0.0;
@@ -136,38 +121,33 @@ bool cg(int n, int nnzs, int* col_ind, int* row_ptr, double* matrix_values, doub
             std::cout << "Exceeded maximum number of iterations: " << maxiter << std::endl;
 
             print_array("r",   &r[0],   r.size());
-            print_array("sol", sol, size);
+            print_array("sol", sol,     size);
 
             return false;
         }
 
-        // -------------------------------------
-        // TODO: substitute with BLAS L1 calls
-        // -------------------------------------
+        // Compute new search direction:
+        //   p = w + beta p
+        //   q = s + beta q
+        // NB: MKL proprietary extention to standard BLAS L1!
+        // (daxpby implements y = a*x + b*y)
+        cblas_daxpby(size, 1.0, &w[0], 1, beta, &p[0], 1);  // p = 1*w + beta*p
+        cblas_daxpby(size, 1.0, &s[0], 1, beta, &q[0], 1);  // q = 1*s + beta*q
 
-        // Compute new search direction p_k, q_k
-        for (int i = 0; i < size; i++)
-        {
-            p[i] = w[i] + beta*p[i];
-            q[i] = s[i] + beta*q[i];
-        }
-        // Update solution x_{k+1}
-        for (int i = 0; i < size; i++)
-        {
-            sol[i] += alpha*p[i];
-        }
-        // Update residual vector r_{k+1}
-        for (int i = 0; i < size; i++)
-        {
-            r[i] -= alpha*q[i];
-        }
-        // Apply preconditioner
-        for (int i = 0; i < size; i++)
-        {
-            w[i] = r[i]*precon[i];
-        }
+        // Update solution:
+        //   x_{k+1} += alpha*p
+        cblas_daxpy(size, alpha, &p[0], 1, &sol[0], 1);
 
-        // matrix multiply: s = A*w;
+        // Update residual vector
+        //   r_{k+1} -= alpha*q
+        cblas_daxpy(size, -alpha, &q[0], 1, &r[0], 1);
+
+        // apply diagonal preconditioner:
+        //   w = P*r;
+        elementwise_xty(size, &precon[0], &r[0], &w[0]);
+
+        // matrix multiply:
+        //   s = A*w;
         char tr = 'l';
         mkl_dcsrsymv (&tr, &size, matrix_values, row_ptr, col_ind, &w[0], &s[0]);
 
@@ -181,33 +161,27 @@ bool cg(int n, int nnzs, int* col_ind, int* row_ptr, double* matrix_values, doub
             print_array("sol", sol, size);
         }
 
-        rho_new = 0;
-        mu      = 0;
-        eps     = 0;
-        for (int i = 0; i < size; i++)
-        {
-            rho_new += r[i]*w[i];
-            mu      += s[i]*w[i];
-            eps     += r[i]*r[i];
-        }
+        // scalar products:
+        //   rho = (r,w),
+        //   mu  = (s,w)
+        //   eps = (r,r)
+        rho_new = cblas_ddot(size, &r[0], 1, &w[0], 1);
+        mu      = cblas_ddot(size, &s[0], 1, &w[0], 1);
+        eps     = cblas_ddot(size, &r[0], 1, &r[0], 1);
 
         // test if norm is within tolerance
         if (eps < tolerance * tolerance)
         {
-//            if (verbose)
-            {
-                std::cout << "CG iterations made = " << itercount
-                     << " using tolerance of "  << tolerance 
-                     << " (error = " << std::sqrt(eps) << ")" 
-                     << std::endl;
-            }
+            std::cout << "CG iterations made = " << itercount
+                 << " using tolerance of "  << tolerance 
+                 << " (error = " << std::sqrt(eps) << ")" 
+                 << std::endl;
             break;
         }
 
         // Compute search direction and solution coefficients
         beta  = rho_new/rho;
-        alpha = //rho_new/(mu - rho_new*beta/alpha);
-                rho_new * alpha / ( mu * alpha - rho_new * beta );
+        alpha = rho * rho_new * alpha / ( rho * mu * alpha - rho_new * rho_new );
         rho   = rho_new;
         itercount++;
 
@@ -254,13 +228,25 @@ int main (int argc, char** argv)
     fclose(g);
 
 
+    // Initialise preconditioner; run through the matrix:
+    //   if current nonzero entry is on diagonal, invert it
+    std::vector<double>    precon(n, 1.0);
+    int k = 0;
+    for (int i = 0; i < nnzs; i++)
+    {
+        if (col_ind[i] == k+1)
+        {
+            precon[k++] = 1.0/values[i];
+        }
+    }
+
 
     // -------------------- Start solving the system ---------------------
 
     std::vector<double> sol(n, 0);
 
     bool verbose = false;
-    bool status = cg<double>(n, nnzs, col_ind, row_ptr, values, rhs, &sol[0], verbose);
+    bool status = cg<double>(n, nnzs, col_ind, row_ptr, values, &precon[0], rhs, &sol[0], verbose);
 
 
     printf ("Solution\n");
