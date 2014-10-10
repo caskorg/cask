@@ -1,6 +1,6 @@
 Method
 ======
- Conjugate Gradient
+ Conjugate Gradient with diagonal preconditioner
 
 Implementation
 ==============
@@ -11,4 +11,4 @@ Implementation
 TODO
 ====
 
- * add preconditioner
+?

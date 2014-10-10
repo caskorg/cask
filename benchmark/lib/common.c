@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include "string.h"
 #include "mkl_blas.h"
+#include "mkl_cblas.h"
 #include "mkl_spblas.h"
 #include "mkl_service.h"
 
@@ -181,4 +182,19 @@ void write_vector_to_file(const char* filename, double* vector, int size)
     for (i = 0; i < size; i++)
       fprintf(fout, "%.12lf\n", vector[i]);
     fclose(fout);
+}
+
+void elementwise_xty(const int n, const double *x, const double *y, double *z)
+{
+    // calling double precision symmetric banded matrix-vector multiplier
+    static const int k = 0; // just the diagonal
+    static const double alpha = 1.0;
+    static const int lda = 1;
+    static const int incx = 1;
+    static const double beta = 0.0;
+    static const int incy = 1;
+    static const CBLAS_ORDER order = CblasRowMajor;
+    static const CBLAS_UPLO  uplo  = CblasUpper;
+
+    cblas_dsbmv(order, uplo, n, k, alpha, x, lda, y, incx, beta, z, incy);
 }

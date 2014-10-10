@@ -31,6 +31,12 @@ double* read_rhs(FILE* g, int* n, int *nnzs);
 void read_system_matrix_sym_csr(FILE* f, int* n, int *nnzs, int** col_ind, int** row_ptr, double** values);
 void write_vector_to_file(const char* filename, double* vector, int size);
 
+/**
+    Implements element-wise multiplication of two vectors (treats first vector as
+    diagonal matrix and multiplies it to second vector): z = x (*) y.
+*/
+void elementwise_xty(const int n, const double *x, const double *y, double *z);
+
 #ifdef __cplusplus
 }
 #endif

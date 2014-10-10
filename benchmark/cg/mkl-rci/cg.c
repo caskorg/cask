@@ -11,6 +11,7 @@
 #include "common.h"
 #include "mmio.h"
 
+
 // Solve an SPD sparse system using the conjugate gradient method with Intel MKL
 int main (int argc, char** argv) {
 
@@ -53,6 +54,7 @@ int main (int argc, char** argv) {
   int size = n;
 
   double *x = (double *)malloc(sizeof(double) * size);
+  double *precon = (double *)malloc(sizeof(double) * size);
   memset(x, 0, sizeof(double) * size);
 
   int ipar[128];
@@ -62,6 +64,20 @@ int main (int argc, char** argv) {
   for (i = 0; i < size; i++) {
     x[i] = 0;
   }
+
+
+  // Initialise diagonal preconditioner; run through the matrix:
+  //   if current nonzero entry is on diagonal, invert it
+  int k = 0;
+  for (i = 0; i < nnzs; i++)
+  {
+      if (col_ind[i] == k+1)
+      {
+          precon[k++] = 1.0/values[i];
+      }
+  }
+
+
 
   dcg_init (&size, x, rhs, &rci_request, ipar, dpar, tmp);
   if (rci_request != 0) {
@@ -83,6 +99,8 @@ int main (int argc, char** argv) {
   ipar[4] = 1000000; // set maximum iterations
   ipar[8] = 1;     // enable residual test
   ipar[9] = 0;     // no user stopping test
+  ipar[10] = 1;    // implement preconditioned CG
+
   dpar[0] = 1e-10;// set relative error
 
   dcg_check (&size, x, rhs, &rci_request, ipar, dpar, tmp); // check params are correct
@@ -111,7 +129,6 @@ int main (int argc, char** argv) {
       fprintf(fout, "%.12lf\n", x[i]);
     fclose(fout);
 
-    // MKL_FreeBuffers ();
     mkl_free_buffers();
 
     bool good = true;
@@ -124,19 +141,36 @@ int main (int argc, char** argv) {
       printf("[OK] Converged after %d iterations, sq. norm of residual = %1.12f\n", itercount, residual);
       return 0;
     }
-  } else if (rci_request == 1) {
+  }
+  /*---------------------------------------------------------------------------*/
+  /* do matrix multiply */
+  /*---------------------------------------------------------------------------*/
+   else if (rci_request == 1) {
     char tr = 'l';
     mkl_dcsrsymv (&tr, &size, a, row_ptr, col_ind, tmp, &tmp[size]);
     goto rci;
+  /*---------------------------------------------------------------------------*/
+  /* If rci_request=3, then compute apply the preconditioner matrix C_inverse  */
+  /* on vector tmp[2*n] and put the result in vector tmp[3*n]                  */
+  /*---------------------------------------------------------------------------*/
+  } else if (rci_request == 3)
+    {
+      elementwise_xty(size, precon, &tmp[2*n], &tmp[3*n]);
+
+      // solve system of equations with preconditioner matrix (a, ja, ia)
+      //mkl_dcsrsv (&matdes[2], &n, &one, matdes, a, ja, ia, &ia[1], &tmp[2 * n], &tmp[3 * n]);
+      goto rci;
   } else {
     printf("This example FAILED as the solver has returned the ERROR ");
     printf("code %d\n", rci_request);
   }
 
+  if (x) free(x);
+  if (precon) free(precon);
+
   fclose(f);
   fclose(g);
   //  print_array(x, size);
-  //MKL_FreeBuffers ();
   mkl_free_buffers();
   printf("[FAIL] Hasn't converged %d iterations!\n", itercount);
   return 1;
