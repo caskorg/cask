@@ -59,6 +59,10 @@ ADD_BENCHMARK(cg-mkl-explicit
   ./benchmark/cg/mkl-explicit/cg.cpp
 )
 
+ADD_BENCHMARK(cg-3term-mkl
+  ./benchmark/cg/3term-mkl/cg.cpp
+)
+
 
 
 
