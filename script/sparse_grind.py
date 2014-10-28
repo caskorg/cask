@@ -1,5 +1,5 @@
 """
-A script for analysing sparse matrices. Can be used to analyse
+A script/module for analysing sparse matrices. Can be used to analyse
 1. sparsity 
 2. dynamic range 
 3. storage format
@@ -23,7 +23,9 @@ def read_matlab_matrix_timeline(file_path):
       file_path - path to the matrix file.
 
     Returns:
-      A list of tuples [(complex, real, imag)].
+      A list of tuples [(complex, real, imag)] representing the
+    complex, real and imaginary _dense_ matrices corresponding to the
+    input data.
     """
     f = open(file_path)
     matrixsize = 68
