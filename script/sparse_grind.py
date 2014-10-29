@@ -8,7 +8,7 @@ A script/module for analysing sparse matrices. Can be used to analyse
 import argparse
 import numpy as np
 import matplotlib.pylab as pl
-from scipy import sparse
+from scipy import sparse, io
 
 
 def read_matlab_matrix_timeline(file_path, ntimepoints=None):
@@ -50,7 +50,7 @@ def read_matlab_matrix_timeline(file_path, ntimepoints=None):
     f = open(file_path)
     matline = 0
     for line in f:
-        print matline,'/', matrixsize
+        #print matline,'/', matrixsize
         values = line.split(',')
         for t in xrange(ntimepoints):
             for i in xrange(matrixsize):
@@ -64,17 +64,20 @@ def read_matlab_matrix_timeline(file_path, ntimepoints=None):
     return matrices, realms, complexms
 
 
-def range_analysis(matrix):
+def read_matrix_market(file_path):
+    return io.mmread(file_path)
+
+
+def range_analysis(csr_matrix):
     value_dict = {}
     minCell = None
     maxCell = None
-    for row in matrix:
-        for cell in row:
-            c = value_dict.get(cell, 0)
-            c += 1
-            value_dict[cell] = c
-            minCell = cell if not minCell else min(minCell, cell)
-            maxCell = cell if not minCell else max(maxCell, cell)
+    for d in csr_matrix.data:
+        c = value_dict.get(d, 0)
+        c += 1
+        value_dict[d] = c
+        minCell = d if not minCell else min(minCell, d)
+        maxCell = d if not minCell else max(maxCell, d)
 
     print 'Min Value:', minCell
     print 'Max Value:', maxCell
@@ -100,6 +103,8 @@ def main():
     # read in matrix data
     if args.format == 'matlabtl':
         matrices, realms, imagms = read_matlab_matrix_timeline(args.file, 1)
+    elif args.format == 'mm':
+        realms = [read_matrix_market(args.file)]
     else:
         print 'Unsupported format'
         return
@@ -110,7 +115,8 @@ def main():
         pl.spy(A)
         pl.show()
     elif args.analysis == 'range':
-        value_dict = range_analysis(realms[0])
+        A = sparse.csr_matrix(realms[0])
+        value_dict = range_analysis(A)
 
     else:
         print 'Unspported analysis'
