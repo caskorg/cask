@@ -71,16 +71,27 @@ def main():
                         default='mm',
                         choices=['mm', 'csr', 'coo', 'matlabtl'],
                         help='Format of the given matrix')
+    parser.add_argument('-a', '--analysis',
+                        default='sparsity',
+                        choices=['sparsity', 'range', 'storage'],
+                        help='Analysis to run')
     parser.add_argument('file')
     args = parser.parse_args()
     print args
 
+    # read in matrix data
     if args.format == 'matlabtl':
         matrices, realms, imagms = read_matlab_matrix_timeline(args.file)
+    else:
+        print 'Unsupported format'
 
-    A = sparse.csr_matrix(realms[0])
-    pl.spy(A)
-    pl.show()
+    # perform requested analysis
+    if args.analysis == 'sparsity':
+        A = sparse.csr_matrix(realms[0])
+        pl.spy(A)
+        pl.show()
+    else:
+        print 'Unspported analysis'
 
 if __name__ == '__main__':
     main()
