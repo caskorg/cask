@@ -11,7 +11,7 @@ import matplotlib.pylab as pl
 from scipy import sparse
 
 
-def read_matlab_matrix_timeline(file_path):
+def read_matlab_matrix_timeline(file_path, ntimepoints=None):
     """Reads a timeline of complex valued matrices produced from Matlab.
     Matrices are stored sequentially, in dense format with values
     separated by commas e.g.
@@ -35,7 +35,8 @@ def read_matlab_matrix_timeline(file_path):
     print len(firstline)
     nvalues = firstline.count(',')
 
-    ntimepoints = nvalues / matrixsize
+    if not ntimepoints:
+        ntimepoints = nvalues / matrixsize
 
     matrices = []
     realms = []
@@ -43,8 +44,8 @@ def read_matlab_matrix_timeline(file_path):
     print ntimepoints
     for t in xrange(ntimepoints):
         matrices.append(np.zeros((matrixsize, matrixsize), dtype='complex'))
-        realms.append(np.zeros((matrixsize, matrixsize), dtype='complex'))
-        complexms.append(np.zeros((matrixsize, matrixsize), dtype='complex'))
+        realms.append(np.zeros((matrixsize, matrixsize), dtype='float'))
+        complexms.append(np.zeros((matrixsize, matrixsize), dtype='float'))
 
     f = open(file_path)
     matline = 0
@@ -61,6 +62,23 @@ def read_matlab_matrix_timeline(file_path):
         matline += 1
     f.close()
     return matrices, realms, complexms
+
+
+def range_analysis(matrix):
+    value_dict = {}
+    minCell = None
+    maxCell = None
+    for row in matrix:
+        for cell in row:
+            c = value_dict.get(cell, 0)
+            c += 1
+            value_dict[cell] = c
+            minCell = cell if not minCell else min(minCell, cell)
+            maxCell = cell if not minCell else max(maxCell, cell)
+
+    print 'Min Value:', minCell
+    print 'Max Value:', maxCell
+    print 'Range:', maxCell - minCell
 
 
 def main():
@@ -81,17 +99,22 @@ def main():
 
     # read in matrix data
     if args.format == 'matlabtl':
-        matrices, realms, imagms = read_matlab_matrix_timeline(args.file)
+        matrices, realms, imagms = read_matlab_matrix_timeline(args.file, 1)
     else:
         print 'Unsupported format'
+        return
 
     # perform requested analysis
     if args.analysis == 'sparsity':
         A = sparse.csr_matrix(realms[0])
         pl.spy(A)
         pl.show()
+    elif args.analysis == 'range':
+        value_dict = range_analysis(realms[0])
+
     else:
         print 'Unspported analysis'
+        return
 
 if __name__ == '__main__':
     main()
