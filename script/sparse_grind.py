@@ -1,11 +1,11 @@
 """
 A script/module for analysing sparse matrices. Can be used to analyse
-1. sparsity 
-2. dynamic range 
+1. sparsity
+2. dynamic range
 3. storage format
 """
 
-import sys
+import argparse
 import numpy as np
 import matplotlib.pylab as pl
 from scipy import sparse
@@ -46,7 +46,7 @@ def read_matlab_matrix_timeline(file_path):
         realms.append(np.zeros((matrixsize, matrixsize), dtype='complex'))
         complexms.append(np.zeros((matrixsize, matrixsize), dtype='complex'))
 
-    f = open(sys.argv[1])
+    f = open(file_path)
     matline = 0
     for line in f:
         print matline,'/', matrixsize
@@ -65,13 +65,20 @@ def read_matlab_matrix_timeline(file_path):
 
 def main():
 
-    matrices, realms, imagms = read_matlab_matrix_timeline(sys.argv[1])
+    parser = argparse.ArgumentParser(
+        description='Analyse sparse matrices.')
+    parser.add_argument('-f', '--format',
+                        default='mm',
+                        choices=['mm', 'csr', 'coo', 'matlabtl'],
+                        help='Format of the given matrix')
+    parser.add_argument('file')
+    args = parser.parse_args()
+    print args
+
+    if args.format == 'matlabtl':
+        matrices, realms, imagms = read_matlab_matrix_timeline(args.file)
 
     A = sparse.csr_matrix(realms[0])
-    pl.spy(A)
-    pl.show()
-
-    A = sparse.csr_matrix(imagms[1100])
     pl.spy(A)
     pl.show()
 
