@@ -9,6 +9,7 @@ import argparse
 import numpy as np
 import matplotlib.pylab as pl
 from scipy import sparse, io
+from math import log
 
 
 def read_matlab_matrix_timeline(file_path, ntimepoints=None):
@@ -82,6 +83,11 @@ def range_analysis(csr_matrix):
     print 'Min Value:', minCell
     print 'Max Value:', maxCell
     print 'Range:', maxCell - minCell
+
+    prec = [1E-3, 1E-6, 1E-9, 1E-12]
+    for p in prec:
+        print '{} bits to represent with {} precision'.format(
+            log((maxCell - minCell)/p, 2), p)
 
 
 def main():
