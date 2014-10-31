@@ -13,31 +13,7 @@ from scipy import sparse
 from math import log, ceil
 from reorder import reorder
 from sparsegrindio import io
-
-
-bytes_per_data = 8
-bytes_per_metadata = 4
-
-
-def coo_storage(matrix):
-    nnz = matrix.nnz
-    return (2 * nnz * bytes_per_metadata,
-            nnz * bytes_per_data,
-            'COO')
-
-
-def csc_storage(matrix):
-    nnz = matrix.nnz
-    return ((len(matrix.indptr) + nnz) * bytes_per_metadata,
-            nnz * bytes_per_data,
-            'CSC')
-
-
-def csr_storage(matrix):
-    nnz = matrix.nnz
-    return ((len(matrix.indptr) + nnz) * bytes_per_metadata,
-            nnz * bytes_per_data,
-            'CSR')
+from storage import storage
 
 
 def storage_analysis(matrix):
@@ -50,9 +26,9 @@ def storage_analysis(matrix):
     total_bytes = []
 
     formats = [
-        csr_storage(matrix),
-        csc_storage(matrix),
-        coo_storage(matrix)
+        storage.csr(matrix),
+        storage.csc(matrix),
+        storage.coo(matrix)
     ]
 
     for f in formats:
@@ -61,7 +37,6 @@ def storage_analysis(matrix):
         total_bytes.append(f[0] + f[1])
         labels.append(f[2])
 
-    print metadata_bytes
     ind = np.arange(len(formats))
     metadata = ax.bar(ind, metadata_bytes, width, color='r')
     data = ax.bar(ind + width, data_bytes, width, color='y')
