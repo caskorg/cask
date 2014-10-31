@@ -8,8 +8,11 @@ A script/module for analysing sparse matrices. Can be used to analyse
 import argparse
 import numpy as np
 import matplotlib.pylab as pl
+import networkx as nx
 from scipy import sparse, io
 from math import log, ceil
+from networkx.utils import reverse_cuthill_mckee_ordering
+from networkx.utils import cuthill_mckee_ordering
 
 
 def read_matlab_matrix_timeline(file_path, ntimepoints=None):
@@ -103,6 +106,33 @@ def changes_analysis(matrix_timeline):
     return different
 
 
+def reorder_rcm(matrix):
+    """Returns a reverse Cuthill-McKee reordering of the given matrix."""
+    G = nx.from_scipy_sparse_matrix(matrix)
+    rcm = reverse_cuthill_mckee_ordering(G)
+    return nx.to_scipy_sparse_matrix(G, nodelist=list(rcm), format='csr')
+
+
+def min_degree_heuristic(G):
+        n, d = sorted(G.degree().items(), key=lambda x: x[1])[0]
+        return n
+
+
+def reorder_rcm_min_degree(matrix):
+    """Returns a reverse Cuthill-McKee reordering of the given matrix,
+    using the minimum degree heuristic."""
+    G = nx.from_scipy_sparse_matrix(matrix)
+    rcm = reverse_cuthill_mckee_ordering(G, heuristic=min_degree_heuristic)
+    return nx.to_scipy_sparse_matrix(G, nodelist=list(rcm), format='csr')
+
+
+def reorder_cm(matrix):
+    """Returns a Cuthill-McKee reordering of the given matrix."""
+    G = nx.from_scipy_sparse_matrix(matrix)
+    rcm = cuthill_mckee_ordering(G)
+    return nx.to_scipy_sparse_matrix(G, nodelist=list(rcm), format='csr')
+
+
 def main():
 
     parser = argparse.ArgumentParser(
@@ -113,7 +143,9 @@ def main():
                         help='Format of the given matrix')
     parser.add_argument('-a', '--analysis',
                         default='sparsity',
-                        choices=['sparsity', 'range', 'storage', 'changes'],
+                        choices=['sparsity', 'range',
+                                 'storage', 'changes',
+                                 'reordering'],
                         help='Analysis to run')
     parser.add_argument('-t', '--timestep',
                         default=0,
@@ -158,6 +190,18 @@ def main():
         for i, k in enumerate(sorted(res2.iterkeys())):
             pl.subplot(nitems, 1, len(res) + i + 1)
             pl.spy(res2.get(k))
+        pl.show()
+    elif args.analysis == 'reordering':
+        A = sparse.csr_matrix(realms[0])
+        nplots = 4
+        pl.subplot(nplots, 1, 1)
+        pl.spy(A)
+        pl.subplot(nplots, 1, 2)
+        pl.spy(reorder_rcm(A))
+        pl.subplot(nplots, 1, 3)
+        pl.spy(reorder_rcm_min_degree(A))
+        pl.subplot(nplots, 1, 4)
+        pl.spy(reorder_cm(A))
         pl.show()
     else:
         print 'Unspported analysis'
