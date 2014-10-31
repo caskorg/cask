@@ -8,11 +8,9 @@ A script/module for analysing sparse matrices. Can be used to analyse
 import argparse
 import numpy as np
 import matplotlib.pylab as pl
-import networkx as nx
 from scipy import sparse, io
 from math import log, ceil
-from networkx.utils import reverse_cuthill_mckee_ordering
-from networkx.utils import cuthill_mckee_ordering
+from reorder import reorder
 
 
 def read_matlab_matrix_timeline(file_path, ntimepoints=None):
@@ -106,39 +104,13 @@ def changes_analysis(matrix_timeline):
     return different
 
 
-def reorder_rcm(matrix):
-    """Returns a reverse Cuthill-McKee reordering of the given matrix."""
-    G = nx.from_scipy_sparse_matrix(matrix)
-    rcm = reverse_cuthill_mckee_ordering(G)
-    return nx.to_scipy_sparse_matrix(G, nodelist=list(rcm), format='csr')
-
-
-def min_degree_heuristic(G):
-        n, d = sorted(G.degree().items(), key=lambda x: x[1])[0]
-        return n
-
-
-def reorder_rcm_min_degree(matrix):
-    """Returns a reverse Cuthill-McKee reordering of the given matrix,
-    using the minimum degree heuristic."""
-    G = nx.from_scipy_sparse_matrix(matrix)
-    rcm = reverse_cuthill_mckee_ordering(G, heuristic=min_degree_heuristic)
-    return nx.to_scipy_sparse_matrix(G, nodelist=list(rcm), format='csr')
-
-
-def reorder_cm(matrix):
-    """Returns a Cuthill-McKee reordering of the given matrix."""
-    G = nx.from_scipy_sparse_matrix(matrix)
-    rcm = cuthill_mckee_ordering(G)
-    return nx.to_scipy_sparse_matrix(G, nodelist=list(rcm), format='csr')
-
-
 def reorder_analysis(matrix):
     results = []
+    print dir(reorder)
     results.extend(
-        [reorder_rcm(matrix),
-         reorder_rcm_min_degree(matrix),
-         reorder_cm(matrix)]
+        [reorder.rcm(matrix),
+         reorder.rcm_min_degree(matrix),
+         reorder.cm(matrix)]
     )
     return results
 
