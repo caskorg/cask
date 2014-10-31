@@ -1,6 +1,6 @@
 """
-A script/module for analysing sparse matrices. Can be used to analyse
-1. sparsity
+A module for analysing sparse matrices. Can be used to analyse:
+1. sparsity pattern
 2. dynamic range
 3. storage format
 """
