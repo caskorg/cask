@@ -112,10 +112,9 @@ def main():
     timestep = int(args.timestep)
     # read in matrix data
     if args.format == 'matlabtl':
-        timesteps_to_read = max(timestep, 1)
         matrices, realms, imagms = read_matlab_matrix_timeline(
             args.file,
-            timesteps_to_read
+            timestep + 1
         )
     elif args.format == 'mm':
         realms = [read_matrix_market(args.file)]
