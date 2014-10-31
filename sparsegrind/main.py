@@ -8,66 +8,11 @@ A script/module for analysing sparse matrices. Can be used to analyse
 import argparse
 import numpy as np
 import matplotlib.pylab as pl
-from scipy import sparse, io
+from scipy import sparse
+
 from math import log, ceil
 from reorder import reorder
-
-
-def read_matlab_matrix_timeline(file_path, ntimepoints=None):
-    """Reads a timeline of complex valued matrices produced from Matlab.
-    Matrices are stored sequentially, in dense format with values
-    separated by commas e.g.
-      (A)     (B)     (C)
-    a11, a12, b11, b12, c11, c12
-    a21, a22, b21, b22, c21, c22
-
-    Args:
-      file_path - path to the matrix file.
-
-    Returns:
-      A list of tuples [(complex, real, imag)] representing the
-    complex, real and imaginary _dense_ matrices corresponding to the
-    input data.
-    """
-    f = open(file_path)
-    matrixsize = 68
-
-    firstline = f.readline()
-    f.close()
-    print len(firstline)
-    nvalues = firstline.count(',')
-
-    if not ntimepoints:
-        ntimepoints = nvalues / matrixsize
-
-    matrices = []
-    realms = []
-    complexms = []
-    print ntimepoints
-    for t in xrange(ntimepoints):
-        matrices.append(np.zeros((matrixsize, matrixsize), dtype='complex'))
-        realms.append(np.zeros((matrixsize, matrixsize), dtype='float'))
-        complexms.append(np.zeros((matrixsize, matrixsize), dtype='float'))
-
-    f = open(file_path)
-    matline = 0
-    for line in f:
-        #print matline,'/', matrixsize
-        values = line.split(',')
-        for t in xrange(ntimepoints):
-            for i in xrange(matrixsize):
-                idx = t * matrixsize + i
-                cvalue = complex(values[idx].strip().replace('i', 'j'))
-                matrices[t][matline, i] = cvalue
-                realms[t][matline, i] = cvalue.real
-                complexms[t][matline, i] = cvalue.imag
-        matline += 1
-    f.close()
-    return matrices, realms, complexms
-
-
-def read_matrix_market(file_path):
-    return io.mmread(file_path)
+from sparsegrindio import io
 
 
 def range_analysis(csr_matrix):
@@ -148,12 +93,12 @@ def main():
     timestep = int(args.timestep)
     # read in matrix data
     if args.format == 'matlabtl':
-        matrices, realms, imagms = read_matlab_matrix_timeline(
+        matrices, realms, imagms = io.read_matlab_matrix_timeline(
             args.file,
             timestep + 1
         )
     elif args.format == 'mm':
-        realms = [read_matrix_market(args.file)]
+        realms = [io.read_matrix_market(args.file)]
     else:
         print 'Unsupported format'
         return
