@@ -102,13 +102,21 @@ def main():
                         default='sparsity',
                         choices=['sparsity', 'range', 'storage'],
                         help='Analysis to run')
+    parser.add_argument('-t', '--timestep',
+                        default=0,
+                        help='Time step to look at when using the matlabtl format')
     parser.add_argument('file')
     args = parser.parse_args()
     print args
 
+    timestep = int(args.timestep)
     # read in matrix data
     if args.format == 'matlabtl':
-        matrices, realms, imagms = read_matlab_matrix_timeline(args.file, 1)
+        timesteps_to_read = max(timestep, 1)
+        matrices, realms, imagms = read_matlab_matrix_timeline(
+            args.file,
+            timesteps_to_read
+        )
     elif args.format == 'mm':
         realms = [read_matrix_market(args.file)]
     else:
@@ -117,13 +125,13 @@ def main():
 
     # perform requested analysis
     if args.analysis == 'sparsity':
-        A = sparse.csr_matrix(realms[0])
-        pl.spy(A)
-        pl.show()
+        if args.format == 'matlabtl':
+            A = sparse.csr_matrix(realms[timestep])
+            pl.spy(A)
+            pl.show()
     elif args.analysis == 'range':
         A = sparse.csr_matrix(realms[0])
         value_dict = range_analysis(A)
-
     else:
         print 'Unspported analysis'
         return
