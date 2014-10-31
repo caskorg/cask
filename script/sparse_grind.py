@@ -133,6 +133,25 @@ def reorder_cm(matrix):
     return nx.to_scipy_sparse_matrix(G, nodelist=list(rcm), format='csr')
 
 
+def reorder_analysis(matrix):
+    results = []
+    results.extend(
+        [reorder_rcm(matrix),
+         reorder_rcm_min_degree(matrix),
+         reorder_cm(matrix)]
+    )
+    return results
+
+
+def plot_matrices(list_of_matrices):
+    """"Plots the given list of sparse matrices using plt.spy()"""
+    nplots = len(list_of_matrices)
+    for i, m in enumerate(list_of_matrices):
+        pl.subplot(nplots, 1, i)
+        pl.spy(m)
+    pl.show()
+
+
 def main():
 
     parser = argparse.ArgumentParser(
@@ -192,17 +211,9 @@ def main():
             pl.spy(res2.get(k))
         pl.show()
     elif args.analysis == 'reordering':
-        A = sparse.csr_matrix(realms[0])
-        nplots = 4
-        pl.subplot(nplots, 1, 1)
-        pl.spy(A)
-        pl.subplot(nplots, 1, 2)
-        pl.spy(reorder_rcm(A))
-        pl.subplot(nplots, 1, 3)
-        pl.spy(reorder_rcm_min_degree(A))
-        pl.subplot(nplots, 1, 4)
-        pl.spy(reorder_cm(A))
-        pl.show()
+        plot_matrices(reorder_analysis(sparse.csr_matrix(realms[0])))
+    elif args.analysis == 'storage':
+        print 'Running storage format analysis'
     else:
         print 'Unspported analysis'
         return
