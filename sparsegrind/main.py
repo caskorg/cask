@@ -15,6 +15,64 @@ from reorder import reorder
 from sparsegrindio import io
 
 
+bytes_per_data = 8
+bytes_per_metadata = 4
+
+
+def coo_storage(matrix):
+    nnz = matrix.nnz
+    return (2 * nnz * bytes_per_metadata,
+            nnz * bytes_per_data,
+            'COO')
+
+
+def csc_storage(matrix):
+    nnz = matrix.nnz
+    return ((len(matrix.indptr) + nnz) * bytes_per_metadata,
+            nnz * bytes_per_data,
+            'CSC')
+
+
+def csr_storage(matrix):
+    nnz = matrix.nnz
+    return ((len(matrix.indptr) + nnz) * bytes_per_metadata,
+            nnz * bytes_per_data,
+            'CSR')
+
+
+def storage_analysis(matrix):
+    fig, ax = pl.subplots()
+    width = 0.10
+
+    labels = []
+    metadata_bytes = []
+    data_bytes = []
+    total_bytes = []
+
+    formats = [
+        csr_storage(matrix),
+        csc_storage(matrix),
+        coo_storage(matrix)
+    ]
+
+    for f in formats:
+        metadata_bytes.append(f[0])
+        data_bytes.append(f[1])
+        total_bytes.append(f[0] + f[1])
+        labels.append(f[2])
+
+    print metadata_bytes
+    ind = np.arange(len(formats))
+    metadata = ax.bar(ind, metadata_bytes, width, color='r')
+    data = ax.bar(ind + width, data_bytes, width, color='y')
+    total = ax.bar(ind + 2 * width, total_bytes, width, color='b')
+    ax.set_xticks(ind + width)
+    ax.set_xticklabels(labels)
+    ax.legend((metadata[0], data[0], total[0]),
+              ('Metadata (Bytes)', 'Data (Bytes)', 'Total (Bytes)'))
+    pl.show()
+
+
 def range_analysis(csr_matrix):
     value_dict = {}
     minCell = None
@@ -131,6 +189,7 @@ def main():
         plot_matrices(reorder_analysis(sparse.csr_matrix(realms[0])))
     elif args.analysis == 'storage':
         print 'Running storage format analysis'
+        storage_analysis(sparse.csr_matrix(realms[0]))
     else:
         print 'Unspported analysis'
         return
