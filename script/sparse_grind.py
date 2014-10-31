@@ -90,6 +90,19 @@ def range_analysis(csr_matrix):
             int(ceil(log((maxCell - minCell)/p, 2))), p)
 
 
+def changes_analysis(matrix_timeline):
+    size = len(matrix_timeline[0])
+    prev_m = np.zeros((size, size))
+    different = {}
+    pos = 0
+    for m in matrix_timeline:
+        if not (m == prev_m).all():
+            different[pos] = m
+        prev_m = m
+        pos += 1
+    return different
+
+
 def main():
 
     parser = argparse.ArgumentParser(
@@ -100,7 +113,7 @@ def main():
                         help='Format of the given matrix')
     parser.add_argument('-a', '--analysis',
                         default='sparsity',
-                        choices=['sparsity', 'range', 'storage'],
+                        choices=['sparsity', 'range', 'storage', 'changes'],
                         help='Analysis to run')
     parser.add_argument('-t', '--timestep',
                         default=0,
@@ -131,6 +144,21 @@ def main():
     elif args.analysis == 'range':
         A = sparse.csr_matrix(realms[0])
         value_dict = range_analysis(A)
+    elif args.analysis == 'changes':
+        if args.format != 'matlabtl':
+            print 'Changes analysis only supported in matlabtl format.'
+            return
+        res = changes_analysis(realms)
+        res2 = changes_analysis(imagms)
+        nitems = len(res) + len(res2)
+        for i, k in enumerate(sorted(res.iterkeys())):
+            print i
+            pl.subplot(nitems, 1, i + 1)
+            pl.spy(res.get(k))
+        for i, k in enumerate(sorted(res2.iterkeys())):
+            pl.subplot(nitems, 1, len(res) + i + 1)
+            pl.spy(res2.get(k))
+        pl.show()
     else:
         print 'Unspported analysis'
         return
