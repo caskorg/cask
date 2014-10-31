@@ -17,6 +17,7 @@ from storage import storage
 
 
 def storage_analysis(matrix):
+    """Plots the storage cost in bytes of various formats."""
     fig, ax = pl.subplots()
     width = 0.10
 
@@ -49,6 +50,8 @@ def storage_analysis(matrix):
 
 
 def range_analysis(csr_matrix):
+    """Analyse the range of values and the number of bits required to
+    represent it (as fixed point) for the given matrix."""
     value_dict = {}
     minCell = None
     maxCell = None
@@ -70,6 +73,8 @@ def range_analysis(csr_matrix):
 
 
 def changes_analysis(matrix_timeline):
+    """Identify the points in the timeline where the matrix changes with
+    respect to previous values."""
     size = len(matrix_timeline[0])
     prev_m = np.zeros((size, size))
     different = {}
@@ -83,6 +88,8 @@ def changes_analysis(matrix_timeline):
 
 
 def reorder_analysis(matrix):
+    """Returns the results of applying various reordering algorithms to
+    the given matrix."""
     results = []
     print dir(reorder)
     results.extend(
