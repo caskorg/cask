@@ -8,7 +8,6 @@ A module for analysing sparse matrices. Can be used to analyse:
 import argparse
 import numpy as np
 import matplotlib.pylab as pl
-from scipy import sparse
 
 from math import log, ceil
 from reorder import reorder
@@ -146,12 +145,10 @@ def main():
     # perform requested analysis
     if args.analysis == 'sparsity':
         if args.format == 'matlabtl':
-            A = sparse.csr_matrix(realms[timestep])
-            pl.spy(A)
+            pl.spy(realms[timestep])
             pl.show()
     elif args.analysis == 'range':
-        A = sparse.csr_matrix(realms[0])
-        value_dict = range_analysis(A)
+        value_dict = range_analysis(realms[0])
     elif args.analysis == 'changes':
         if args.format != 'matlabtl':
             print 'Changes analysis only supported in matlabtl format.'
@@ -168,10 +165,10 @@ def main():
             pl.spy(res2.get(k))
         pl.show()
     elif args.analysis == 'reordering':
-        plot_matrices(reorder_analysis(sparse.csr_matrix(realms[0])))
+        plot_matrices(reorder_analysis(realms[0]))
     elif args.analysis == 'storage':
         print 'Running storage format analysis'
-        storage_analysis(sparse.csr_matrix(realms[0]))
+        storage_analysis(realms[0])
     else:
         print 'Unspported analysis'
         return

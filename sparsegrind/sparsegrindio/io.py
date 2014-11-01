@@ -1,4 +1,4 @@
-from scipy import io
+from scipy import io, sparse
 import numpy as np
 
 
@@ -52,8 +52,14 @@ def read_matlab_matrix_timeline(file_path, ntimepoints=None):
                 complexms[t][matline, i] = cvalue.imag
         matline += 1
     f.close()
-    return matrices, realms, complexms
+    return map(tl_to_csr, [matrices, realms, complexms])
+
+def tl_to_csr(matrix_timeline):
+    csr_timeline = []
+    for m in matrix_timeline:
+        csr_timeline.append(sparse.csr_matrix(m))
+    return csr_timeline
 
 
 def read_matrix_market(file_path):
-    return io.mmread(file_path)
+    return sparse.csr_matrix(io.mmread(file_path))
