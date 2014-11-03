@@ -74,12 +74,13 @@ def range_analysis(csr_matrix):
 def changes_analysis(matrix_timeline):
     """Identify the points in the timeline where the matrix changes with
     respect to previous values."""
-    size = len(matrix_timeline[0])
-    prev_m = np.zeros((size, size))
+    size = len(matrix_timeline[0].indptr)
+    prev_m = matrix_timeline[0]
     different = {}
+    different[0] = prev_m
     pos = 0
-    for m in matrix_timeline:
-        if not (m == prev_m).all():
+    for m in matrix_timeline[1:]:
+        if not (m == prev_m).data.all():
             different[pos] = m
         prev_m = m
         pos += 1
@@ -98,7 +99,7 @@ def plot_matrices(list_of_matrices):
     """"Plots the given list of sparse matrices using plt.spy()"""
     nplots = len(list_of_matrices)
     for i, m in enumerate(list_of_matrices):
-        pl.subplot(nplots, 1, i)
+        pl.subplot(nplots, 1, i + 1)
         pl.spy(m)
     pl.show()
 
@@ -119,17 +120,16 @@ def main():
                         help='Analysis to run')
     parser.add_argument('-t', '--timestep',
                         default=0,
+                        type=int,
                         help='Time step to look at when using the matlabtl format')
     parser.add_argument('file')
     args = parser.parse_args()
-    print args
 
-    timestep = int(args.timestep)
     # read in matrix data
     if args.format == 'matlabtl':
         matrices, realms, imagms = io.read_matlab_matrix_timeline(
             args.file,
-            timestep + 1
+            args.timestep + 1
         )
     elif args.format == 'mm':
         realms = [io.read_matrix_market(args.file)]
@@ -140,7 +140,7 @@ def main():
     # perform requested analysis
     if args.analysis == 'sparsity':
         if args.format == 'matlabtl':
-            pl.spy(realms[timestep])
+            pl.spy(realms[args.timestep])
             pl.show()
     elif args.analysis == 'range':
         value_dict = range_analysis(realms[0])
@@ -160,7 +160,7 @@ def main():
             pl.spy(res2.get(k))
         pl.show()
     elif args.analysis == 'reordering':
-        plot_matrices(reorder_analysis(realms[0]))
+        plot_matrices([realms[0]] + reorder_analysis(realms[0]))
     elif args.analysis == 'storage':
         print 'Running storage format analysis'
         storage_analysis(realms[0])
