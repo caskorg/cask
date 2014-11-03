@@ -89,14 +89,9 @@ def changes_analysis(matrix_timeline):
 def reorder_analysis(matrix):
     """Returns the results of applying various reordering algorithms to
     the given matrix."""
-    results = []
-    print dir(reorder)
-    results.extend(
-        [reorder.rcm(matrix),
-         reorder.rcm_min_degree(matrix),
-         reorder.cm(matrix)]
-    )
-    return results
+    return [reorder.rcm(matrix),
+            reorder.rcm_min_degree(matrix),
+            reorder.cm(matrix)]
 
 
 def plot_matrices(list_of_matrices):
