@@ -54,11 +54,9 @@ def read_matlab_matrix_timeline(file_path, ntimepoints=None):
     f.close()
     return map(tl_to_csr, [matrices, realms, complexms])
 
+
 def tl_to_csr(matrix_timeline):
-    csr_timeline = []
-    for m in matrix_timeline:
-        csr_timeline.append(sparse.csr_matrix(m))
-    return csr_timeline
+    return [sparse.csr_matrix(m) for m in matrix_timeline]
 
 
 def read_matrix_market(file_path):
