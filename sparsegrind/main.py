@@ -139,9 +139,9 @@ def main():
 
     # perform requested analysis
     if args.analysis == 'sparsity':
-        if args.format == 'matlabtl':
-            pl.spy(realms[args.timestep])
-            pl.show()
+        step = args.timestep if args.format == 'matlabtl' else 0
+        pl.spy(realms[step])
+        pl.show()
     elif args.analysis == 'range':
         value_dict = range_analysis(realms[0])
     elif args.analysis == 'changes':
