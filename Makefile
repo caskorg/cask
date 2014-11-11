@@ -1,5 +1,5 @@
 test:
-	nosetests --with-coverage --cover-html --cover-package=sparsegrind
+	nosetests --with-cov --cov-report html
 
 test-pdb:
 	nosetests --pdb
