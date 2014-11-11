@@ -16,9 +16,12 @@ class TestMain(unittest.TestCase):
     def setUp(self):
         self.csr_matrix = io.read_matrix_market(path_to("small.in"))
         self.timeline = io.read_matlab_matrix_timeline(
-            path_to("small_matlabtl.in"),
-            matrixsize=2
-        )
+            path_to("small_matlabtl.in"))
+
+    def testCountLines(self):
+        self.assertEquals(
+            io.count_lines(path_to("small_matlabtl.in")),
+            2)
 
     def testCsrRead(self):
         self.assertEquals(len(self.csr_matrix.data), 8)

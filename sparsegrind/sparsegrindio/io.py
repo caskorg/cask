@@ -2,7 +2,16 @@ from scipy import io, sparse
 import numpy as np
 
 
-def read_matlab_matrix_timeline(file_path, ntimepoints=None, matrixsize=68):
+def count_lines(file_path):
+    f = open(file_path)
+    c = 0
+    for l in f:
+        c += 1
+    f.close()
+    return c
+
+
+def read_matlab_matrix_timeline(file_path, ntimepoints=None, matrixsize=None):
     """Reads a timeline of complex valued matrices produced from Matlab.
     Matrices are stored sequentially, in dense format with values
     separated by commas e.g.
@@ -18,6 +27,9 @@ def read_matlab_matrix_timeline(file_path, ntimepoints=None, matrixsize=68):
     complex, real and imaginary _dense_ matrices corresponding to the
     input data.
     """
+    if not matrixsize:
+        matrixsize = count_lines(file_path)
+
     f = open(file_path)
 
     firstline = f.readline()
