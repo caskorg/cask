@@ -38,7 +38,7 @@ class TestMain(unittest.TestCase):
             np.array([2+1j, 1+3j, 3, 4]))
         testing.assert_allclose(
             cmplx[1].data,
-            np.array([2.1+1j, 1.1+3j, 3.1, 4.1]))
+            np.array([2.1+1j, 1.1+3j, 3.1]))
 
     def testStorage(self):
         self.assertEquals(
