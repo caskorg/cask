@@ -1,4 +1,6 @@
 from sparsegrind.sparsegrindio import io
+from sparsegrind.storage import storage
+
 import os
 import unittest
 import numpy as np
@@ -34,7 +36,20 @@ class TestMain(unittest.TestCase):
         testing.assert_allclose(
             cmplx[1].data,
             np.array([2.1+1j, 1.1+3j, 3.1, 4.1]))
-        
+
+    def testStorage(self):
+        self.assertEquals(
+            storage.coo(self.csr_matrix),
+            (64, 64, 'COO'))
+
+        self.assertEquals(
+            storage.csr(self.csr_matrix),
+            (4 * (8 + 6), 64, 'CSR'))
+
+        self.assertEquals(
+            storage.csc(self.csr_matrix),
+            (4 * (8 + 6), 64, 'CSC'))
+
 
 if __name__ == '__main__':
     unittest.main()
