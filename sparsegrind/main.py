@@ -28,7 +28,8 @@ def storage_analysis(matrix):
     formats = [
         storage.csr(matrix),
         storage.csc(matrix),
-        storage.coo(matrix)
+        storage.coo(matrix),
+        storage.dia(matrix),
     ]
 
     for f in formats:
