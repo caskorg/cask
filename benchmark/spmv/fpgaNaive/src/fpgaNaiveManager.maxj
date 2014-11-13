@@ -1,0 +1,48 @@
+/***
+	TODO Add a descriptive comment!
+*/
+import com.maxeler.maxcompiler.v2.managers.engine_interfaces.CPUTypes;
+import com.maxeler.maxcompiler.v2.managers.engine_interfaces.EngineInterface;
+import com.maxeler.maxcompiler.v2.managers.engine_interfaces.InterfaceParam;
+import com.maxeler.maxcompiler.v2.managers.custom.CustomManager;
+import com.maxeler.maxcompiler.v2.managers.custom.blocks.KernelBlock;
+import com.maxeler.maxcompiler.v2.build.EngineParameters;
+
+public class fpgaNaiveManager extends CustomManager{
+
+    private static final String s_kernelName  = "fpgaNaiveKernel";
+
+    fpgaNaiveManager(EngineParameters ep)
+    {
+        super(ep);
+
+        KernelBlock k = addKernel(new fpgaNaiveKernel(makeKernelParameters(s_kernelName)));
+
+        k.getInput("a") <== addStreamFromCPU("a");
+        k.getInput("b") <== addStreamFromCPU("b");
+        addStreamToCPU("output") <== k.getOutput("output");
+    }
+
+    private static EngineInterface interfaceDefault() {
+        EngineInterface engine_interface = new EngineInterface();
+        CPUTypes type = CPUTypes.INT32;
+        int size = type.sizeInBytes();
+
+        InterfaceParam N = engine_interface.addParam("N", CPUTypes.INT);
+        InterfaceParam sizeBytes = N * size;
+
+        engine_interface.setTicks(s_kernelName, N);
+
+        engine_interface.setStream("a", type, sizeBytes);
+        engine_interface.setStream("b", type, sizeBytes);
+        engine_interface.setStream("output", type, sizeBytes);
+        return engine_interface;
+    }
+
+
+    public static void main(String[] args) {
+        fpgaNaiveManager manager = new fpgaNaiveManager(new EngineParameters(args));
+        manager.createSLiCinterface(interfaceDefault());
+        manager.build();
+    }
+}

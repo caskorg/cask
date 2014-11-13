@@ -1,0 +1,19 @@
+/***
+	TODO: Add a descriptive comment!
+*/
+
+import com.maxeler.maxcompiler.v2.kernelcompiler.Kernel;
+import com.maxeler.maxcompiler.v2.kernelcompiler.KernelParameters;
+import com.maxeler.maxcompiler.v2.kernelcompiler.types.base.DFEVar;
+
+class fpgaNaiveKernel extends Kernel {
+
+    protected fpgaNaiveKernel(KernelParameters parameters) {
+        super(parameters);
+
+        DFEVar a = io.input("a", dfeInt(32));
+        DFEVar b = io.input("b", dfeInt(32));
+        io.output("output", a + b, dfeInt(32));
+    }
+
+}

@@ -46,7 +46,7 @@ INSTALL(TARGETS common DESTINATION ${INSTALL_TO_DIR})
 
 MACRO(ADD_BENCHMARK name filename)
     ADD_EXECUTABLE(${name} ${filename})
-    TARGET_LINK_LIBRARIES(${name} ${MKL} common  -lpthread -lm )
+    TARGET_LINK_LIBRARIES(${name} ${MKL} common  -lpthread -lm -lrt)
     INSTALL(TARGETS ${name} DESTINATION ${INSTALL_TO_DIR})
 ENDMACRO(ADD_BENCHMARK name filename)
 
@@ -63,7 +63,12 @@ ADD_BENCHMARK(cg-3term-mkl
   ./benchmark/cg/3term-mkl/cg.cpp
 )
 
+# Add MaxCompiler Benchmarks
 
+add_custom_target(
+   fpga_naive
+   COMMAND make runsim
+   WORKING_DIRECTORY ../benchmark/spmv/fpgaNaive/build
+)
 
-
-
+# TODO copy binary to build/
