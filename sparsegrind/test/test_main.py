@@ -1,5 +1,6 @@
 from sparsegrind.sparsegrindio import io
 from sparsegrind.storage import storage
+from sparsegrind import main
 
 import os
 import unittest
@@ -38,7 +39,7 @@ class TestMain(unittest.TestCase):
             np.array([2+1j, 1+3j, 3, 4]))
         testing.assert_allclose(
             cmplx[1].data,
-            np.array([2.1+1j, 1.1+3j, 3.1]))
+            np.array([2+1j, 1.1+3j, 3.1]))
 
     def testStorage(self):
         self.assertEquals(
@@ -53,6 +54,13 @@ class TestMain(unittest.TestCase):
             storage.csc(self.csr_matrix),
             (4 * (8 + 6), 64, 'CSC'))
 
+    def testChangesAnalysis(self):
+        result = main.changes_analysis(self.timeline[0])
+        self.assertEquals(len(result), 2)
+        testing.assert_allclose(result[0].data,
+                                np.array([2+1j, 1+3j, 3, 4]))
+        testing.assert_allclose(result[1].data,
+                                np.array([2+1j, 1.1+3j, 3.1]))
 
 if __name__ == '__main__':
     unittest.main()

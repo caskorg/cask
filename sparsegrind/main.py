@@ -75,13 +75,11 @@ def range_analysis(csr_matrix):
 def changes_analysis(matrix_timeline):
     """Identify the points in the timeline where the matrix changes with
     respect to previous values."""
-    size = len(matrix_timeline[0].indptr)
-    prev_m = matrix_timeline[0]
     different = {}
-    different[0] = prev_m
-    pos = 0
+    different[0] = prev_m = matrix_timeline[0]
+    pos = 1
     for m in matrix_timeline[1:]:
-        if not (m == prev_m).data.all():
+        if (m != prev_m).data.any():
             different[pos] = m
         prev_m = m
         pos += 1
