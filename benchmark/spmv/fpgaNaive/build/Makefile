@@ -2,7 +2,7 @@
 
 # ---- Project settings ----
 
-WHEREISROOT=..
+WHEREISROOT=../../../../max.makefiles
 
 
 # Assuming Kernel and Manager class names follow the pattern below:
