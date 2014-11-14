@@ -66,8 +66,8 @@ ADD_BENCHMARK(cg-3term-mkl
 # Add MaxCompiler Benchmarks
 
 add_custom_target(
-   fpga_naive_simbuild
-   COMMAND make runsim
+   fpga_naive_simbuild # ALL <--- if to be run always (target adds to a list of defaults)
+   COMMAND make runsim # TODO this should only build DFE part of simulation
    WORKING_DIRECTORY ../benchmark/spmv/fpgaNaive/build
 )
 
