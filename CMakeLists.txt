@@ -66,9 +66,23 @@ ADD_BENCHMARK(cg-3term-mkl
 # Add MaxCompiler Benchmarks
 
 add_custom_target(
-   fpga_naive
+   fpga_naive_simbuild
    COMMAND make runsim
    WORKING_DIRECTORY ../benchmark/spmv/fpgaNaive/build
 )
 
+if (DEFINED ENV{MAXCOMPILERDIR} AND DEFINED ENV{MAXELEROSDIR})
+      message(STATUS "MAXCOMPILERDIR and MAXELEROSDIR are set, adding includes!")
+      include_directories ($ENV{MAXCOMPILERDIR}/include)
+      include_directories ($ENV{MAXCOMPILERDIR}/include/slic)
+      include_directories ($ENV{MAXELEROSDIR}/include)
+      link_directories($ENV{MAXCOMPILERDIR}/lib)
+      link_directories($ENV{MAXELEROSDIR}/lib)
+else()
+    message(STATUS "MAXCOMPILERDIR not set!")
+endif()
+
+add_subdirectory(benchmark/spmv/fpgaNaive)
+
+# install (TARGETS fpgaNaive_sim DESTINATION ${INSTALL_TO_DIR})
 # TODO copy binary to build/
