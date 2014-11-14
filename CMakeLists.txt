@@ -19,7 +19,7 @@ SET(CMAKE_INSTALL_PREFIX ./bin/)
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -funroll-loops")
 SET(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-rg")
 SET(CMAKE_CXX_FLAGS_DEBUG "-pg")
-
+SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
 INCLUDE(FindMKL.cmake)
 
 set(INSTALL_TO_DIR ${CMAKE_SOURCE_DIR}/build)
@@ -47,7 +47,6 @@ INSTALL(TARGETS common DESTINATION ${INSTALL_TO_DIR})
 MACRO(ADD_BENCHMARK name filename)
     ADD_EXECUTABLE(${name} ${filename})
     TARGET_LINK_LIBRARIES(${name} ${MKL} common  -lpthread -lm -lrt)
-    INSTALL(TARGETS ${name} DESTINATION ${INSTALL_TO_DIR})
 ENDMACRO(ADD_BENCHMARK name filename)
 
 
@@ -83,6 +82,3 @@ else()
 endif()
 
 add_subdirectory(benchmark/spmv/fpgaNaive)
-
-# install (TARGETS fpgaNaive_sim DESTINATION ${INSTALL_TO_DIR})
-# TODO copy binary to build/
