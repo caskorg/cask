@@ -47,4 +47,31 @@ __Note__ cuda external libraries (such as cusp) are assumed to be
 
 ## Running
 
-`cd benchmark/algorithm && make -f Makefile.<platform>`
+### CPU Implementations
+
+You can build the benchmarks with:
+
+```
+mkdir build && cd build && cmake ..
+```
+
+The excutables will be stored in `build/bin`.
+
+### FPGA Implementations
+
+FPGA designs are compiled through separate targets (since they take significantly longer).
+Use `make help` to list available targets and choose the one you need.
+
+For example, to compile the FPGA design (generate a bitstream, C/C++ bindings and wrap them in a `.so`) you could do:
+
+```
+make fpga_naive_simbuild
+```
+
+You can run designs built for hardware directly.
+
+To run simulation designs use the provided `run-sim.sh` which starts the simulator daemon, runs the design and stops the simulator:
+
+```
+bash run-sim.sin build/bin/fpgaNaive_sim
+```
