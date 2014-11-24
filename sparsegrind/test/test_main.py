@@ -62,5 +62,11 @@ class TestMain(unittest.TestCase):
         testing.assert_allclose(result[1].data,
                                 np.array([2+1j, 1.1+3j, 3.1]))
 
+    def testRangeAnalysis(self):
+        minCell, maxCell, unique = main.range_analysis(self.csr_matrix)
+        self.assertEquals(-280, minCell)
+        self.assertEquals(250.5, maxCell)
+        self.assertEquals(8, unique)
+
 if __name__ == '__main__':
     unittest.main()

@@ -62,14 +62,12 @@ def range_analysis(csr_matrix):
         minCell = d if not minCell else min(minCell, d)
         maxCell = d if not minCell else max(maxCell, d)
 
-    print 'Min Value:', minCell
-    print 'Max Value:', maxCell
-    print 'Range:', maxCell - minCell
-
     prec = [1E-3, 1E-6, 1E-9, 1E-12]
     for p in prec:
         print '{} bits to represent with {} precision'.format(
             int(ceil(log((maxCell - minCell)/p, 2))), p)
+
+    return minCell, maxCell, len(value_dict.keys())
 
 
 def changes_analysis(matrix_timeline):
@@ -142,7 +140,11 @@ def main():
         pl.spy(realms[step])
         pl.show()
     elif args.analysis == 'range':
-        value_dict = range_analysis(realms[0])
+        minCell, maxCell, uniqueValues = range_analysis(realms[0])
+        print 'Min Value:', minCell
+        print 'Max Value:', maxCell
+        print 'Unique values:', uniqueValues
+        print 'Range:', maxCell - minCell
     elif args.analysis == 'changes':
         if args.format != 'matlabtl':
             print 'Changes analysis only supported in matlabtl format.'
