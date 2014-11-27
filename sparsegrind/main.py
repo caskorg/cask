@@ -143,7 +143,8 @@ def main():
         minCell, maxCell, uniqueValues = range_analysis(realms[0])
         print 'Min Value:', minCell
         print 'Max Value:', maxCell
-        print 'Unique values:', uniqueValues
+        print 'Unique values / total nonzero values:',
+        print uniqueValues, ' / ', realms[0].nnz
         print 'Range:', maxCell - minCell
     elif args.analysis == 'changes':
         if args.format != 'matlabtl':
