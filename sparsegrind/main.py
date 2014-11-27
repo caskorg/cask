@@ -65,7 +65,10 @@ def range_analysis(csr_matrix):
     prec = [1E-3, 1E-6, 1E-9, 1E-12]
     for p in prec:
         print '{} bits to represent with {} precision'.format(
-            int(ceil(log((maxCell - minCell)/p, 2))), p)
+            long(ceil(log((maxCell - minCell)/p, 2))), p)
+
+    sorted_values = sorted(value_dict.values(), reverse=True)
+    print 'Highest frequencies: ', sorted_values[0:10]
 
     return minCell, maxCell, len(value_dict.keys())
 
