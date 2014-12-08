@@ -1,19 +1,32 @@
-/***
-	TODO: Add a descriptive comment!
-*/
+/*** Single pipe SpMV kernel. */
 
 import com.maxeler.maxcompiler.v2.kernelcompiler.Kernel;
 import com.maxeler.maxcompiler.v2.kernelcompiler.KernelParameters;
 import com.maxeler.maxcompiler.v2.kernelcompiler.types.base.DFEVar;
 
+import com.maxeler.maxcompiler.v2.kernelcompiler.stdlib.memory.*;
+import com.maxeler.maxcompiler.v2.utils.MathUtils;
+
+
 class fpgaNaiveKernel extends Kernel {
+
+    private static final int size = 32;
+    private static final int vRomAddressSizeBits = MathUtils.bitsToAddress(size);
 
     protected fpgaNaiveKernel(KernelParameters parameters) {
         super(parameters);
 
         DFEVar a = io.input("a", dfeInt(32));
         DFEVar b = io.input("b", dfeInt(32));
-        io.output("output", a + b, dfeInt(32));
+
+        DFEVar cycleCount = control.count.simpleCounter(vRomAddressSizeBits);
+
+        Memory<DFEVar> vRom = mem.alloc(dfeInt(32), size);
+        vRom.mapToCPU("vRom");
+
+        DFEVar x = vRom.read(cycleCount);
+
+        io.output("output", a + b + x, dfeInt(32));
     }
 
 }

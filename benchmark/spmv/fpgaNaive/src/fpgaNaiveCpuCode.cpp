@@ -12,6 +12,8 @@
 #include "Maxfiles.h"
 #include "MaxSLiCInterface.h"
 
+using namespace std;
+
 int main(void)
 {
 
@@ -19,14 +21,19 @@ int main(void)
 
   std::vector<int> a(inSize), b(inSize), expected(inSize), out(inSize, 0);
 
+  int vRomSize = 32;
+  vector<unsigned long> vRom(vRomSize);
+  for (int i = 0; i < vRomSize; i++)
+    vRom[i] = i;
+
   for(int i = 0; i < inSize; ++i) {
     a[i] = i + 1;
     b[i] = i - 1;
-    expected[i] = 2 * i;
+    expected[i] = 2 * i + vRom[i % vRomSize];
   }
 
   std::cout << "Running on DFE." << std::endl;
-  fpgaNaive(inSize, &a[0], &b[0], &out[0]);
+  fpgaNaive(inSize, &a[0], &b[0], &out[0], &vRom[0]);
 
 
   /***
