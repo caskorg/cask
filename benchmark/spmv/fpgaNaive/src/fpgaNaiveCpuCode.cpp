@@ -19,10 +19,10 @@ int main(void)
 
   const int inSize = 384;
 
-  std::vector<int> a(inSize), expected(inSize), out(inSize, 0);
+  std::vector<double> a(inSize), expected(inSize), out(inSize, 0);
 
   int vRomSize = 32;
-  vector<unsigned long> vRom(vRomSize);
+  vector<double> vRom(vRomSize);
   vector<int> indptr(inSize);
 
   for (int i = 0; i < vRomSize; i++) {
@@ -46,8 +46,8 @@ int main(void)
       design against a CPU version to ensure correctness.
   */
   for (int i = 0; i < inSize; i++)
-    if (out[i] != expected[i]) {
-      printf("Output from DFE did not match CPU: %d : %d != %d\n",
+    if (abs(out[i] - expected[i]) > 1E-10) {
+      printf("Output from DFE did not match CPU: %d : %f != %f\n",
         i, out[i], expected[i]);
       return 1;
     }

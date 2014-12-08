@@ -28,14 +28,17 @@ public class fpgaNaiveManager extends CustomManager{
         CPUTypes type = CPUTypes.INT32;
         int size = type.sizeInBytes();
 
+        CPUTypes resultType = CPUTypes.DOUBLE;
+
         InterfaceParam N = engine_interface.addParam("N", CPUTypes.INT);
         InterfaceParam sizeBytes = N * size;
+        InterfaceParam floatBytes = N * resultType.sizeInBytes();
 
         engine_interface.setTicks(s_kernelName, N);
 
-        engine_interface.setStream("value", type, sizeBytes);
+        engine_interface.setStream("value", resultType, floatBytes);
         engine_interface.setStream("indptr", type, sizeBytes);
-        engine_interface.setStream("output", type, sizeBytes);
+        engine_interface.setStream("output", resultType, floatBytes);
 
         return engine_interface;
     }
