@@ -18,8 +18,8 @@ public class fpgaNaiveManager extends CustomManager{
 
         KernelBlock k = addKernel(new fpgaNaiveKernel(makeKernelParameters(s_kernelName)));
 
-        k.getInput("a") <== addStreamFromCPU("a");
-        k.getInput("b") <== addStreamFromCPU("b");
+        k.getInput("value") <== addStreamFromCPU("value");
+        k.getInput("indptr") <== addStreamFromCPU("indptr");
         addStreamToCPU("output") <== k.getOutput("output");
     }
 
@@ -33,9 +33,10 @@ public class fpgaNaiveManager extends CustomManager{
 
         engine_interface.setTicks(s_kernelName, N);
 
-        engine_interface.setStream("a", type, sizeBytes);
-        engine_interface.setStream("b", type, sizeBytes);
+        engine_interface.setStream("value", type, sizeBytes);
+        engine_interface.setStream("indptr", type, sizeBytes);
         engine_interface.setStream("output", type, sizeBytes);
+
         return engine_interface;
     }
 

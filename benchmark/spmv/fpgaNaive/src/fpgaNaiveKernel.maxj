@@ -16,17 +16,17 @@ class fpgaNaiveKernel extends Kernel {
     protected fpgaNaiveKernel(KernelParameters parameters) {
         super(parameters);
 
-        DFEVar a = io.input("a", dfeInt(32));
-        DFEVar b = io.input("b", dfeInt(32));
+        DFEVar value = io.input("value", dfeInt(32));
+        DFEVar indptr = io.input("indptr", dfeInt(32)).cast(dfeUInt(vRomAddressSizeBits));
 
-        DFEVar cycleCount = control.count.simpleCounter(vRomAddressSizeBits);
+        // DFEVar cycleCount = control.count.simpleCounter(vRomAddressSizeBits);
 
         Memory<DFEVar> vRom = mem.alloc(dfeInt(32), size);
         vRom.mapToCPU("vRom");
 
-        DFEVar x = vRom.read(cycleCount);
+        DFEVar x = vRom.read(indptr);
 
-        io.output("output", a + b + x, dfeInt(32));
+        io.output("output", value * x, dfeInt(32));
     }
 
 }

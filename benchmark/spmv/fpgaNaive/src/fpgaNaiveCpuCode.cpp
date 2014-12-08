@@ -19,21 +19,26 @@ int main(void)
 
   const int inSize = 384;
 
-  std::vector<int> a(inSize), b(inSize), expected(inSize), out(inSize, 0);
+  std::vector<int> a(inSize), expected(inSize), out(inSize, 0);
 
   int vRomSize = 32;
   vector<unsigned long> vRom(vRomSize);
-  for (int i = 0; i < vRomSize; i++)
+  vector<int> indptr(inSize);
+
+  for (int i = 0; i < vRomSize; i++) {
     vRom[i] = i;
+    indptr[i] = i % 16;
+  }
 
   for(int i = 0; i < inSize; ++i) {
-    a[i] = i + 1;
-    b[i] = i - 1;
-    expected[i] = 2 * i + vRom[i % vRomSize];
+    a[i] = i;
+    expected[i] =  a[i] * vRom[indptr[i]];
   }
 
   std::cout << "Running on DFE." << std::endl;
-  fpgaNaive(inSize, &a[0], &b[0], &out[0], &vRom[0]);
+  fpgaNaive(inSize, &indptr[0], &a[0],  // ins
+            &out[0],                          // outs
+            &vRom[0]);                        // roms
 
 
   /***
