@@ -17,7 +17,9 @@ using namespace std;
 int main(void)
 {
 
-  const int inSize = 384;
+  int fpL = fpgaNaive_fpL;
+
+  const int inSize = fpL * 4;
 
   std::vector<double> a(inSize), expected(inSize), out(inSize, 0);
 
@@ -27,12 +29,13 @@ int main(void)
 
   for (int i = 0; i < vRomSize; i++) {
     vRom[i] = i;
-    indptr[i] = i % 16;
   }
 
   for(int i = 0; i < inSize; ++i) {
+    indptr[i] = i % vRomSize;
     a[i] = i;
-    expected[i] =  a[i] * vRom[indptr[i]];
+    int prev = i < fpL ? 0 : expected[i - fpL];
+    expected[i] =  prev + a[i] * vRom[indptr[i]];
   }
 
   std::cout << "Running on DFE." << std::endl;
@@ -41,14 +44,21 @@ int main(void)
             &vRom[0]);                        // roms
 
 
-  /***
-      Note that you should always test the output of your DFE
-      design against a CPU version to ensure correctness.
-  */
-  for (int i = 0; i < inSize; i++)
-    if (abs(out[i] - expected[i]) > 1E-10) {
+  cout << "cycle\tin\tout\texp" << endl;
+  cout << "-----\t--\t---\t---" << endl;
+  for (int i = 0; i < inSize + fpL; i++) {
+    if ( i >= inSize) {
+      cout << i << "\t-" << "\t" << out[i - inSize] << "\t" << expected[i - fpL];
+    } else {
+      cout << i << "\t" << a[i] * vRom[indptr[i]] << "\t-\t-";
+    }
+    cout << endl;
+  }
+
+  for (int i = 0; i < fpL; i++)
+    if (abs(out[i] - expected[inSize - fpL + i]) > 1E-10) {
       printf("Output from DFE did not match CPU: %d : %f != %f\n",
-        i, out[i], expected[i]);
+             i, out[i], expected[inSize - fpL + i]);
       return 1;
     }
 

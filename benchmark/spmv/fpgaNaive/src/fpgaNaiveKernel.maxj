@@ -13,20 +13,30 @@ class fpgaNaiveKernel extends Kernel {
     private static final int size = 32;
     private static final int vRomAddressSizeBits = MathUtils.bitsToAddress(size);
 
-    protected fpgaNaiveKernel(KernelParameters parameters) {
+    protected fpgaNaiveKernel(KernelParameters parameters,
+                              int fpL) {
         super(parameters);
 
-        DFEVar value = io.input("value", dfeFloat(11, 53));
-        DFEVar indptr = io.input("indptr", dfeInt(32)).cast(dfeUInt(vRomAddressSizeBits));
+        DFEVar n = io.scalarInput("n", dfeUInt(32));
+        DFEVar cycleCount = control.count.simpleCounter(32);
 
-        // DFEVar cycleCount = control.count.simpleCounter(vRomAddressSizeBits);
+        DFEVar flush = cycleCount >= n;
+        DFEVar compute = cycleCount < n;
+
+        DFEVar value = io.input("value", dfeFloat(11, 53), compute);
+        DFEVar indptr = io.input("indptr", dfeInt(32), compute).cast(dfeUInt(vRomAddressSizeBits));
+
 
         Memory<DFEVar> vRom = mem.alloc(dfeFloat(11, 53), size);
         vRom.mapToCPU("vRom");
 
         DFEVar x = vRom.read(indptr);
 
-        io.output("output", value * x, dfeFloat(11, 53));
+        DFEVar carriedSum = dfeFloat(11, 53).newInstance(this);
+        DFEVar newSum = value * x + carriedSum;
+        carriedSum <== stream.offset(newSum, -fpL);
+
+        io.output("output", carriedSum, dfeFloat(11, 53), flush);
     }
 
 }
