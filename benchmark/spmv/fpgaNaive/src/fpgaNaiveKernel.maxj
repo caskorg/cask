@@ -36,7 +36,12 @@ class fpgaNaiveKernel extends Kernel {
         DFEVar newSum = value * x + carriedSum;
         carriedSum <== stream.offset(newSum, -fpL);
 
+        DFEVar reduced = constant.var(0);
+        for (int i = 0; i < fpL; i++)
+                 reduced = reduced + stream.offset(carriedSum, -i);
+
         io.output("output", carriedSum, dfeFloat(11, 53), flush);
+        io.output("reduced", reduced, dfeFloat(11, 53), flush);
     }
 
 }

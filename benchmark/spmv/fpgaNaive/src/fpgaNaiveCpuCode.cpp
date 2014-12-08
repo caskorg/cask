@@ -11,6 +11,7 @@
 
 #include "Maxfiles.h"
 #include "MaxSLiCInterface.h"
+#include <iomanip>
 
 using namespace std;
 
@@ -21,7 +22,7 @@ int main(void)
 
   const int inSize = fpL * 4;
 
-  std::vector<double> a(inSize), expected(inSize), out(inSize, 0);
+  std::vector<double> a(inSize), expected(inSize), out(inSize, 0), outr(inSize, 0);
 
   int vRomSize = 32;
   vector<double> vRom(vRomSize);
@@ -41,19 +42,24 @@ int main(void)
   std::cout << "Running on DFE." << std::endl;
   fpgaNaive(inSize, &indptr[0], &a[0],  // ins
             &out[0],                          // outs
+            &outr[0],
             &vRom[0]);                        // roms
 
 
-  cout << "cycle\tin\tout\texp" << endl;
-  cout << "-----\t--\t---\t---" << endl;
+  cout << "cycle\tin\tout\texp\toutr" << endl;
+  cout << "-----\t--\t---\t---\t----" << endl;
   for (int i = 0; i < inSize + fpL; i++) {
     if ( i >= inSize) {
-      cout << i << "\t-" << "\t" << out[i - inSize] << "\t" << expected[i - fpL];
+      cout << setprecision(4) << i << "\t-" << "\t" << out[i - inSize] << "\t" << expected[i - fpL] << "\t" << outr[i - inSize];
     } else {
       cout << i << "\t" << a[i] * vRom[indptr[i]] << "\t-\t-";
     }
     cout << endl;
   }
+
+  double reducedSumExp = 0;
+  for (int i = 0; i < fpL; i++)
+    reducedSumExp += expected[inSize - fpL + i];
 
   for (int i = 0; i < fpL; i++)
     if (abs(out[i] - expected[inSize - fpL + i]) > 1E-10) {
@@ -61,6 +67,12 @@ int main(void)
              i, out[i], expected[inSize - fpL + i]);
       return 1;
     }
+
+  if (abs(outr[fpL - 1] - reducedSumExp) > 1E-1) {
+    printf("Reduced sum does not match - expected %f, got  %f",
+           reducedSumExp, outr[fpL-1]);
+      return 1;
+  }
 
   std::cout << "Test passed!" << std::endl;
   return 0;

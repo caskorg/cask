@@ -24,6 +24,7 @@ public class fpgaNaiveManager extends CustomManager{
         k.getInput("value") <== addStreamFromCPU("value");
         k.getInput("indptr") <== addStreamFromCPU("indptr");
         addStreamToCPU("output") <== k.getOutput("output");
+        addStreamToCPU("reduced") <== k.getOutput("reduced");
 
         addMaxFileConstant("fpL", fpL);
     }
@@ -45,6 +46,7 @@ public class fpgaNaiveManager extends CustomManager{
         engine_interface.setStream("value", resultType, floatBytes);
         engine_interface.setStream("indptr", type, sizeBytes);
         engine_interface.setStream("output", resultType, fpL * resultType.sizeInBytes());
+        engine_interface.setStream("reduced", resultType, fpL * resultType.sizeInBytes());
 
         return engine_interface;
     }
