@@ -31,9 +31,7 @@ vector<double> SpMV_MKL_unsym(char *path,
 
   vector<double> r(n);
   char tr = 'N';
-  cout << "Here" << endl;
   mkl_dcsrgemv(&tr, &n, values, row_ptr, col_ind, &v[0], &r[0]);
-  cout << "Here" << endl;
 
   fclose(f);
   return r;
@@ -52,26 +50,45 @@ vector<double> SpMV_MKL_sym(char *path,
 
   vector<double> r(n);
   char tr = 'l';
-  cout << "Here" << endl;
   mkl_dcsrsymv(&tr, &n, values, row_ptr, col_ind, &v[0], &r[0]);
-  cout << "Here" << endl;
 
   fclose(f);
   return r;
 }
 
-int main(int argc, char** argv)
-{
-
-  cout << argc << endl;
-
+char* check_file(char **argv) {
   FILE *f;
   char *path = argv[3];
   if ((f = fopen(argv[3], "r")) == NULL) {
     cout << "Error opening input file" << endl;
-    return 1;
+    exit(1);
   }
   fclose(f);
+  return argv[3];
+}
+
+bool almost_equal(double a, double b) {
+  return abs(a - b) < 1E-10;
+}
+
+vector<double> SpMV_CPU(char *path, vector<double> v) {
+  vector<double> r = SpMV_MKL_sym(path, v);
+  vector<double> r2 = SpMV_MKL_unsym(path, v);
+
+  cout << "Checking sym/unsymmetric match...";
+  for (int i = 0; i < v.size(); i++) {
+    if (!almost_equal(r[i], r2[i])) {
+      printf(" r[%d] == %f != r[%d] == %f\n", i, r[i], i, r2[i]);
+      exit(1);
+    }
+  }
+  cout << "done!" << endl;
+  return r;
+}
+
+int main(int argc, char** argv) {
+
+  char* path = check_file(argv);
 
   int fpL = fpgaNaive_fpL;
 
@@ -82,15 +99,7 @@ int main(int argc, char** argv)
   for (int i = 0; i < n; i++)
     v[i] = i;
 
-  vector<double> r = SpMV_MKL_sym(path, v);
-  vector<double> r2 = SpMV_MKL_unsym(path, v);
-
-  for (int i = 0; i < n; i++)
-    cout << r[i] << " ";
-  cout << endl;
-  for (int i = 0; i < n; i++)
-    cout << r2[i] << " ";
-  cout << endl;
+  vector<double> bExp = SpMV_CPU(path, v);
 
   std::vector<double> a(inSize), expected(inSize), out(inSize, 0), outr(inSize, 0);
 
