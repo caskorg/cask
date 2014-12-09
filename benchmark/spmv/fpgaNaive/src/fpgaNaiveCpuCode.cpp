@@ -93,7 +93,6 @@ int main(int argc, char** argv) {
   int fpL = fpgaNaive_fpL;
 
   const int inSize = fpL * 4;
-  
   int n = 16;
   vector<double> v(n);
   for (int i = 0; i < n; i++)
@@ -107,6 +106,9 @@ int main(int argc, char** argv) {
   vector<double> vRom(vRomSize);
   vector<int> indptr(inSize);
 
+  int rowSize = inSize / 2; // 2 rows
+  int nRows = inSize / rowSize;
+
   for (int i = 0; i < vRomSize; i++) {
     vRom[i] = i;
   }
@@ -114,43 +116,73 @@ int main(int argc, char** argv) {
   for(int i = 0; i < inSize; ++i) {
     indptr[i] = i % vRomSize;
     a[i] = i;
-    int prev = i < fpL ? 0 : expected[i - fpL];
+    int prev = i % rowSize < fpL ? 0 : expected[i - fpL];
     expected[i] =  prev + a[i] * vRom[indptr[i]];
   }
 
   std::cout << "Running on DFE." << std::endl;
-  fpgaNaive(inSize, &indptr[0], &a[0],  // ins
-            &out[0],                          // outs
+  fpgaNaive(inSize,
+            rowSize,            // scalars
+            &indptr[0], &a[0],  // ins
+            &out[0],            // outs
             &outr[0],
-            &vRom[0]);                        // roms
+            &vRom[0]);          // roms
 
 
-  cout << "cycle\tin\tout\texp\toutr" << endl;
-  cout << "-----\t--\t---\t---\t----" << endl;
+  cout << "cycle\tin\tout\toutr\texp" << endl;
+  cout << "-----\t--\t---\t----\t---" << endl;
+  cout << setprecision(4);
+  int idx = 0;
   for (int i = 0; i < inSize + fpL; i++) {
-    if ( i >= inSize) {
-      cout << setprecision(4) << i << "\t-" << "\t" << out[i - inSize] << "\t" << expected[i - fpL] << "\t" << outr[i - inSize];
+    cout << i;
+    if (i >= inSize) {
+      cout << "\t-" ;
     } else {
-      cout << i << "\t" << a[i] * vRom[indptr[i]] << "\t-\t-";
+      cout << "\t" << a[i] * vRom[indptr[i]];
     }
+
+    if ( i >= inSize || (i % rowSize < fpL && i / rowSize >= 1)) {
+      cout << "\t" << out[idx] << "\t" << outr[idx];
+      idx++;
+    } else {
+      cout << "\t-\t-";
+    }
+
+    if ( i >= inSize || (i % rowSize < fpL && i / rowSize >= 1)) {
+      cout << "\t" << expected[i];
+    } else {
+      cout << "\t-";
+    }
+
     cout << endl;
   }
 
-  double reducedSumExp = 0;
-  for (int i = 0; i < fpL; i++)
-    reducedSumExp += expected[inSize - fpL + i];
+  vector<double> s(inSize / rowSize, 0);
+  for (int i = 0; i < s.size(); i++) {
+    for (int j = i * rowSize; j < (i + 1) * rowSize; j++)
+      s[i] += a[j] * vRom[indptr[j]];
+  }
 
-  for (int i = 0; i < fpL; i++)
-    if (abs(out[i] - expected[inSize - fpL + i]) > 1E-10) {
-      printf("Output from DFE did not match CPU: %d : %f != %f\n",
-             i, out[i], expected[inSize - fpL + i]);
-      return 1;
+  // check output values
+  for (int i = 0; i < nRows; i++)
+    for (int j = 0; j < fpL; j++) {
+      int expIdx = (i + 1) * rowSize + j - fpL;
+      int outIdx = i * fpL + j;
+      if (abs(out[outIdx] - expected[expIdx]) > 1E-10) {
+        printf("Output from DFE did not match CPU: %d : %f != %f\n",
+               outIdx, out[outIdx], expected[expIdx]);
+        return 1;
+      }
     }
 
-  if (abs(outr[fpL - 1] - reducedSumExp) > 1E-1) {
-    printf("Reduced sum does not match - expected %f, got  %f",
-           reducedSumExp, outr[fpL-1]);
+  // check reduced values
+  for (int i = 0; i < s.size(); i++) {
+    int outIdx = i * fpL + fpL - 1;
+    if (abs(outr[outIdx] - s[i]) > 1E-10) {
+      printf("Reduced sum does not match - expected %f, got  %f",
+             s[i], outr[outIdx]);
       return 1;
+    }
   }
 
   std::cout << "Test passed!" << std::endl;
