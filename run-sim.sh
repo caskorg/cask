@@ -11,6 +11,8 @@ MAXOS_SIM=${MAXELEROSDIR_SIM}/lib/libmaxeleros.so
 prj=$1
 
 maxcompilersim -n ${USER}a -c${DEVICENUM} -d${NUMDEVICES} restart
-SLIC_CONF+="use_simulation=${USER}a" LD_PRELOAD=${MAXOS_SIM} ${prj} ${USER}a0:${USER}a
+set -o xtrace
+SLIC_CONF+="use_simulation=${USER}a" LD_PRELOAD=${MAXOS_SIM} ${prj} ${USER}a0:${USER}a $@
+set +o xtrace
 maxcompilersim -n ${USER}a -c${DEVICENUM} stop
 

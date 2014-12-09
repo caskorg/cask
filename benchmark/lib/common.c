@@ -54,7 +54,7 @@ void read_mm_matrix_size(FILE *f, int *n, int *m, int *nnzs, MM_typecode* mcode)
 }
 
 /** Reads a matrix market file for a symmetric real valued sparse
-    matrix and returns the matrix in 0-indexed CSR form. */
+    matrix and returns the matrix in 1-indexed CSR form. */
 void read_mm_sym_matrix(FILE* f, MM_typecode mcode,
                         int n, int nnzs,
                         double *values, int* col_ind, int *row_ptr
@@ -67,6 +67,7 @@ void read_mm_sym_matrix(FILE* f, MM_typecode mcode,
     exit(1);
   }
 
+  // read Matrix Market matrix in COO format
   int* I = (int *) malloc(nnzs * sizeof(int));
   int *J = (int *) malloc(nnzs * sizeof(int));
   double *val = (double *) malloc(nnzs * sizeof(double));
@@ -80,7 +81,7 @@ void read_mm_sym_matrix(FILE* f, MM_typecode mcode,
 
   MKL_INT job[] = {
     1, // convert COO to CSR
-    1, // use 1 based indexing (required by mkl_dcsrsymv)
+    1, // use 1 based indexing for CSR matrix (required by mkl_dcsrsymv)
     0,
     0, // Is this used?
     nnzs,
@@ -89,6 +90,7 @@ void read_mm_sym_matrix(FILE* f, MM_typecode mcode,
 
   MKL_INT info;
 
+  // convert COO matrix to CSR
   mkl_dcsrcoo(job,
               &n,
               values,
@@ -106,7 +108,75 @@ void read_mm_sym_matrix(FILE* f, MM_typecode mcode,
   }
 }
 
-/** Returns the zero indexed array of values. */
+/** Reads a matrix market file for a symmetric real valued sparse
+    matrix and returns the matrix in 1-indexed CSR form, with ALL
+    VALUES INCLUDED (i.e. when setting A(i, j), we also set A(j, i)).
+*/
+void read_mm_unsym_matrix(FILE* f, MM_typecode mcode,
+                        int n, int nnzs,
+                        double *values, int* col_ind, int *row_ptr
+                        ) {
+
+  if (!(mm_is_real(mcode) && mm_is_matrix(mcode) &&
+        mm_is_sparse(mcode) && mm_is_symmetric(mcode)) ) {
+    printf("First argument must be a symmetric, real-valued, sparse matrix\n");
+    printf("Market Market type: [%s]\n", mm_typecode_to_str(mcode));
+    exit(1);
+  }
+
+  // read Matrix Market matrix in COO format
+  int* I = (int *) malloc(2 * nnzs * sizeof(int));
+  int *J = (int *) malloc(2 * nnzs * sizeof(int));
+  double *val = (double *) malloc(2 * nnzs * sizeof(double));
+
+  int i;
+  int mynnzs = nnzs;
+  for (i=0; i<nnzs; i++) {
+    fscanf(f, "%d %d %lg\n", &I[i], &J[i], &val[i]);
+    I[i]--;
+    J[i]--;
+
+    // add symmetric entry
+    if (J[i] != I[i]) {
+      I[mynnzs] = J[i]; 
+      J[mynnzs] = I[i];
+      val[mynnzs] = val[i];
+      mynnzs++;
+    }
+
+  }
+
+  MKL_INT job[] = {
+    1, // convert COO to CSR
+    1, // use 1 based indexing for CSR matrix (required by mkl_dcsrsymv)
+    0,
+    0, // Is this used?
+    mynnzs,
+    0
+  };
+
+  MKL_INT info;
+
+  // convert COO matrix to CSR
+  mkl_dcsrcoo(job,
+              &n,
+              values,
+              col_ind,
+              row_ptr,
+              &mynnzs,
+              val,
+              I,
+              J,
+              &info);
+
+  if (info != 0) {
+    printf("CSR to COO conversion failed: not enough memory!\n");
+    exit(1);
+  }
+}
+
+
+/** returns the zero indexed array of values. */
 void read_mm_array(FILE *f, MM_typecode code, int nnzs, double *values) {
   if (mm_is_symmetric(code)) {
     printf("Array can't be symmetric!\n");
@@ -166,6 +236,29 @@ void read_system_matrix_sym_csr(FILE* f, int* n, int *nnzs, int** col_ind, int**
   MKL_INT *ja = (MKL_INT *)malloc(sizeof(MKL_INT) * nzs); // column indices
 
   read_mm_sym_matrix(f, mcode, *n, nzs, acsr, ja, ia);
+
+  *row_ptr = ia;
+  *col_ind = ja;
+  *values = acsr;
+}
+
+void read_system_matrix_unsym_csr(FILE* f, int* n, int *nnzs, int** col_ind, int** row_ptr, double** values) {
+  MM_typecode mcode;
+
+  int m;
+  read_mm_matrix_size(f, n, &m, nnzs, &mcode);
+
+  if (*n != m) {
+    printf("Matrix should be square!\n");
+    exit(1);
+  }
+
+  int nzs = *nnzs;
+  double *acsr = (double *)malloc(2 * sizeof(double) * nzs);
+  MKL_INT *ia = (MKL_INT *)malloc(sizeof(MKL_INT) * (*n + 1)); // row_ref
+  MKL_INT *ja = (MKL_INT *)malloc(2 * sizeof(MKL_INT) * nzs); // column indices
+
+  read_mm_unsym_matrix(f, mcode, *n, nzs, acsr, ja, ia);
 
   *row_ptr = ia;
   *col_ind = ja;

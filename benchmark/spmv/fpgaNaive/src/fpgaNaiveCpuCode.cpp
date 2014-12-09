@@ -8,19 +8,89 @@
 
 #include <vector>
 #include <iostream>
+#include <cstdio>
 
 #include "Maxfiles.h"
 #include "MaxSLiCInterface.h"
+#include "mkl_spblas.h"
+
 #include <iomanip>
+#include <common.h>
 
 using namespace std;
 
-int main(void)
+vector<double> SpMV_MKL_unsym(char *path, 
+                              vector<double> v) {
+  FILE *f = fopen(path, "r");
+
+  int n, nnzs;
+  double* values;
+  int *col_ind, *row_ptr;
+  read_system_matrix_unsym_csr(f, &n, &nnzs, &col_ind, &row_ptr, &values);
+  printf("n: %d, nnzs: %d\n", n, nnzs);
+
+  vector<double> r(n);
+  char tr = 'N';
+  cout << "Here" << endl;
+  mkl_dcsrgemv(&tr, &n, values, row_ptr, col_ind, &v[0], &r[0]);
+  cout << "Here" << endl;
+
+  fclose(f);
+  return r;
+}
+
+vector<double> SpMV_MKL_sym(char *path, 
+                            vector<double> v) {
+
+  FILE *f = fopen(path, "r");
+
+  int n, nnzs;
+  double* values;
+  int *col_ind, *row_ptr;
+  read_system_matrix_sym_csr(f, &n, &nnzs, &col_ind, &row_ptr, &values);
+  printf("n: %d, nnzs: %d\n", n, nnzs);
+
+  vector<double> r(n);
+  char tr = 'l';
+  cout << "Here" << endl;
+  mkl_dcsrsymv(&tr, &n, values, row_ptr, col_ind, &v[0], &r[0]);
+  cout << "Here" << endl;
+
+  fclose(f);
+  return r;
+}
+
+int main(int argc, char** argv)
 {
+
+  cout << argc << endl;
+
+  FILE *f;
+  char *path = argv[3];
+  if ((f = fopen(argv[3], "r")) == NULL) {
+    cout << "Error opening input file" << endl;
+    return 1;
+  }
+  fclose(f);
 
   int fpL = fpgaNaive_fpL;
 
   const int inSize = fpL * 4;
+  
+  int n = 16;
+  vector<double> v(n);
+  for (int i = 0; i < n; i++)
+    v[i] = i;
+
+  vector<double> r = SpMV_MKL_sym(path, v);
+  vector<double> r2 = SpMV_MKL_unsym(path, v);
+
+  for (int i = 0; i < n; i++)
+    cout << r[i] << " ";
+  cout << endl;
+  for (int i = 0; i < n; i++)
+    cout << r2[i] << " ";
+  cout << endl;
 
   std::vector<double> a(inSize), expected(inSize), out(inSize, 0), outr(inSize, 0);
 

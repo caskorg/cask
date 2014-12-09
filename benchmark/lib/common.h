@@ -25,10 +25,20 @@ void read_mm_sym_matrix(FILE* f, MM_typecode mcode,
                         double *values, int* col_ind, int *row_ptr
                         );
 
+/** Reads a matrix market file for a symmetric real valued sparse
+    matrix and returns the matrix in 1-indexed CSR form, with ALL
+    VALUES INCLUDED (i.e. when setting A(i, j), we also set A(j, i)).
+*/
+void read_mm_unsym_matrix(FILE* f, MM_typecode mcode,
+                          int n, int nnzs,
+                          double *values, int* col_ind, int *row_ptr);
+
 /** Returns the zero indexed array of values. */
 void read_mm_array(FILE *f, MM_typecode code, int nnzs, double *values);
 double* read_rhs(FILE* g, int* n, int *nnzs);
 void read_system_matrix_sym_csr(FILE* f, int* n, int *nnzs, int** col_ind, int** row_ptr, double** values);
+
+  void read_system_matrix_unsym_csr(FILE* f, int* n, int *nnzs, int** col_ind, int** row_ptr, double** values);
 void write_vector_to_file(const char* filename, double* vector, int size);
 
 /**
