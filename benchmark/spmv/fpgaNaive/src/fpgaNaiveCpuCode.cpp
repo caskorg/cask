@@ -19,6 +19,7 @@
 
 using namespace std;
 
+
 vector<double> SpMV_MKL_unsym(char *path, 
                               vector<double> v) {
   FILE *f = fopen(path, "r");
@@ -36,6 +37,7 @@ vector<double> SpMV_MKL_unsym(char *path,
   fclose(f);
   return r;
 }
+
 
 vector<double> SpMV_MKL_sym(char *path, 
                             vector<double> v) {
@@ -56,6 +58,7 @@ vector<double> SpMV_MKL_sym(char *path,
   return r;
 }
 
+
 char* check_file(char **argv) {
   FILE *f;
   char *path = argv[3];
@@ -66,6 +69,7 @@ char* check_file(char **argv) {
   fclose(f);
   return argv[3];
 }
+
 
 bool almost_equal(double a, double b) {
   return abs(a - b) < 1E-10;
@@ -85,6 +89,42 @@ vector<double> SpMV_CPU(char *path, vector<double> v) {
   cout << "done!" << endl;
   return r;
 }
+
+
+void pretty_print(int inSize, int rowSize, 
+                  vector<int> indptr, vector<double> a,  
+                  vector<double> out, vector<double> outr,
+                  vector<double> vRom, 
+                  vector<double> expected,
+                  int fpL) {
+  cout << "cycle\t        in\t       out\t      outr\t       exp" << endl;
+  cout << "-----\t        --\t       ---\t      ----\t       ---" << endl;
+  int idx = 0;
+  for (int i = 0; i < inSize + fpL; i++) {
+    printf("%5d", i);
+    if (i >= inSize) {
+      cout << "\t         -" ;
+    } else {
+      printf("\t%10.3f", a[i] * vRom[indptr[i]]);
+    }
+
+    if ( i >= inSize || (i % rowSize < fpL && i / rowSize >= 1)) {
+      printf("\t%10.3f\t%10.3f", out[idx], outr[idx]);
+      idx++;
+    } else {
+      cout << "\t         -\t         -" ; ;
+    }
+
+    if ( i >= inSize || (i % rowSize < fpL && i / rowSize >= 1)) {
+      printf("\t%10.3f", expected[i - fpL]);
+    } else {
+      cout << "\t         -" ;
+    }
+
+    cout << endl;
+  }
+}
+
 
 int main(int argc, char** argv) {
 
@@ -128,35 +168,14 @@ int main(int argc, char** argv) {
             &outr[0],
             &vRom[0]);          // roms
 
+  pretty_print(inSize, rowSize,
+               indptr, a,
+               out, outr,
+               vRom,
+               expected,
+               fpL);
 
-  cout << "cycle\tin\tout\toutr\texp" << endl;
-  cout << "-----\t--\t---\t----\t---" << endl;
-  cout << setprecision(4);
-  int idx = 0;
-  for (int i = 0; i < inSize + fpL; i++) {
-    cout << i;
-    if (i >= inSize) {
-      cout << "\t-" ;
-    } else {
-      cout << "\t" << a[i] * vRom[indptr[i]];
-    }
-
-    if ( i >= inSize || (i % rowSize < fpL && i / rowSize >= 1)) {
-      cout << "\t" << out[idx] << "\t" << outr[idx];
-      idx++;
-    } else {
-      cout << "\t-\t-";
-    }
-
-    if ( i >= inSize || (i % rowSize < fpL && i / rowSize >= 1)) {
-      cout << "\t" << expected[i];
-    } else {
-      cout << "\t-";
-    }
-
-    cout << endl;
-  }
-
+  // compute expected row sum values
   vector<double> s(inSize / rowSize, 0);
   for (int i = 0; i < s.size(); i++) {
     for (int j = i * rowSize; j < (i + 1) * rowSize; j++)
