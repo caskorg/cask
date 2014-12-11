@@ -58,7 +58,7 @@ class CSRControlSM extends ManagerStateMachine {
 
     private DFEsmValue rowptrReady() {
         return ~iColptr.empty & ~oRowEnd.stall & 
-            (mode === Mode.NoneRead | mode === Mode.FirstEntry | mode === Mode.IndptrRead);
+            (mode === Mode.FirstEntry);
     }
 
     @Override
@@ -69,13 +69,9 @@ class CSRControlSM extends ManagerStateMachine {
         IF ( rowptrReady === true )  {
             SWITCH (mode) {
                 CASE (Mode.FirstEntry) {
-                    // save first length
                     rowLength.next <== iColptr;
                     mode.next <== Mode.RowptrRead;
                     debug.simPrintf("Set entry\n");
-                }
-                CASE (Mode.NoneRead) {
-                    mode.next <== Mode.RowptrRead;
                 }
                 CASE (Mode.IndptrRead) {
                     mode.next <== Mode.BothRead;
@@ -99,16 +95,25 @@ class CSRControlSM extends ManagerStateMachine {
 
         IF (mode === Mode.BothRead) {
             // output, save new length
-            IF ( counter < rowLength ) {
+            debug.simPrintf("%d %d %d %d %d\n", 
+                            counter,
+                            rowEnd,
+                            rowLength,
+                            iColptr,
+                            iIndptr);
+            IF ( counter < rowLength - 2 ) {
                 rowEnd.next <== 0;
+                mode.next <== Mode.RowptrRead;
             } ELSE {
                 rowEnd.next <== 1;
-                counter.next <== 0;
-                rowLength.next <== iColptr;
+                mode.next <== Mode.FirstEntry;
             }
+            counter.next <== counter + 1;
             rowEndValid.next <== true;
             indptrOutValid.next <== true;
-            mode.next <== Mode.NoneRead;
+        } ELSE {
+            rowEndValid.next <== false;
+            indptrOutValid.next <== false;
         }
     }
 

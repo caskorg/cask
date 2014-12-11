@@ -243,7 +243,7 @@ int main(int argc, char** argv) {
   fpgaNaive_SM(m_n,
                m_nnzs,
                m_col_ind, 
-               m_row_ptr,
+               m_row_ptr + 1,
                &mo_indptr[0],
                &mo_rowend[0]);
 

@@ -113,7 +113,7 @@ void read_mm_sym_matrix(FILE* f, MM_typecode mcode,
     VALUES INCLUDED (i.e. when setting A(i, j), we also set A(j, i)).
 */
 void read_mm_unsym_matrix(FILE* f, MM_typecode mcode,
-                        int n, int nnzs,
+                        int n, int* nnzs,
                         double *values, int* col_ind, int *row_ptr
                         ) {
 
@@ -123,25 +123,25 @@ void read_mm_unsym_matrix(FILE* f, MM_typecode mcode,
     printf("Market Market type: [%s]\n", mm_typecode_to_str(mcode));
     exit(1);
   }
-
+  
   // read Matrix Market matrix in COO format
-  int* I = (int *) malloc(2 * nnzs * sizeof(int));
-  int *J = (int *) malloc(2 * nnzs * sizeof(int));
-  double *val = (double *) malloc(2 * nnzs * sizeof(double));
+  int* I = (int *) malloc(2 * (*nnzs) * sizeof(int));
+  int *J = (int *) malloc(2 * (*nnzs) * sizeof(int));
+  double *val = (double *) malloc(2 * (*nnzs) * sizeof(double));
 
   int i;
-  int mynnzs = nnzs;
-  for (i=0; i<nnzs; i++) {
+  int oldnnzs = *nnzs;
+  for (i=0; i<oldnnzs; i++) {
     fscanf(f, "%d %d %lg\n", &I[i], &J[i], &val[i]);
     I[i]--;
     J[i]--;
 
     // add symmetric entry
     if (J[i] != I[i]) {
-      I[mynnzs] = J[i]; 
-      J[mynnzs] = I[i];
-      val[mynnzs] = val[i];
-      mynnzs++;
+      I[(*nnzs)] = J[i]; 
+      J[(*nnzs)] = I[i];
+      val[(*nnzs)] = val[i];
+      (*nnzs)++;
     }
 
   }
@@ -151,7 +151,7 @@ void read_mm_unsym_matrix(FILE* f, MM_typecode mcode,
     1, // use 1 based indexing for CSR matrix (required by mkl_dcsrsymv)
     0,
     0, // Is this used?
-    mynnzs,
+    (*nnzs),
     0
   };
 
@@ -163,7 +163,7 @@ void read_mm_unsym_matrix(FILE* f, MM_typecode mcode,
               values,
               col_ind,
               row_ptr,
-              &mynnzs,
+              nnzs,
               val,
               I,
               J,
@@ -253,12 +253,11 @@ void read_system_matrix_unsym_csr(FILE* f, int* n, int *nnzs, int** col_ind, int
     exit(1);
   }
 
-  int nzs = *nnzs;
-  double *acsr = (double *)malloc(2 * sizeof(double) * nzs);
+  double *acsr = (double *)malloc(2 * sizeof(double) * (*nnzs));
   MKL_INT *ia = (MKL_INT *)malloc(sizeof(MKL_INT) * (*n + 1)); // row_ref
-  MKL_INT *ja = (MKL_INT *)malloc(2 * sizeof(MKL_INT) * nzs); // column indices
+  MKL_INT *ja = (MKL_INT *)malloc(2 * sizeof(MKL_INT) * (*nnzs)); // column indices
 
-  read_mm_unsym_matrix(f, mcode, *n, nzs, acsr, ja, ia);
+  read_mm_unsym_matrix(f, mcode, *n, nnzs, acsr, ja, ia);
 
   *row_ptr = ia;
   *col_ind = ja;
