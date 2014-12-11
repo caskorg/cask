@@ -92,7 +92,7 @@ public class fpgaNaiveManager extends CustomManager{
         engine_interface.setStream("rowptr", type, sizeBytes2); // XXX read less
 
         engine_interface.setStream("indptr_out", type, sizeBytes);
-        engine_interface.setStream("rowend_out", type, sizeBytes2); // XXX read less
+        engine_interface.setStream("rowend_out", type, sizeBytes); // XXX read less
 
         return engine_interface;
     }
