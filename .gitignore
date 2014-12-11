@@ -1,2 +1,6 @@
 *.mtx
 *.html
+*.class
+*.o
+*.ps
+*.tmp
