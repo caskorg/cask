@@ -18,36 +18,23 @@ class fpgaNaiveKernel extends Kernel {
                               int fpL) {
         super(parameters);
 
-
-        DFEVar rowSize = io.scalarInput("rowSize", dfeUInt(32));
-
-        DFEVar counter = control.count.simpleCounter(32, rowSize);
-
+        // --- design scalar inputs
         DFEVar n = io.scalarInput("n", dfeUInt(32));
-        DFEVar cycleCount = control.count.simpleCounter(32);
 
+        // --- control
+        DFEVar cycleCount = control.count.simpleCounter(32);
         DFEVar flush = cycleCount >= n;
         DFEVar compute = cycleCount < n;
 
-        DFEVar value = io.input("value", dfeFloat(11, 53), compute);
-        DFEVar indptr = io.input("indptr", dfeInt(32), compute).cast(dfeUInt(vRomAddressSizeBits));
-
-
+        // -- design dynamic inputs
+        // ROM for storing the vector we are multiplying with
         Memory<DFEVar> vRom = mem.alloc(dfeFloat(11, 53), size);
         vRom.mapToCPU("vRom");
 
-        DFEVar x = vRom.read(indptr);
-
-        DFEVar carriedSum = dfeFloat(11, 53).newInstance(this);
-        DFEVar newSum = value * x + (counter < fpL ? 0 : carriedSum);
-        carriedSum <== stream.offset(newSum, -fpL);
-
-        DFEVar reduced = constant.var(0);
-        for (int i = 0; i < fpL; i++)
-                 reduced = reduced + stream.offset(carriedSum, -i);
-
-        // can output values for fpL cycles after the row has finished
-        DFEVar rowFinished = counter.eq(rowSize - 1);
+        // read in the matrix
+        DFEVar value = io.input("value_in", dfeFloat(11, 53), compute);
+        DFEVar indptr = io.input("indptr_in", dfeInt(32), compute).cast(dfeUInt(vRomAddressSizeBits)); // col ptr
+        DFEVar rowFinished = io.input("rowEnd_in", dfeUInt(32), compute);
 
         // counter is set to 0 when row has finished
         // while counter is less than fpL, we can output results
@@ -55,14 +42,21 @@ class fpgaNaiveKernel extends Kernel {
             .withReset(rowFinished)
             .withInitValue(fpL + 1);
 
-        Counter outCounter = control.count.makeCounter(params);
+        Counter rowCounter = control.count.makeCounter(params);
 
         // We need to start output the next cycle after the reset,
         // since the reset will happen before the end of the row and
         // we want to start outputing on the next cycle to allow the
         // correct result to proceed out of the pipeline
-        DFEVar output = outCounter.getCount() <= fpL &
-            outCounter.getCount() > 0;
+        DFEVar output = rowCounter.getCount() <= fpL & rowCounter.getCount() > 0;
+
+        // --- compute
+        DFEVar carriedSum = dfeFloat(11, 53).newInstance(this);
+        DFEVar newSum = value * vRom.read(indptr) + (rowCounter.getCount() < fpL ? 0 : carriedSum);
+        carriedSum <== stream.offset(newSum, -fpL);
+        DFEVar reduced = constant.var(0);
+        for (int i = 0; i < fpL; i++)
+                 reduced = reduced + stream.offset(carriedSum, -i);
 
         io.output("output", carriedSum, dfeFloat(11, 53), flush | output);
         io.output("reduced", reduced, dfeFloat(11, 53), flush | output);

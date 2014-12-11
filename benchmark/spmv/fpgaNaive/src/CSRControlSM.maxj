@@ -1,0 +1,126 @@
+import com.maxeler.maxcompiler.v2.managers.DFEManager;
+import com.maxeler.maxcompiler.v2.statemachine.*;
+import com.maxeler.maxcompiler.v2.statemachine.manager.*;
+
+class CSRControlSM extends ManagerStateMachine {
+
+    private enum Mode {
+        FirstEntry, // first entry ever processed
+        BothRead,
+        NoneRead,
+        RowptrRead,
+        IndptrRead
+    };
+    
+    private final DFEsmStateEnum<Mode> mode;
+
+    private final DFEsmPullInput iIndptr, iColptr;
+    private final DFEsmPushOutput oIndptr, oRowEnd;
+    
+    private final DFEsmStateValue counter, rowLength;
+    private final DFEsmStateValue indptrReady, rowptrReady;
+    private final DFEsmStateValue indptrOutValid, rowEndValid;
+    private final DFEsmStateValue rowEnd;
+
+    //    private final DFEsmStateValue sCycleCounter = state.value(dfeUInt(64), 0);
+
+    CSRControlSM(DFEManager owner) {
+        super(owner);
+
+        mode = state.enumerated(Mode.class, Mode.FirstEntry);
+
+        counter = state.value(dfeUInt(32));
+
+        rowLength = state.value(dfeUInt(32));
+        rowEnd = state.value(dfeUInt(32)); 
+
+        indptrReady = state.value(dfeBool(), false);
+        rowptrReady = state.value(dfeBool(), false);
+        
+        indptrOutValid = state.value(dfeBool(), false);
+        rowEndValid = state.value(dfeBool(), false);
+
+        // --- inputs
+        iIndptr = io.pullInput("indptr", dfeUInt(32));
+        // TODO must discard first value of column pointer
+        iColptr = io.pullInput("rowptr", dfeUInt(32));
+
+        // -- outputs
+        oIndptr = io.pushOutput("indptr_out", dfeUInt(32), 1);
+        oRowEnd = io.pushOutput("rowEnd_out", dfeUInt(32), 1);
+    }
+
+
+    private DFEsmValue indptrReady() {
+        return ~iIndptr.empty & ~oIndptr.stall & 
+            (mode === Mode.NoneRead | mode === Mode.RowptrRead);
+    }
+
+    private DFEsmValue rowptrReady() {
+        return ~iColptr.empty & ~oRowEnd.stall & 
+            (mode === Mode.NoneRead | mode === Mode.FirstEntry | mode === Mode.IndptrRead);
+    }
+
+    @Override
+    protected void nextState() {
+        indptrReady.next <== indptrReady();
+        rowptrReady.next <== rowptrReady();
+
+        IF ( rowptrReady === true )  {
+            SWITCH (mode) {
+                CASE (Mode.FirstEntry) {
+                    // save first length
+                    rowLength.next <== iColptr;
+                    mode.next <== Mode.RowptrRead;
+                    debug.simPrintf("Set entry\n");
+                }
+                CASE (Mode.NoneRead) {
+                    mode.next <== Mode.RowptrRead;
+                }
+                CASE (Mode.IndptrRead) {
+                    mode.next <== Mode.BothRead;
+                } 
+                OTHERWISE {
+                    mode.next <== mode;
+                }
+            }
+        }
+
+        IF ( indptrReady === true ) {
+            SWITCH (mode) {
+                CASE (Mode.RowptrRead) {
+                    mode.next <== Mode.BothRead;
+                }
+                OTHERWISE {
+                    mode.next <== Mode.IndptrRead;
+                }
+            }
+        }
+
+        IF (mode === Mode.BothRead) {
+            // output, save new length
+            IF ( counter < rowLength ) {
+                rowEnd.next <== 0;
+            } ELSE {
+                rowEnd.next <== 1;
+                counter.next <== 0;
+                rowLength.next <== iColptr;
+            }
+            rowEndValid.next <== true;
+            indptrOutValid.next <== true;
+            mode.next <== Mode.NoneRead;
+        }
+    }
+
+    @Override
+    protected void outputFunction() {
+        iIndptr.read <== indptrReady();
+        iColptr.read <== rowptrReady();
+
+        oIndptr.valid <== indptrOutValid;
+        oRowEnd.valid <== rowEndValid;
+
+        oIndptr <== iIndptr;
+        oRowEnd <== rowEnd;
+    }
+}

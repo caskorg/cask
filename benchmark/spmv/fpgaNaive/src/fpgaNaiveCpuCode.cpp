@@ -160,6 +160,8 @@ int main(int argc, char** argv) {
     expected[i] =  prev + a[i] * vRom[indptr[i]];
   }
 
+  // --- Running whole SpMV design
+#ifndef fpgaNaive_smStandalone
   std::cout << "Running on DFE." << std::endl;
   fpgaNaive(inSize,
             rowSize,            // scalars
@@ -167,7 +169,6 @@ int main(int argc, char** argv) {
             &out[0],            // outs
             &outr[0],
             &vRom[0]);          // roms
-
   pretty_print(inSize, rowSize,
                indptr, a,
                out, outr,
@@ -206,4 +207,51 @@ int main(int argc, char** argv) {
 
   std::cout << "Test passed!" << std::endl;
   return 0;
+#endif 
+
+  // --- Running control state machine standalone
+#ifdef fpgaNaive_smStandalone
+
+
+  // Load the matrix
+
+  FILE *f = fopen(path, "r");
+
+  int m_n, m_nnzs;
+  double* m_values;
+  int *m_col_ind, *m_row_ptr;
+  read_system_matrix_unsym_csr(f, &m_n, &m_nnzs, &m_col_ind, &m_row_ptr, &m_values);
+  fclose(f);
+
+  int ioSize = m_nnzs;
+  vector<double> mo_value(ioSize, 0);
+  vector<int> mo_rowend(ioSize, 0), mo_indptr(ioSize, 0);
+
+  for (int i = 0; i < m_nnzs; i++) {
+    cout << m_col_ind[i] << " ";
+  }
+  cout << endl;
+  for (int i = 0; i < m_nnzs; i++) {
+    cout << m_values[i] << " ";
+  }
+  cout << endl;
+  for (int i = 0; i < m_n + 1; i++) {
+    cout << m_row_ptr[i] << " ";
+  }
+  cout << "---" << endl;
+
+  fpgaNaive_SM(m_n,
+               m_nnzs,
+               m_col_ind, 
+               m_row_ptr,
+               &mo_indptr[0],
+               &mo_rowend[0]);
+
+  for (int i = 0; i < m_nnzs; i++) {
+    cout << mo_indptr[i] << " " << mo_rowend[i] << endl;
+  }
+
+  // TODO check results are correct
+#endif
+
 }
