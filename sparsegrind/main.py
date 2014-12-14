@@ -8,6 +8,8 @@ A module for analysing sparse matrices. Can be used to analyse:
 import argparse
 import numpy as np
 import matplotlib.pylab as pl
+import os
+import os.path
 
 from math import log, ceil
 from reorder import reorder
@@ -108,37 +110,18 @@ def plot_matrices(list_of_matrices):
     pl.show()
 
 
-def main():
-
-    parser = argparse.ArgumentParser(
-        description='Analyse sparse matrices.')
-    parser.add_argument('-f', '--format',
-                        default='mm',
-                        choices=['mm', 'csr', 'coo', 'matlabtl'],
-                        help='Format of the given matrix')
-    parser.add_argument('-a', '--analysis',
-                        default='sparsity',
-                        choices=['sparsity', 'range',
-                                 'storage', 'changes',
-                                 'reordering'],
-                        help='Analysis to run')
-    parser.add_argument('-t', '--timestep',
-                        default=0,
-                        type=int,
-                        help='Time step to look at when using the matlabtl format')
-    parser.add_argument('file')
-    args = parser.parse_args()
+def grind_matrix(file, args):
 
     print os.path.basename(args.file)
 
     # read in matrix data
     if args.format == 'matlabtl':
         matrices, realms, imagms = io.read_matlab_matrix_timeline(
-            args.file,
+            file,
             args.timestep + 1
         )
     elif args.format == 'mm':
-        realms = [io.read_matrix_market(args.file)]
+        realms = [io.read_matrix_market(file)]
     else:
         print 'Unsupported format'
         return
@@ -178,6 +161,41 @@ def main():
     else:
         print 'Unspported analysis'
         return
+
+
+def main():
+
+    parser = argparse.ArgumentParser(
+        description='Analyse sparse matrices.')
+    parser.add_argument('-f', '--format',
+                        default='mm',
+                        choices=['mm', 'csr', 'coo', 'matlabtl'],
+                        help='Format of the given matrix')
+    parser.add_argument('-a', '--analysis',
+                        default='sparsity',
+                        choices=['sparsity', 'range',
+                                 'storage', 'changes',
+                                 'reordering'],
+                        help='Analysis to run')
+    parser.add_argument('-t', '--timestep',
+                        default=0,
+                        type=int,
+                        help='Time step when using the matlabtl format')
+    parser.add_argument('-r', '--recursive',
+                        action='store_true',
+                        help='Recursive. Only for .mtx files.')
+    parser.add_argument('file')
+    args = parser.parse_args()
+
+    if args.recursive:
+        parent_dir = os.path.dirname(os.path.abspath(args.file))
+        for root, dirs, files in os.walk(parent_dir):
+            for f in files:
+                if f.endswith('.mtx'):
+                    grind_matrix(os.path.join(root, f), args)
+        return
+
+    grind_matrix(args.file, args)
 
 if __name__ == '__main__':
     main()
