@@ -15,13 +15,13 @@ def path_to(file):
 class TestMain(unittest.TestCase):
 
     def setUp(self):
-        self.csr_matrix = io.read_matrix_market(path_to("small.in"))
+        self.csr_matrix = io.read_matrix_market(path_to("small.mtx"))
         self.timeline = io.read_matlab_matrix_timeline(
-            path_to("small_matlabtl.in"))
+            path_to("small_matlabtl.mtx"))
 
     def testCountLines(self):
         self.assertEquals(
-            io.count_lines(path_to("small_matlabtl.in")),
+            io.count_lines(path_to("small_matlabtl.mtx")),
             2)
 
     def testCsrRead(self):
