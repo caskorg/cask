@@ -13,6 +13,7 @@ from math import log, ceil
 from reorder import reorder
 from sparsegrindio import io
 from storage import storage
+import os
 
 
 def storage_analysis(matrix):
@@ -29,8 +30,11 @@ def storage_analysis(matrix):
         storage.csr(matrix),
         storage.csc(matrix),
         storage.coo(matrix),
-        storage.dia(matrix),
+        storage.csr_bounded_dictionary(matrix, 64),
+        # storage.csr_bounded_dictionary(matrix, 10000),
     ]
+
+    # storage.dia(matrix),
 
     for f in formats:
         metadata_bytes.append(f[0])
@@ -124,6 +128,8 @@ def main():
                         help='Time step to look at when using the matlabtl format')
     parser.add_argument('file')
     args = parser.parse_args()
+
+    print os.path.basename(args.file)
 
     # read in matrix data
     if args.format == 'matlabtl':
