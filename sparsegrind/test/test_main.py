@@ -29,7 +29,7 @@ class TestMain(unittest.TestCase):
         self.assertEquals(len(self.csr_matrix.indptr), 5 + 1)
         testing.assert_allclose(
             self.csr_matrix.data,
-            np.array([1, 6, 10.5, 0.015, 250.5, -280, 33.32, 12]))
+            np.array([1, 6, 10.5, 0.015, 250.5, -280, 33.32, 10.5]))
 
     def testTimelineRead(self):
         cmplx = self.timeline[0]
@@ -66,7 +66,7 @@ class TestMain(unittest.TestCase):
         minCell, maxCell, unique = main.range_analysis(self.csr_matrix)
         self.assertEquals(-280, minCell)
         self.assertEquals(250.5, maxCell)
-        self.assertEquals(8, unique)
+        self.assertEquals(7, unique)
 
 if __name__ == '__main__':
     unittest.main()

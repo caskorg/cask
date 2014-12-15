@@ -54,6 +54,8 @@ def storage_analysis(matrix):
               ('Metadata (Bytes)', 'Data (Bytes)', 'Total (Bytes)'))
     pl.show()
 
+    return formats
+
 
 def range_analysis(csr_matrix):
     """Analyse the range of values and the number of bits required to
@@ -101,6 +103,33 @@ def reorder_analysis(matrix):
             reorder.cm(matrix)]
 
 
+def write_org_table_row(row_values):
+    print row_values
+
+
+def write_org_table_header(header):
+    print header
+
+
+def compression_analysis(matrix, name):
+    results = [name]
+    results.append('?')
+    results.append(matrix.nnz)
+    results.append(len(matrix.indptr))
+    results.append(len(set(matrix.data)))
+
+    bcsr = storage.csr_bounded_dictionary(matrix, 128)
+    csr = storage.csr(matrix)
+    total = (csr[0] + csr[1]) / (bcsr[0] + bcsr[1])
+    metadata = csr[0] / bcsr[0]
+    value = csr[1] / bcsr[1]
+    results.append(value)
+    results.append(metadata)
+    results.append(total)
+
+    write_org_table_row(results)
+
+
 def plot_matrices(list_of_matrices):
     """"Plots the given list of sparse matrices using plt.spy()"""
     nplots = len(list_of_matrices)
@@ -112,7 +141,7 @@ def plot_matrices(list_of_matrices):
 
 def grind_matrix(file, args):
 
-    print os.path.basename(args.file)
+    name = os.path.basename(file).replace('.mtx', '')
 
     # read in matrix data
     if args.format == 'matlabtl':
@@ -158,6 +187,8 @@ def grind_matrix(file, args):
     elif args.analysis == 'storage':
         print 'Running storage format analysis'
         storage_analysis(realms[0])
+    elif args.analysis == 'compression':
+        compression_analysis(realms[0], name)
     else:
         print 'Unspported analysis'
         return
@@ -175,7 +206,8 @@ def main():
                         default='sparsity',
                         choices=['sparsity', 'range',
                                  'storage', 'changes',
-                                 'reordering'],
+                                 'reordering',
+                                 'compression'],
                         help='Analysis to run')
     parser.add_argument('-t', '--timestep',
                         default=0,
@@ -188,6 +220,10 @@ def main():
     args = parser.parse_args()
 
     if args.recursive:
+        if args.analysis == 'compression':
+            header = ['name', 'sym', 'nnzs', 'dim', 'uvals',
+                      'B_CSR(values)', 'B_CSR(meta)', 'B_CSR(total)']
+            write_org_table_header(header)
         parent_dir = os.path.dirname(os.path.abspath(args.file))
         for root, dirs, files in os.walk(parent_dir):
             for f in files:
