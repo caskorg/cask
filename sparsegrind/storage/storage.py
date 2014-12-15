@@ -50,13 +50,6 @@ def bounded_dictionary(matrix_values, k):
     for v, c in counter.most_common(k):
         covered += c
 
-    
-    print counter.most_common(k)
-    print covered,  len(matrix_values), len(counter)
-    print "Covered: ", covered / len(matrix_values)
-
-    print counter
-
     return math.ceil(covered * math.ceil(math.log(k, 2)) + 
                      (len(matrix_values) - covered) * bytes_per_data + 
                      len(matrix_values) ) / 8
@@ -69,8 +62,6 @@ def csr_bounded_dictionary(matrix, dict_size=10):
     nnz = matrix.nnz
 
     value_bytes = bounded_dictionary(matrix.data, dict_size)
-
-    print value_bytes
 
     return ((len(matrix.indptr) + nnz) * bytes_per_metadata,
             value_bytes,
