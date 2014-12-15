@@ -141,6 +141,7 @@ int main(int argc, char** argv) {
   cout << "   nnzs = " << nnzs << endl;
   fpgaNaive((long)n,
             (long)nnzs,
+            2,
             col_ind,
             row_ptr + 1,
             values,  // ins

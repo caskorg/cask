@@ -54,6 +54,7 @@ public class fpgaNaiveManager extends CustomManager{
 
         InterfaceParam nnzs = engine_interface.addParam("nnzs", CPUTypes.INT); // number of nonzeros
         InterfaceParam n = engine_interface.addParam("n", CPUTypes.INT);  // matrix order
+        InterfaceParam rows = engine_interface.addParam("rows", CPUTypes.INT);
 
         InterfaceParam sizeBytes = nnzs * size;
         InterfaceParam sizeBytes2 = n * size;
@@ -66,7 +67,7 @@ public class fpgaNaiveManager extends CustomManager{
         engine_interface.setStream("indptr", type, sizeBytes);
         engine_interface.setStream("rowptr", type, sizeBytes2);
 
-        engine_interface.setStream("b", resultType, fpL * resultType.sizeInBytes());
+        engine_interface.setStream("b", resultType, rows * fpL * resultType.sizeInBytes());
         return engine_interface;
     }
 
