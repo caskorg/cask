@@ -29,11 +29,10 @@ public class fpgaNaiveManager extends CustomManager{
             // add the compute block
             KernelBlock compute = addKernel(new fpgaNaiveKernel(makeKernelParameters(s_kernelName),
                                                           fpL));
-            compute.getInput("value_in") <== control.getOutput("value_out");
+            compute.getInput("value_in") <== addStreamFromCPU("value");
             compute.getInput("indptr_in") <== control.getOutput("indptr_out");
             compute.getInput("rowEnd_in") <== control.getOutput("rowEnd_out");
-            addStreamToCPU("output") <== compute.getOutput("output");
-            addStreamToCPU("reduced") <== compute.getOutput("reduced");
+            addStreamToCPU("b") <== compute.getOutput("b");
         } else {
             addStreamToCPU("indptr_out") <== control.getOutput("indptr_out");
             addStreamToCPU("rowend_out") <== control.getOutput("rowEnd_out");
@@ -67,8 +66,7 @@ public class fpgaNaiveManager extends CustomManager{
         engine_interface.setStream("indptr", type, sizeBytes);
         engine_interface.setStream("rowptr", type, sizeBytes2);
 
-        engine_interface.setStream("output", resultType, 2 * fpL * resultType.sizeInBytes());
-        engine_interface.setStream("reduced", resultType, 2 * fpL * resultType.sizeInBytes());
+        engine_interface.setStream("b", resultType, fpL * resultType.sizeInBytes());
         return engine_interface;
     }
 
@@ -98,7 +96,7 @@ public class fpgaNaiveManager extends CustomManager{
     }
 
     public static void main(String[] args) {
-        boolean smStandalone = true;
+        boolean smStandalone = false;
 
         fpgaNaiveManager manager = new fpgaNaiveManager(new EngineParameters(args), smStandalone);
         if (!smStandalone)

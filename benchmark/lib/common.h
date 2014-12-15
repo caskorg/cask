@@ -38,7 +38,15 @@ void read_mm_array(FILE *f, MM_typecode code, int nnzs, double *values);
 double* read_rhs(FILE* g, int* n, int *nnzs);
 void read_system_matrix_sym_csr(FILE* f, int* n, int *nnzs, int** col_ind, int** row_ptr, double** values);
 
-void read_system_matrix_unsym_csr(FILE* f, int* n, int *nnzs, int** col_ind, int** row_ptr, double** values);
+void read_system_matrix_unsym_csr(FILE* f,
+                                  int* n, int *nnzs,
+                                  int** col_ind, int** row_ptr, double** values);
+
+/** Reads a generic sparse matrix in Matrix Market format and converts it to CSR */
+void read_ge_mm_csr(char* fname,
+                    int* n, int *nnzs,
+                    int** col_ind, int** row_ptr, double** values);
+
 void write_vector_to_file(const char* filename, double* vector, int size);
 
 /**

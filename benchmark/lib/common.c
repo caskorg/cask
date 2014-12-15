@@ -264,29 +264,75 @@ void read_system_matrix_unsym_csr(FILE* f, int* n, int *nnzs, int** col_ind, int
   *values = acsr;
 }
 
+
+/** Reads a generic sparse matrix in Matrix Market format and converts it to CSR */
+void read_ge_mm_csr(char* fname,
+                    int* n, int *nnzs,
+                    int** col_ind, int** row_ptr, double** values) {
+  MKL_INT *ia, *ja;
+  double *val;
+  mm_read_unsymmetric_sparse(fname, n, n, nnzs,
+                             &val, &ia, &ja);
+
+  MKL_INT job[] = {
+    1, // convert COO to CSR
+    1, // use 1 based indexing for CSR matrix (required by mkl_dcsrsymv)
+    0,
+    0, // Is this used?
+    *nnzs,
+    0
+  };
+
+  printf("HERE\n");
+
+  MKL_INT info;
+  *values = (double *) malloc(*nnzs * sizeof(double));
+  *col_ind = (int *) malloc(*nnzs * sizeof(int));
+  *row_ptr = (int *) malloc((*n + 1) * sizeof(int));
+
+
+  // convert COO matrix to CSR
+  mkl_dcsrcoo(job,
+              n,
+              *values,
+              *col_ind,
+              *row_ptr,
+              nnzs,
+              val,
+              ia,
+              ja,
+              &info);
+
+  if (info != 0) {
+    printf("CSR to COO conversion failed: not enough memory!\n");
+    exit(1);
+  }
+}
+
+
 void write_vector_to_file(const char* filename, double* vector, int size)
 {
-    int i;
-    FILE *fout = fopen(filename, "w");
-    fprintf(fout, "%%MatrixMarket matrix array real general\n");
-    fprintf(fout, "%%-------------------------------------------------------------------------------\n");
-    fprintf(fout, "%d 1\n", size);
-    for (i = 0; i < size; i++)
-      fprintf(fout, "%.12lf\n", vector[i]);
-    fclose(fout);
+  int i;
+  FILE *fout = fopen(filename, "w");
+  fprintf(fout, "%%MatrixMarket matrix array real general\n");
+  fprintf(fout, "%%-------------------------------------------------------------------------------\n");
+  fprintf(fout, "%d 1\n", size);
+  for (i = 0; i < size; i++)
+    fprintf(fout, "%.12lf\n", vector[i]);
+  fclose(fout);
 }
 
 void elementwise_xty(const int n, const double *x, const double *y, double *z)
 {
-    // calling double precision symmetric banded matrix-vector multiplier
-    static const int k = 0; // just the diagonal
-    static const double alpha = 1.0;
-    static const int lda = 1;
-    static const int incx = 1;
-    static const double beta = 0.0;
-    static const int incy = 1;
-    static const CBLAS_ORDER order = CblasRowMajor;
-    static const CBLAS_UPLO  uplo  = CblasUpper;
+  // calling double precision symmetric banded matrix-vector multiplier
+  static const int k = 0; // just the diagonal
+  static const double alpha = 1.0;
+  static const int lda = 1;
+  static const int incx = 1;
+  static const double beta = 0.0;
+  static const int incy = 1;
+  static const CBLAS_ORDER order = CblasRowMajor;
+  static const CBLAS_UPLO  uplo  = CblasUpper;
 
-    cblas_dsbmv(order, uplo, n, k, alpha, x, lda, y, incx, beta, z, incy);
+  cblas_dsbmv(order, uplo, n, k, alpha, x, lda, y, incx, beta, z, incy);
 }

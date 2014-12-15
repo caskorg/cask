@@ -42,6 +42,7 @@ class fpgaNaiveKernel extends Kernel {
             .withReset(rowFinished)
             .withInitValue(fpL + 1);
 
+
         Counter rowCounter = control.count.makeCounter(params);
 
         // We need to start output the next cycle after the reset,
@@ -58,8 +59,11 @@ class fpgaNaiveKernel extends Kernel {
         for (int i = 0; i < fpL; i++)
                  reduced = reduced + stream.offset(carriedSum, -i);
 
-        io.output("output", carriedSum, dfeFloat(11, 53), flush | output);
-        io.output("reduced", reduced, dfeFloat(11, 53), flush | output);
+        debug.simPrintf("kernel: %f %d %d output = %f %f\n", 
+                        value, indptr, rowFinished,
+                        carriedSum, reduced);
+
+        io.output("b", reduced, dfeFloat(11, 53), flush | output);
     }
 
 }
