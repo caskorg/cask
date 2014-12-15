@@ -72,3 +72,24 @@ def tl_to_csr(matrix_timeline):
 
 def read_matrix_market(file_path):
     return sparse.csr_matrix(io.mmread(file_path))
+
+
+def write_org_table_header(header):
+    print '|',
+    for h in header:
+        print '{0:^15}|'.format(h),
+    print ''
+    print '|',
+    for h in header:
+        print '-' * 15 + '+',
+    print
+
+
+def write_org_table_row(row_values):
+    print '|',
+    for v in row_values:
+        if isinstance(v, float):
+            print '{0:^15.2f}|'.format(v),
+        else:
+            print '{0:^15}|'.format(v),
+    print

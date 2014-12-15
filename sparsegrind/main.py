@@ -16,7 +16,7 @@ from reorder import reorder
 from sparsegrindio import io
 from storage import storage
 import os
-
+import sparsegrindio
 
 def storage_analysis(matrix):
     """Plots the storage cost in bytes of various formats."""
@@ -103,14 +103,6 @@ def reorder_analysis(matrix):
             reorder.cm(matrix)]
 
 
-def write_org_table_row(row_values):
-    print row_values
-
-
-def write_org_table_header(header):
-    print header
-
-
 def compression_analysis(matrix, name):
     results = [name]
     results.append('?')
@@ -127,7 +119,7 @@ def compression_analysis(matrix, name):
     results.append(metadata)
     results.append(total)
 
-    write_org_table_row(results)
+    sparsegrindio.io.write_org_table_row(results)
 
 
 def plot_matrices(list_of_matrices):
@@ -223,7 +215,7 @@ def main():
         if args.analysis == 'compression':
             header = ['name', 'sym', 'nnzs', 'dim', 'uvals',
                       'B_CSR(values)', 'B_CSR(meta)', 'B_CSR(total)']
-            write_org_table_header(header)
+            sparsegrindio.io.write_org_table_header(header)
         parent_dir = os.path.dirname(os.path.abspath(args.file))
         for root, dirs, files in os.walk(parent_dir):
             for f in files:
