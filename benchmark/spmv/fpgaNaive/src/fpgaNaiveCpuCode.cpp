@@ -107,6 +107,10 @@ vector<double> SpMV_CPU(char *path, vector<double> v, bool symmetric) {
   return r2;
 }
 
+/** Returns the smallest number greater than bytes that is multiple of k. */
+int align(int bytes, int k) {
+  return  k * (bytes / k + (bytes % k == 0 ? 0 : 1));
+}
 
 int main(int argc, char** argv) {
 
@@ -139,14 +143,23 @@ int main(int argc, char** argv) {
   cout << "Running on DFE." << endl;
   cout << "   n    = " << n << endl;
   cout << "   nnzs = " << nnzs << endl;
-  fpgaNaive((long)n,
-            (long)nnzs,
+  // stream size must be multiple of 16 bytes
+  // padding bytes are ignored in the actual kernel
+  int nnzs_bytes = nnzs * sizeof(int);
+  int indptr_size  = align(nnzs_bytes, 16);
+  int value_size   = align(2 * nnzs_bytes, 16);
+  int row_ptr_size = align(n * sizeof(int), 16);
+
+  fpgaNaive(indptr_size,
+            nnzs,
+            row_ptr_size,
             2,
+            value_size,
             col_ind,
             row_ptr + 1,
             values,  // ins
             &b[0],
-            &v[0]);   
+            &v[0]);
 
   cout << "CPU = ";
   for (int i = 0; i < bExp.size(); i++)

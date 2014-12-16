@@ -46,29 +46,31 @@ public class fpgaNaiveManager extends CustomManager{
 
     /** Interface for the entire SpMV */
     private static EngineInterface interfaceDefault() {
-        EngineInterface engine_interface = new EngineInterface();
+        EngineInterface ei = new EngineInterface();
         CPUTypes type = CPUTypes.INT32;
         int size = type.sizeInBytes();
 
+        CPUTypes valueType = CPUTypes.DOUBLE;
+        CPUTypes indexType = CPUTypes.INT32;
+
         CPUTypes resultType = CPUTypes.DOUBLE;
 
-        InterfaceParam nnzs = engine_interface.addParam("nnzs", CPUTypes.INT); // number of nonzeros
-        InterfaceParam n = engine_interface.addParam("n", CPUTypes.INT);  // matrix order
-        InterfaceParam rows = engine_interface.addParam("rows", CPUTypes.INT);
+        InterfaceParam nnzs = ei.addParam("nnzs", CPUTypes.INT); // number of nonzeros
+        InterfaceParam rows = ei.addParam("rows", CPUTypes.INT);
 
-        InterfaceParam sizeBytes = nnzs * size;
-        InterfaceParam sizeBytes2 = n * size;
-        InterfaceParam floatBytes = nnzs * resultType.sizeInBytes();
+        ei.setTicks(s_kernelName, nnzs + fpL);
+        ei.setScalar(s_kernelName, "n", nnzs);
 
-        engine_interface.setTicks(s_kernelName, nnzs + fpL);
-        engine_interface.setScalar(s_kernelName, "n", nnzs);
+        InterfaceParam valueSize = ei.addParam("value_size", CPUTypes.INT);
+        InterfaceParam indptrSize = ei.addParam("indptr_size", CPUTypes.INT);
+        InterfaceParam rowPtrSize = ei.addParam("rowptr_size", CPUTypes.INT);
 
-        engine_interface.setStream("value", resultType, floatBytes);
-        engine_interface.setStream("indptr", type, sizeBytes);
-        engine_interface.setStream("rowptr", type, sizeBytes2);
+        ei.setStream("value", resultType, valueSize * valueType.sizeInBytes());
+        ei.setStream("indptr", type, indptrSize * indexType.sizeInBytes());
+        ei.setStream("rowptr", type, rowPtrSize * indexType.sizeInBytes());
 
-        engine_interface.setStream("b", resultType, rows * fpL * resultType.sizeInBytes());
-        return engine_interface;
+        ei.setStream("b", resultType, rows * fpL * resultType.sizeInBytes());
+        return ei;
     }
 
     /** Interface for running the SM in standalone mode.
