@@ -153,7 +153,6 @@ int main(int argc, char** argv) {
   fpgaNaive(indptr_size,
             nnzs,
             row_ptr_size,
-            2,
             value_size,
             col_ind,
             row_ptr + 1,
@@ -161,14 +160,20 @@ int main(int argc, char** argv) {
             &b[0],
             &v[0]);
 
-  cout << "CPU = ";
+  cout << "CPU  = ";
   for (int i = 0; i < bExp.size(); i++)
     cout << bExp[i] << " ";
-  cout << endl;
+  cout << endl << "FPGA = ";
   for (int i = 0; i < b.size(); i++)
     cout << b[i] << " ";
+  cout << endl;
 
-  // TODO check result is correct
+  for (int i = 0; i < b.size(); i++)
+    if (!almost_equal(bExp[i], b[i])) {
+      cout << "Expected " << bExp[i] << " got: " << b[i] << endl;
+      return 1;
+    }
+  
   std::cout << "Test passed!" << std::endl;
   return 0;
 

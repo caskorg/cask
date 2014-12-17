@@ -23,10 +23,11 @@ class CSRControlSM extends ManagerStateMachine {
     private final DFEsmStateValue rowEnd;
 
     //    private final DFEsmStateValue sCycleCounter = state.value(dfeUInt(64), 0);
+    private boolean dbg = false;
 
-    CSRControlSM(DFEManager owner) {
+    CSRControlSM(DFEManager owner, boolean dbg) {
         super(owner);
-
+        this.dbg = dbg;
         mode = state.enumerated(Mode.class, Mode.FirstEntry);
 
         counter = state.value(dfeUInt(32));
@@ -71,7 +72,8 @@ class CSRControlSM extends ManagerStateMachine {
                 CASE (Mode.FirstEntry) {
                     rowLength.next <== iColptr;
                     mode.next <== Mode.RowptrRead;
-                    debug.simPrintf("Set entry\n");
+                    if (dbg)
+                        debug.simPrintf("Set entry\n");
                 }
                 CASE (Mode.IndptrRead) {
                     mode.next <== Mode.BothRead;
@@ -95,12 +97,9 @@ class CSRControlSM extends ManagerStateMachine {
 
         IF (mode === Mode.BothRead) {
             // output, save new length
-            debug.simPrintf("%d %d %d %d %d\n", 
-                            counter,
-                            rowEnd,
-                            rowLength,
-                            iColptr,
-                            iIndptr);
+            if (dbg)
+                debug.simPrintf("%d %d %d %d %d\n", 
+                                counter, rowEnd, rowLength, iColptr, iIndptr);
             IF ( counter < rowLength - 2 ) {
                 rowEnd.next <== 0;
                 mode.next <== Mode.RowptrRead;

@@ -17,10 +17,10 @@ public class fpgaNaiveManager extends CustomManager{
 
     private static final int fpL = 16;
 
-    fpgaNaiveManager(EngineParameters ep, boolean smStandalone) {
+    fpgaNaiveManager(EngineParameters ep, boolean smStandalone, boolean dbg) {
         super(ep);
 
-        ManagerStateMachine stateMachine = new CSRControlSM(this);
+        ManagerStateMachine stateMachine = new CSRControlSM(this, dbg);
         StateMachineBlock control = addStateMachine("CSRControlSM", stateMachine);
         control.getInput("indptr") <== addStreamFromCPU("indptr");
         control.getInput("rowptr") <== addStreamFromCPU("rowptr");
@@ -28,7 +28,7 @@ public class fpgaNaiveManager extends CustomManager{
         if (!smStandalone) {
             // add the compute block
             KernelBlock compute = addKernel(new fpgaNaiveKernel(makeKernelParameters(s_kernelName),
-                                                          fpL));
+                                                                fpL, dbg));
             compute.getInput("value_in") <== addStreamFromCPU("value");
             compute.getInput("indptr_in") <== control.getOutput("indptr_out");
             compute.getInput("rowEnd_in") <== control.getOutput("rowEnd_out");
@@ -69,7 +69,7 @@ public class fpgaNaiveManager extends CustomManager{
         ei.setStream("indptr", type, indptrSize * indexType.sizeInBytes());
         ei.setStream("rowptr", type, rowPtrSize * indexType.sizeInBytes());
 
-        ei.setStream("b", resultType, rows * fpL * resultType.sizeInBytes());
+        ei.setStream("b", resultType, fpL * resultType.sizeInBytes());
         return ei;
     }
 
@@ -100,8 +100,9 @@ public class fpgaNaiveManager extends CustomManager{
 
     public static void main(String[] args) {
         boolean smStandalone = false;
+        boolean debug = false;
 
-        fpgaNaiveManager manager = new fpgaNaiveManager(new EngineParameters(args), smStandalone);
+        fpgaNaiveManager manager = new fpgaNaiveManager(new EngineParameters(args), smStandalone, debug);
         if (!smStandalone)
             manager.createSLiCinterface(interfaceDefault());
         else 

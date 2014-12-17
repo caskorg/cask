@@ -8,6 +8,8 @@ import com.maxeler.maxcompiler.v2.kernelcompiler.stdlib.memory.*;
 import com.maxeler.maxcompiler.v2.utils.MathUtils;
 
 import com.maxeler.maxcompiler.v2.kernelcompiler.stdlib.core.Count.*;
+import com.maxeler.maxcompiler.v2.kernelcompiler.stdlib.KernelMath;
+
 
 class fpgaNaiveKernel extends Kernel {
 
@@ -15,7 +17,7 @@ class fpgaNaiveKernel extends Kernel {
     private static final int vRomAddressSizeBits = MathUtils.bitsToAddress(size);
 
     protected fpgaNaiveKernel(KernelParameters parameters,
-                              int fpL) {
+                              int fpL, boolean dbg) {
         super(parameters);
 
         // --- design scalar inputs
@@ -35,34 +37,46 @@ class fpgaNaiveKernel extends Kernel {
         DFEVar value = io.input("value_in", dfeFloat(11, 53), compute);
         DFEVar indptr = io.input("indptr_in", dfeInt(32), compute).cast(dfeUInt(vRomAddressSizeBits)); // col ptr
         DFEVar rowFinished = io.input("rowEnd_in", dfeUInt(32), compute);
+        // DFEVar rowEmpty = io.input("rowEmpty_in", dfeUInt(32), compute);
 
         // counter is set to 0 when row has finished
         // while counter is less than fpL, we can output results
         Params params = control.count.makeParams(32)
-            .withReset(rowFinished)
-            .withInitValue(fpL + 1);
+            .withReset(stream.offset(rowFinished, -1));
+        //.withMax(fpL - 1);
 
-        Counter rowCounter = control.count.makeCounter(params);
-
-        // We need to start output the next cycle after the reset,
-        // since the reset will happen before the end of the row and
-        // we want to start outputing on the next cycle to allow the
-        // correct result to proceed out of the pipeline
-        DFEVar output = rowCounter.getCount() <= fpL;
+        DFEVar rowCounter = control.count.makeCounter(params).getCount();
 
         // --- compute
         DFEVar carriedSum = dfeFloat(11, 53).newInstance(this);
-        DFEVar newSum = value * vRom.read(indptr) + (rowCounter.getCount() < fpL ? 0 : carriedSum);
+        DFEVar newSum = value * vRom.read(indptr) + (rowCounter < fpL ? 0 : carriedSum);
         carriedSum <== stream.offset(newSum, -fpL);
-        DFEVar reduced = constant.var(0);
-        for (int i = 0; i < fpL; i++)
-                 reduced = reduced + stream.offset(carriedSum, -i);
 
-        debug.simPrintf("kernel: %f %d %d output = %f %f output enable %d\n", 
+        DFEVar reduced[] = new DFEVar[fpL];
+        reduced[0] = newSum;
+        for (int i = 1; i < fpL; i++)
+            reduced[i] = reduced[i - 1] + stream.offset(newSum, -i);
+
+        DFEVar reducedControl = (rowCounter >= fpL ? fpL - 1 : rowCounter);
+        // DFEVar rowEmpty = stream.offset(rowFinished, -1).eq(rowFinished) & rowFinished.eq(1);
+        // DFEVar reducedOut = rowEmpty ? 0 : control.mux(reducedControl.cast(dfeUInt(4)), reduced);
+        DFEVar reducedOut = control.mux(reducedControl.cast(dfeUInt(4)), reduced);
+
+        // for (int i = 1; i < fpL; i++)
+        //     debug.simPrintf("reduced[%d] = %f, ", i, reduced[i]);
+
+        if (dbg)
+            debug.simPrintf("%3d - value: %f indptr: %3d rowFinished: %d carriedSum: %f reducedOut: %f rowCounter %d outputEnable %d reducedControl %d\n", 
+                        cycleCount,
                         value, indptr, rowFinished,
-                        carriedSum, reduced, flush | output);
+                        carriedSum, reducedOut, 
+                            rowCounter,
+                            rowFinished.eq(1),
+                            reducedControl
+                            );
 
-        io.output("b", reduced, dfeFloat(11, 53), flush | output);
+        io.output("b", reducedOut, dfeFloat(11, 53), rowFinished.eq(1));
+        // io.output("outputCycle", outputCycle, dfeUIn(32));
     }
 
 }
