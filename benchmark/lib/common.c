@@ -283,8 +283,6 @@ void read_ge_mm_csr(char* fname,
     0
   };
 
-  printf("HERE\n");
-
   MKL_INT info;
   *values = (double *) malloc(*nnzs * sizeof(double));
   *col_ind = (int *) malloc(*nnzs * sizeof(int));
