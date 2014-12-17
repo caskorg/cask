@@ -12,36 +12,38 @@ import com.maxeler.maxcompiler.v2.kernelcompiler.stdlib.core.Count.*;
 
 class fpgaNaiveKernel extends Kernel {
 
-    private static final int size = 32;
     private static final int vRomAddressSizeBits = MathUtils.bitsToAddress(size);
 
     protected fpgaNaiveKernel(KernelParameters parameters,
-                              int fpL, boolean dbg) {
+                              int fpL,
+                              int cacheSize,
+                              boolean dbg) {
         super(parameters);
-
-        // --- design scalar inputs
-        DFEVar n = io.scalarInput("n", dfeUInt(32));
 
         // --- control
         DFEVar cycleCount = control.count.simpleCounter(32);
-        DFEVar compute = cycleCount < n;
 
         // -- design dynamic inputs
         // ROM for storing the vector we are multiplying with
-        Memory<DFEVar> vRom = mem.alloc(dfeFloat(11, 53), size);
+        Memory<DFEVar> vRom = mem.alloc(dfeFloat(11, 53), cacheSize);
         vRom.mapToCPU("vRom");
 
+        DFEVar rowFinished = io.input("rowEnd_in", dfeUInt(32));
+        DFEVar rowEmpty = rowFinished.eq(2);
+
+        // -- I/O control
+        DFEVar readInput = ~rowEmpty;
+        DFEVar outputEnable = rowFinished.eq(1) | rowEmpty;
+
         // read in the matrix
-        DFEVar value = io.input("value_in", dfeFloat(11, 53), compute);
-        DFEVar indptr = io.input("indptr_in", dfeInt(32), compute).cast(dfeUInt(vRomAddressSizeBits)); // col ptr
-        DFEVar rowFinished = io.input("rowEnd_in", dfeUInt(32), compute);
-        // DFEVar rowEmpty = io.input("rowEmpty_in", dfeUInt(32), compute);
+        DFEVar value = io.input("value_in", dfeFloat(11, 53), readInput);
+        DFEVar indptr = io.input("indptr_in", dfeInt(32), readInput).cast(dfeUInt(vRomAddressSizeBits)); // col ptr
+
 
         // counter is set to 0 when row has finished
         // while counter is less than fpL, we can output results
         Params params = control.count.makeParams(32)
             .withReset(stream.offset(rowFinished, -1));
-        //.withMax(fpL - 1);
 
         DFEVar rowCounter = control.count.makeCounter(params).getCount();
 
@@ -56,24 +58,23 @@ class fpgaNaiveKernel extends Kernel {
             reduced[i] = reduced[i - 1] + stream.offset(newSum, -i);
 
         DFEVar reducedControl = (rowCounter >= fpL ? fpL - 1 : rowCounter);
-        // DFEVar rowEmpty = stream.offset(rowFinished, -1).eq(rowFinished) & rowFinished.eq(1);
-        // DFEVar reducedOut = rowEmpty ? 0 : control.mux(reducedControl.cast(dfeUInt(4)), reduced);
-        DFEVar reducedOut = control.mux(reducedControl.cast(dfeUInt(4)), reduced);
+        DFEVar reducedOut = rowEmpty ? 0 : control.mux(reducedControl.cast(dfeUInt(4)), reduced);
 
         // for (int i = 1; i < fpL; i++)
         //     debug.simPrintf("reduced[%d] = %f, ", i, reduced[i]);
 
         if (dbg)
-            debug.simPrintf("%3d - value: %f indptr: %3d rowFinished: %d carriedSum: %f reducedOut: %f rowCounter %d outputEnable %d reducedControl %d\n", 
+            debug.simPrintf("%3d - value: %f indptr: %3d rowFinished: %d carriedSum: %f reducedOut: %f rowCounter %d outputEnable %d reducedControl %d rowEmpty %d\n", 
                         cycleCount,
                         value, indptr, rowFinished,
                         carriedSum, reducedOut, 
                             rowCounter,
-                            rowFinished.eq(1),
-                            reducedControl
+                            outputEnable,
+                            reducedControl,
+                            rowEmpty
                             );
 
-        io.output("b", reducedOut, dfeFloat(11, 53), rowFinished.eq(1));
+        io.output("b", reducedOut, dfeFloat(11, 53), outputEnable);
         // io.output("outputCycle", outputCycle, dfeUIn(32));
     }
 

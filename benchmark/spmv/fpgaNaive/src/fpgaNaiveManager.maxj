@@ -13,6 +13,7 @@ public class fpgaNaiveManager extends CustomManager{
     private static final String s_kernelName  = "fpgaNaiveKernel";
 
     private static final int fpL = 16;
+    private static final int cacheSize = 32;
 
     fpgaNaiveManager(EngineParameters ep, boolean dbg) {
         super(ep);
@@ -25,7 +26,7 @@ public class fpgaNaiveManager extends CustomManager{
         
         // -- CSR Compute Pipe
         KernelBlock compute = addKernel(new fpgaNaiveKernel(makeKernelParameters(s_kernelName),
-                                                                fpL, dbg));
+                                                            fpL, cacheSize, dbg));
         compute.getInput("value_in") <== addStreamFromCPU("value");
         compute.getInput("indptr_in") <== control.getOutput("indptr_out");
         compute.getInput("rowEnd_in") <== control.getOutput("rowEnd_out");
@@ -43,9 +44,9 @@ public class fpgaNaiveManager extends CustomManager{
         CPUTypes resultType = CPUTypes.DOUBLE;
 
         InterfaceParam nnzs = ei.addParam("nnzs", CPUTypes.INT); // number of nonzeros
+        InterfaceParam emptyRows = ei.addParam("emptyRow", CPUTypes.INT);
 
-        ei.setTicks(s_kernelName, nnzs + fpL);
-        ei.setScalar(s_kernelName, "n", nnzs);
+        ei.setTicks(s_kernelName, nnzs + emptyRows);
 
         InterfaceParam valueSize = ei.addParam("value_size", CPUTypes.INT);
         InterfaceParam indptrSize = ei.addParam("indptr_size", CPUTypes.INT);

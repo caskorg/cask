@@ -112,6 +112,18 @@ int align(int bytes, int k) {
   return  k * (bytes / k + (bytes % k == 0 ? 0 : 1));
 }
 
+int count_empty_rows(int *row_ptr, int n) {
+  int prev = row_ptr[0];
+  int empty_rows = 0;
+  for (int i = 1; i < n; i++) {
+    if (prev == row_ptr[i]) {
+      empty_rows++;
+    }
+    prev = row_ptr[i];
+  }
+  return empty_rows;
+}
+
 int main(int argc, char** argv) {
 
   char* path = check_file(argv);
@@ -139,10 +151,14 @@ int main(int argc, char** argv) {
   for (int i = 0; i < nnzs; i++)
     col_ind[i]--;
 
+  int empty_rows = count_empty_rows(row_ptr, n);
   // --- Running whole SpMV design
   cout << "Running on DFE." << endl;
-  cout << "   n    = " << n << endl;
-  cout << "   nnzs = " << nnzs << endl;
+  cout << "            n = " << n << endl;
+  cout << "         nnzs = " << nnzs << endl;
+  cout << "   empty rows = " << empty_rows << endl;
+  cout << " total cycles = " << nnzs + empty_rows << endl;
+
   // stream size must be multiple of 16 bytes
   // padding bytes are ignored in the actual kernel
   int nnzs_bytes = nnzs * sizeof(int);
@@ -150,7 +166,8 @@ int main(int argc, char** argv) {
   int value_size   = align(2 * nnzs_bytes, 16);
   int row_ptr_size = align(n * sizeof(int), 16);
 
-  fpgaNaive(indptr_size,
+  fpgaNaive(empty_rows,
+            indptr_size,
             nnzs,
             row_ptr_size,
             value_size,
