@@ -153,27 +153,40 @@ int main(int argc, char** argv) {
 
   int empty_rows = count_empty_rows(row_ptr, n);
   // --- Running whole SpMV design
+
+
+  // stream size must be multiple of 16 bytes
+  // padding bytes are ignored in the actual kernel
+  int nnzs_bytes = nnzs * sizeof(int);
+  int indptr_size  = align(nnzs_bytes, 384);
+  int value_size   = align(2 * nnzs_bytes, 384);
+  int row_ptr_size = align(n * sizeof(int), 384);
+
   cout << "Running on DFE." << endl;
   cout << "            n = " << n << endl;
   cout << "         nnzs = " << nnzs << endl;
   cout << "   empty rows = " << empty_rows << endl;
   cout << " total cycles = " << nnzs + empty_rows << endl;
+  cout << "   value_size = " << value_size << " bytes " << endl;
+  cout << "  indptr_size = " << indptr_size << " bytes " << endl;
+  cout << " row_ptr_size = " << row_ptr_size << " bytes " << endl;
 
-  // stream size must be multiple of 16 bytes
-  // padding bytes are ignored in the actual kernel
-  int nnzs_bytes = nnzs * sizeof(int);
-  int indptr_size  = align(nnzs_bytes, 16);
-  int value_size   = align(2 * nnzs_bytes, 16);
-  int row_ptr_size = align(n * sizeof(int), 16);
+  fpgaNaive_writeDRAM(value_size,
+                      0,
+                      (uint8_t *)values);
+  fpgaNaive_writeDRAM(indptr_size,
+                      value_size,
+                      (uint8_t *)col_ind);
+  fpgaNaive_writeDRAM(row_ptr_size,
+                      value_size + indptr_size,
+                      (uint8_t *)(row_ptr + 1));
 
   fpgaNaive(empty_rows,
             indptr_size,
+            n,
             nnzs,
             row_ptr_size,
             value_size,
-            col_ind,
-            row_ptr + 1,
-            values,  // ins
             &b[0],
             &v[0]);
 

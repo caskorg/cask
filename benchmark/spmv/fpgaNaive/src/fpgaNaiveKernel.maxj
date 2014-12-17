@@ -44,7 +44,7 @@ class fpgaNaiveKernel extends Kernel {
         // counter is set to 0 when row has finished
         // while counter is less than fpL, we can output results
         Params params = control.count.makeParams(32)
-            .withReset(stream.offset(rowFinished, -1))
+            .withReset(stream.offset(rowFinished.cast(dfeUInt(1)), -1))
             .withMax(fpL - 1)
             .withWrapMode(Count.WrapMode.STOP_AT_MAX);
 
@@ -66,7 +66,7 @@ class fpgaNaiveKernel extends Kernel {
         //     debug.simPrintf("reduced[%d] = %f, ", i, reduced[i]);
 
         if (dbg)
-            debug.simPrintf("%3d - value: %f indptr: %3d rowFinished: %d carriedSum: %f reducedOut: %f rowCounter %d outputEnable %d rowEmpty %d\n", 
+            debug.simPrintf("%3d - value: %f indptr: %3d rowFinished: %d carriedSum: %f reducedOut: %f rowCounter %d outputEnable %d  rowEmpty %d\n", 
                         cycleCount,
                         value, indptr, rowFinished,
                         carriedSum, reducedOut, 

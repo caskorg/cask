@@ -1,5 +1,6 @@
 import com.maxeler.maxcompiler.v2.managers.engine_interfaces.CPUTypes;
 import com.maxeler.maxcompiler.v2.managers.engine_interfaces.EngineInterface;
+import com.maxeler.maxcompiler.v2.managers.engine_interfaces.EngineInterface.*;
 import com.maxeler.maxcompiler.v2.managers.engine_interfaces.InterfaceParam;
 import com.maxeler.maxcompiler.v2.managers.custom.CustomManager;
 import com.maxeler.maxcompiler.v2.managers.custom.blocks.KernelBlock;
@@ -8,12 +9,18 @@ import com.maxeler.maxcompiler.v2.build.EngineParameters;
 import com.maxeler.maxcompiler.v2.managers.custom.blocks.StateMachineBlock;
 import com.maxeler.maxcompiler.v2.statemachine.manager.ManagerStateMachine;
 
+import com.maxeler.maxcompiler.v2.managers.custom.stdlib.MemoryControlGroup;
+import com.maxeler.maxcompiler.v2.managers.custom.stdlib.MemoryControlGroup.MemoryAccessPattern;
+
+
 public class fpgaNaiveManager extends CustomManager{
 
     private static final String s_kernelName  = "fpgaNaiveKernel";
 
     private static final int fpL = 16;
     private static final int cacheSize = 32;
+    private static final MemoryControlGroup.MemoryAccessPattern LINEAR = MemoryControlGroup.MemoryAccessPattern.LINEAR_1D;
+
 
     fpgaNaiveManager(EngineParameters ep, boolean dbg) {
         super(ep);
@@ -21,18 +28,31 @@ public class fpgaNaiveManager extends CustomManager{
         // -- CSR Control State Machine
         ManagerStateMachine stateMachine = new CSRControlSM(this, dbg);
         StateMachineBlock control = addStateMachine("CSRControlSM", stateMachine);
-        control.getInput("indptr") <== addStreamFromCPU("indptr");
-        control.getInput("rowptr") <== addStreamFromCPU("rowptr");
+        control.getInput("indptr") <== addStreamFromOnCardMemory("indptr", LINEAR);
+        control.getInput("rowptr") <== addStreamFromOnCardMemory("rowptr", LINEAR);
         
         // -- CSR Compute Pipe
         KernelBlock compute = addKernel(new fpgaNaiveKernel(makeKernelParameters(s_kernelName),
                                                             fpL, cacheSize, dbg));
-        compute.getInput("value_in") <== addStreamFromCPU("value");
+        compute.getInput("value_in") <== addStreamFromOnCardMemory("value", LINEAR);
         compute.getInput("indptr_in") <== control.getOutput("indptr_out");
         compute.getInput("rowEnd_in") <== control.getOutput("rowEnd_out");
         addStreamToCPU("b") <== compute.getOutput("b");
 
+        addStreamToOnCardMemory("cpu2lmem", LINEAR) <== addStreamFromCPU("fromcpu");
+
         addMaxFileConstant("fpL", fpL);
+    }
+
+    private static EngineInterface interfaceWrite (String name) {
+        EngineInterface ei = new EngineInterface(name);
+        CPUTypes TYPE = CPUTypes.INT;
+        InterfaceParam size = ei.addParam("size_bytes", TYPE);
+        InterfaceParam start = ei.addParam("start_bytes", TYPE);
+        ei.setStream("fromcpu", CPUTypes.UINT8, size);
+        ei.setLMemLinear("cpu2lmem", start, size);
+        ei.ignoreAll(Direction.IN_OUT);
+        return ei ;
     }
 
     /** Interface for the entire SpMV */
@@ -44,19 +64,22 @@ public class fpgaNaiveManager extends CustomManager{
         CPUTypes resultType = CPUTypes.DOUBLE;
 
         InterfaceParam nnzs = ei.addParam("nnzs", CPUTypes.INT); // number of nonzeros
-        InterfaceParam emptyRows = ei.addParam("emptyRow", CPUTypes.INT);
+        InterfaceParam emptyRows = ei.addParam("emptyRows", CPUTypes.INT);
+        InterfaceParam n = ei.addParam("n", CPUTypes.INT); // matrix rank
 
         ei.setTicks(s_kernelName, nnzs + emptyRows);
 
-        InterfaceParam valueSize = ei.addParam("value_size", CPUTypes.INT);
-        InterfaceParam indptrSize = ei.addParam("indptr_size", CPUTypes.INT);
-        InterfaceParam rowPtrSize = ei.addParam("rowptr_size", CPUTypes.INT);
+        InterfaceParam valueSize = ei.addParam("value_size_bytes", CPUTypes.INT);
+        InterfaceParam indptrSize = ei.addParam("indptr_size_bytes", CPUTypes.INT);
+        InterfaceParam rowPtrSize = ei.addParam("rowptr_size_bytes", CPUTypes.INT);
 
-        ei.setStream("value", valueType, valueSize * valueType.sizeInBytes());
-        ei.setStream("indptr", indexType, indptrSize * indexType.sizeInBytes());
-        ei.setStream("rowptr", indexType, rowPtrSize * indexType.sizeInBytes());
+        ei.setLMemLinear("value", ei.addConstant(0l), valueSize);
+        ei.setLMemLinear("indptr", valueSize, indptrSize);
+        ei.setLMemLinear("rowptr", valueSize + indptrSize, rowPtrSize);
 
-        ei.setStream("b", resultType, fpL * resultType.sizeInBytes());
+        ei.setStream("b", resultType, n * resultType.sizeInBytes());
+        ei.ignoreLMem("cpu2lmem");
+        ei.ignoreStream("fromcpu");
         return ei;
     }
 
@@ -65,6 +88,7 @@ public class fpgaNaiveManager extends CustomManager{
 
         fpgaNaiveManager manager = new fpgaNaiveManager(new EngineParameters(args), debug);
         manager.createSLiCinterface(interfaceDefault());
+        manager.createSLiCinterface(interfaceWrite("writeDRAM"));
 
         manager.build();
     }
