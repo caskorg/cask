@@ -8,6 +8,8 @@ import com.maxeler.maxcompiler.v2.kernelcompiler.stdlib.memory.*;
 import com.maxeler.maxcompiler.v2.utils.MathUtils;
 
 import com.maxeler.maxcompiler.v2.kernelcompiler.stdlib.core.Count.*;
+import com.maxeler.maxcompiler.v2.kernelcompiler.stdlib.core.Count;
+
 
 
 class fpgaNaiveKernel extends Kernel {
@@ -42,7 +44,9 @@ class fpgaNaiveKernel extends Kernel {
         // counter is set to 0 when row has finished
         // while counter is less than fpL, we can output results
         Params params = control.count.makeParams(32)
-            .withReset(stream.offset(rowFinished, -1));
+            .withReset(stream.offset(rowFinished, -1))
+            .withMax(fpL - 1)
+            .withWrapMode(Count.WrapMode.STOP_AT_MAX);
 
         DFEVar rowCounter = control.count.makeCounter(params).getCount();
 
@@ -56,20 +60,18 @@ class fpgaNaiveKernel extends Kernel {
         for (int i = 1; i < fpL; i++)
             reduced[i] = reduced[i - 1] + stream.offset(newSum, -i);
 
-        DFEVar reducedControl = (rowCounter >= fpL ? fpL - 1 : rowCounter);
-        DFEVar reducedOut = rowEmpty ? 0 : control.mux(reducedControl.cast(dfeUInt(4)), reduced);
+        DFEVar reducedOut = rowEmpty ? 0 : control.mux(rowCounter.cast(dfeUInt(4)), reduced);
 
         // for (int i = 1; i < fpL; i++)
         //     debug.simPrintf("reduced[%d] = %f, ", i, reduced[i]);
 
         if (dbg)
-            debug.simPrintf("%3d - value: %f indptr: %3d rowFinished: %d carriedSum: %f reducedOut: %f rowCounter %d outputEnable %d reducedControl %d rowEmpty %d\n", 
+            debug.simPrintf("%3d - value: %f indptr: %3d rowFinished: %d carriedSum: %f reducedOut: %f rowCounter %d outputEnable %d rowEmpty %d\n", 
                         cycleCount,
                         value, indptr, rowFinished,
                         carriedSum, reducedOut, 
                             rowCounter,
                             outputEnable,
-                            reducedControl,
                             rowEmpty
                             );
 
