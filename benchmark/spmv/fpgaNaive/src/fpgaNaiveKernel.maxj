@@ -12,18 +12,17 @@ import com.maxeler.maxcompiler.v2.kernelcompiler.stdlib.core.Count.*;
 
 class fpgaNaiveKernel extends Kernel {
 
-    private static final int vRomAddressSizeBits = MathUtils.bitsToAddress(size);
-
     protected fpgaNaiveKernel(KernelParameters parameters,
                               int fpL,
                               int cacheSize,
                               boolean dbg) {
         super(parameters);
 
+        int vRomAddressSizeBits = MathUtils.bitsToAddress(cacheSize);
+
         // --- control
         DFEVar cycleCount = control.count.simpleCounter(32);
 
-        // -- design dynamic inputs
         // ROM for storing the vector we are multiplying with
         Memory<DFEVar> vRom = mem.alloc(dfeFloat(11, 53), cacheSize);
         vRom.mapToCPU("vRom");
