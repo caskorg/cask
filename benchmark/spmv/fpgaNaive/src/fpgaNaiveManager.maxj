@@ -1,6 +1,3 @@
-/***
-	TODO Add a descriptive comment!
-*/
 import com.maxeler.maxcompiler.v2.managers.engine_interfaces.CPUTypes;
 import com.maxeler.maxcompiler.v2.managers.engine_interfaces.EngineInterface;
 import com.maxeler.maxcompiler.v2.managers.engine_interfaces.InterfaceParam;
@@ -17,46 +14,35 @@ public class fpgaNaiveManager extends CustomManager{
 
     private static final int fpL = 16;
 
-    fpgaNaiveManager(EngineParameters ep, boolean smStandalone, boolean dbg) {
+    fpgaNaiveManager(EngineParameters ep, boolean dbg) {
         super(ep);
 
+        // -- CSR Control State Machine
         ManagerStateMachine stateMachine = new CSRControlSM(this, dbg);
         StateMachineBlock control = addStateMachine("CSRControlSM", stateMachine);
         control.getInput("indptr") <== addStreamFromCPU("indptr");
         control.getInput("rowptr") <== addStreamFromCPU("rowptr");
         
-        if (!smStandalone) {
-            // add the compute block
-            KernelBlock compute = addKernel(new fpgaNaiveKernel(makeKernelParameters(s_kernelName),
+        // -- CSR Compute Pipe
+        KernelBlock compute = addKernel(new fpgaNaiveKernel(makeKernelParameters(s_kernelName),
                                                                 fpL, dbg));
-            compute.getInput("value_in") <== addStreamFromCPU("value");
-            compute.getInput("indptr_in") <== control.getOutput("indptr_out");
-            compute.getInput("rowEnd_in") <== control.getOutput("rowEnd_out");
-            addStreamToCPU("b") <== compute.getOutput("b");
-        } else {
-            addStreamToCPU("indptr_out") <== control.getOutput("indptr_out");
-            addStreamToCPU("rowend_out") <== control.getOutput("rowEnd_out");
-        }
+        compute.getInput("value_in") <== addStreamFromCPU("value");
+        compute.getInput("indptr_in") <== control.getOutput("indptr_out");
+        compute.getInput("rowEnd_in") <== control.getOutput("rowEnd_out");
+        addStreamToCPU("b") <== compute.getOutput("b");
 
         addMaxFileConstant("fpL", fpL);
-        
-        if (smStandalone)
-            addMaxFileConstant("smStandalone", 1);
     }
 
     /** Interface for the entire SpMV */
     private static EngineInterface interfaceDefault() {
         EngineInterface ei = new EngineInterface();
-        CPUTypes type = CPUTypes.INT32;
-        int size = type.sizeInBytes();
 
         CPUTypes valueType = CPUTypes.DOUBLE;
         CPUTypes indexType = CPUTypes.INT32;
-
         CPUTypes resultType = CPUTypes.DOUBLE;
 
         InterfaceParam nnzs = ei.addParam("nnzs", CPUTypes.INT); // number of nonzeros
-        InterfaceParam rows = ei.addParam("rows", CPUTypes.INT);
 
         ei.setTicks(s_kernelName, nnzs + fpL);
         ei.setScalar(s_kernelName, "n", nnzs);
@@ -65,48 +51,20 @@ public class fpgaNaiveManager extends CustomManager{
         InterfaceParam indptrSize = ei.addParam("indptr_size", CPUTypes.INT);
         InterfaceParam rowPtrSize = ei.addParam("rowptr_size", CPUTypes.INT);
 
-        ei.setStream("value", resultType, valueSize * valueType.sizeInBytes());
-        ei.setStream("indptr", type, indptrSize * indexType.sizeInBytes());
-        ei.setStream("rowptr", type, rowPtrSize * indexType.sizeInBytes());
+        ei.setStream("value", valueType, valueSize * valueType.sizeInBytes());
+        ei.setStream("indptr", indexType, indptrSize * indexType.sizeInBytes());
+        ei.setStream("rowptr", indexType, rowPtrSize * indexType.sizeInBytes());
 
         ei.setStream("b", resultType, fpL * resultType.sizeInBytes());
         return ei;
     }
 
-    /** Interface for running the SM in standalone mode.
-        pre: Outputs of SM are streamed to CPU */
-    static EngineInterface interfaceSM() {
-        EngineInterface engine_interface = new EngineInterface("SM");
-        CPUTypes type = CPUTypes.INT32;
-        int size = type.sizeInBytes();
-
-        CPUTypes resultType = CPUTypes.DOUBLE;
-
-        InterfaceParam nnzs = engine_interface.addParam("nnzs", CPUTypes.INT); // number of nonzeros
-        InterfaceParam n = engine_interface.addParam("n", CPUTypes.INT);  // matrix order
-
-        InterfaceParam sizeBytes = nnzs * size;
-        InterfaceParam sizeBytes2 = n * size;
-        InterfaceParam floatBytes = nnzs * resultType.sizeInBytes();
-
-        engine_interface.setStream("indptr", type, sizeBytes);
-        engine_interface.setStream("rowptr", type, sizeBytes2); // XXX read less
-
-        engine_interface.setStream("indptr_out", type, sizeBytes);
-        engine_interface.setStream("rowend_out", type, sizeBytes); // XXX read less
-
-        return engine_interface;
-    }
-
     public static void main(String[] args) {
-        boolean smStandalone = false;
         boolean debug = false;
 
-        fpgaNaiveManager manager = new fpgaNaiveManager(new EngineParameters(args), smStandalone, debug);
-        if (!smStandalone)
-            manager.createSLiCinterface(interfaceDefault());
-        else 
-            manager.createSLiCinterface(interfaceSM());
+        fpgaNaiveManager manager = new fpgaNaiveManager(new EngineParameters(args), debug);
+        manager.createSLiCinterface(interfaceDefault());
+
         manager.build();
     }
 

@@ -8,7 +8,6 @@ import com.maxeler.maxcompiler.v2.kernelcompiler.stdlib.memory.*;
 import com.maxeler.maxcompiler.v2.utils.MathUtils;
 
 import com.maxeler.maxcompiler.v2.kernelcompiler.stdlib.core.Count.*;
-import com.maxeler.maxcompiler.v2.kernelcompiler.stdlib.KernelMath;
 
 
 class fpgaNaiveKernel extends Kernel {
@@ -25,7 +24,6 @@ class fpgaNaiveKernel extends Kernel {
 
         // --- control
         DFEVar cycleCount = control.count.simpleCounter(32);
-        DFEVar flush = cycleCount >= n;
         DFEVar compute = cycleCount < n;
 
         // -- design dynamic inputs
