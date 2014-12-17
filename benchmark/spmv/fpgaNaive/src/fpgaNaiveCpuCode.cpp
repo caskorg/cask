@@ -115,7 +115,7 @@ int align(int bytes, int k) {
 int count_empty_rows(int *row_ptr, int n) {
   int prev = row_ptr[0];
   int empty_rows = 0;
-  for (int i = 1; i < n; i++) {
+  for (int i = 1; i < n + 1; i++) {
     if (prev == row_ptr[i]) {
       empty_rows++;
     }
