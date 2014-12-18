@@ -55,10 +55,14 @@ class fpgaNaiveKernel extends Kernel {
         DFEVar newSum = value * vRom.read(indptr) + (rowCounter < fpL ? 0 : carriedSum);
         carriedSum <== stream.offset(newSum, -fpL);
 
+        optimization.pushDSPFactor(1);
+        optimization.pushPipeliningFactor(0.5);
         DFEVar reduced[] = new DFEVar[fpL];
         reduced[0] = newSum;
         for (int i = 1; i < fpL; i++)
             reduced[i] = reduced[i - 1] + stream.offset(newSum, -i);
+        optimization.popPipeliningFactor();
+        optimization.popDSPFactor();
 
         DFEVar reducedIdx = rowCounter > (fpL - 1) ? fpL - 1 : rowCounter;
         DFEVar reducedOut = rowEmpty ? 0 : control.mux(reducedIdx.cast(dfeUInt(4)), reduced);

@@ -11,7 +11,6 @@ import com.maxeler.maxcompiler.v2.statemachine.manager.ManagerStateMachine;
 
 import com.maxeler.maxcompiler.v2.managers.custom.stdlib.MemoryControlGroup;
 
-
 public class fpgaNaiveManager extends CustomManager {
 
     private static final String s_kernelName  = "fpgaNaiveKernel";
@@ -41,6 +40,8 @@ public class fpgaNaiveManager extends CustomManager {
         addStreamToOnCardMemory("cpu2lmem", LINEAR) <== addStreamFromCPU("fromcpu");
 
         addMaxFileConstant("fpL", fpL);
+
+        config.setOnCardMemoryFrequency(LMemFrequency.MAX4MAIA_800);
     }
 
     private static EngineInterface interfaceWrite (String name) {
