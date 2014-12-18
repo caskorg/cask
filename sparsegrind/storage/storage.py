@@ -45,19 +45,21 @@ def bounded_dictionary(matrix_values, k):
     counter = collections.Counter()
     for v in matrix_values:
         counter[v] += 1
-        
+
     covered = 0.0
     for v, c in counter.most_common(k):
         covered += c
+    # print len(matrix_values)
+    # print k, counter.most_common(k)
+    # print covered
+    return math.ceil(covered * math.ceil(math.log(k, 2)) +
+                     (len(matrix_values) - covered) * bytes_per_data +
+                     math.ceil(len(matrix_values) / 8))
 
-    return math.ceil(covered * math.ceil(math.log(k, 2)) + 
-                     (len(matrix_values) - covered) * bytes_per_data + 
-                     len(matrix_values) ) / 8
-    
 
 def csr_bounded_dictionary(matrix, dict_size=10):
-    """Estimate the storage for the given matrix after 
-    we encode it as CSR and apply bounded dictionary 
+    """Estimate the storage for the given matrix after
+    we encode it as CSR and apply bounded dictionary
     encoding to the values stream"""
     nnz = matrix.nnz
 
