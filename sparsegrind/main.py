@@ -113,8 +113,8 @@ def compression_analysis(matrix, name):
     bcsr = storage.csr_bounded_dictionary(matrix, 128)
     csr = storage.csr(matrix)
     total = (csr[0] + csr[1]) / (bcsr[0] + bcsr[1])
-    metadata = csr[0] / bcsr[0]
-    value = csr[1] / bcsr[1]
+    metadata = -1 if not bcsr[0] else csr[0] / bcsr[0]
+    value = -1 if not bcsr[1] else csr[1] / bcsr[1]
     results.append(value)
     results.append(metadata)
     results.append(total)
