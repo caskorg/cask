@@ -10,6 +10,8 @@ import com.maxeler.maxcompiler.v2.managers.custom.blocks.StateMachineBlock;
 import com.maxeler.maxcompiler.v2.statemachine.manager.ManagerStateMachine;
 
 import com.maxeler.maxcompiler.v2.managers.custom.stdlib.MemoryControlGroup;
+import com.maxeler.maxcompiler.v2.managers.custom.stdlib.MemoryControllerConfig;
+import com.maxeler.maxcompiler.v2.managers.DFEModel;
 
 public class fpgaNaiveManager extends CustomManager {
 
@@ -22,6 +24,15 @@ public class fpgaNaiveManager extends CustomManager {
 
     fpgaNaiveManager(EngineParameters ep, boolean debugKernel, boolean debugSm) {
         super(ep);
+
+        MemoryControllerConfig memConfig = new MemoryControllerConfig();
+        if (ep.getDFEModel()==DFEModel.MAIA) {
+                memConfig.setMAX4qMode(true);
+                memConfig.setEnableParityMode(true, true, 72, false);
+        }
+
+        config.setMemoryControllerConfig(memConfig);
+        config.setOnCardMemoryFrequency(LMemFrequency.MAX4MAIA_800);
 
         // -- CSR Control State Machine
         ManagerStateMachine stateMachine = new CSRControlSM(this, debugSm);
@@ -41,7 +52,6 @@ public class fpgaNaiveManager extends CustomManager {
 
         addMaxFileConstant("fpL", fpL);
 
-        config.setOnCardMemoryFrequency(LMemFrequency.MAX4MAIA_800);
     }
 
     private static EngineInterface interfaceWrite (String name) {
