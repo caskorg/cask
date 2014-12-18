@@ -112,6 +112,16 @@ int align(int bytes, int k) {
   return  k * (bytes / k + (bytes % k == 0 ? 0 : 1));
 }
 
+void print_results(vector<double> bExp, vector<double> b) {
+  cout << "CPU  = ";
+  for (int i = 0; i < bExp.size(); i++)
+    cout << bExp[i] << " ";
+  cout << endl << "FPGA = ";
+  for (int i = 0; i < b.size(); i++)
+    cout << b[i] << " ";
+  cout << endl;
+}
+
 int count_empty_rows(int *row_ptr, int n) {
   int prev = row_ptr[0];
   int empty_rows = 0;
@@ -190,20 +200,18 @@ int main(int argc, char** argv) {
             &b[0],
             &v[0]);
 
-  cout << "CPU  = ";
-  for (int i = 0; i < bExp.size(); i++)
-    cout << bExp[i] << " ";
-  cout << endl << "FPGA = ";
-  for (int i = 0; i < b.size(); i++)
-    cout << b[i] << " ";
-  cout << endl;
 
+  int errors = 0;
   for (int i = 0; i < b.size(); i++)
     if (!almost_equal(bExp[i], b[i])) {
-      cout << "Expected " << bExp[i] << " got: " << b[i] << endl;
-      return 1;
+      cout << "Expected [ " << i << " ] " << bExp[i] << " got: " << b[i] << endl;
+      errors++;
     }
   
+  if (errors != 0) {
+    cout << "Errors " << errors <<endl;
+    return 1;
+  }
   std::cout << "Test passed!" << std::endl;
   return 0;
 
