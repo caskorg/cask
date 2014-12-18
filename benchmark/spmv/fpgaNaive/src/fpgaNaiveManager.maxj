@@ -10,30 +10,29 @@ import com.maxeler.maxcompiler.v2.managers.custom.blocks.StateMachineBlock;
 import com.maxeler.maxcompiler.v2.statemachine.manager.ManagerStateMachine;
 
 import com.maxeler.maxcompiler.v2.managers.custom.stdlib.MemoryControlGroup;
-import com.maxeler.maxcompiler.v2.managers.custom.stdlib.MemoryControlGroup.MemoryAccessPattern;
 
 
-public class fpgaNaiveManager extends CustomManager{
+public class fpgaNaiveManager extends CustomManager {
 
     private static final String s_kernelName  = "fpgaNaiveKernel";
 
     private static final int fpL = 16;
-    private static final int cacheSize = 32;
+    private static final int cacheSize = 32 * 1024;
     private static final MemoryControlGroup.MemoryAccessPattern LINEAR = MemoryControlGroup.MemoryAccessPattern.LINEAR_1D;
 
 
-    fpgaNaiveManager(EngineParameters ep, boolean dbg) {
+    fpgaNaiveManager(EngineParameters ep, boolean debugKernel, boolean debugSm) {
         super(ep);
 
         // -- CSR Control State Machine
-        ManagerStateMachine stateMachine = new CSRControlSM(this, dbg);
+        ManagerStateMachine stateMachine = new CSRControlSM(this, debugSm);
         StateMachineBlock control = addStateMachine("CSRControlSM", stateMachine);
         control.getInput("indptr") <== addStreamFromOnCardMemory("indptr", LINEAR);
         control.getInput("rowptr") <== addStreamFromOnCardMemory("rowptr", LINEAR);
         
         // -- CSR Compute Pipe
         KernelBlock compute = addKernel(new fpgaNaiveKernel(makeKernelParameters(s_kernelName),
-                                                            fpL, cacheSize, dbg));
+                                                            fpL, cacheSize, debugKernel));
         compute.getInput("value_in") <== addStreamFromOnCardMemory("value", LINEAR);
         compute.getInput("indptr_in") <== control.getOutput("indptr_out");
         compute.getInput("rowEnd_in") <== control.getOutput("rowEnd_out");
@@ -59,8 +58,6 @@ public class fpgaNaiveManager extends CustomManager{
     private static EngineInterface interfaceDefault() {
         EngineInterface ei = new EngineInterface();
 
-        CPUTypes valueType = CPUTypes.DOUBLE;
-        CPUTypes indexType = CPUTypes.INT32;
         CPUTypes resultType = CPUTypes.DOUBLE;
 
         InterfaceParam nnzs = ei.addParam("nnzs", CPUTypes.INT); // number of nonzeros
@@ -84,9 +81,10 @@ public class fpgaNaiveManager extends CustomManager{
     }
 
     public static void main(String[] args) {
-        boolean debug = false;
+        boolean debugKernel = false;
+        boolean debugSm = false;
 
-        fpgaNaiveManager manager = new fpgaNaiveManager(new EngineParameters(args), debug);
+        fpgaNaiveManager manager = new fpgaNaiveManager(new EngineParameters(args), debugKernel, debugSm);
         manager.createSLiCinterface(interfaceDefault());
         manager.createSLiCinterface(interfaceWrite("writeDRAM"));
 

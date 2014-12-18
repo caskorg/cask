@@ -45,7 +45,7 @@ class fpgaNaiveKernel extends Kernel {
         // while counter is less than fpL, we can output results
         Params params = control.count.makeParams(32)
             .withReset(stream.offset(rowFinished.cast(dfeUInt(1)), -1))
-            .withMax(fpL - 1)
+            .withMax(fpL)
             .withWrapMode(Count.WrapMode.STOP_AT_MAX);
 
         DFEVar rowCounter = control.count.makeCounter(params).getCount();
@@ -60,20 +60,25 @@ class fpgaNaiveKernel extends Kernel {
         for (int i = 1; i < fpL; i++)
             reduced[i] = reduced[i - 1] + stream.offset(newSum, -i);
 
-        DFEVar reducedOut = rowEmpty ? 0 : control.mux(rowCounter.cast(dfeUInt(4)), reduced);
+        DFEVar reducedIdx = rowCounter > (fpL - 1) ? fpL - 1 : rowCounter;
+        DFEVar reducedOut = rowEmpty ? 0 : control.mux(reducedIdx.cast(dfeUInt(4)), reduced);
 
-        // for (int i = 1; i < fpL; i++)
-        //     debug.simPrintf("reduced[%d] = %f, ", i, reduced[i]);
 
-        if (dbg)
-            debug.simPrintf("%3d - value: %f indptr: %3d rowFinished: %d carriedSum: %f reducedOut: %f rowCounter %d outputEnable %d  rowEmpty %d\n", 
-                        cycleCount,
-                        value, indptr, rowFinished,
-                        carriedSum, reducedOut, 
+        if (dbg) {
+            debug.simPrintf("%3d - value: %f new dot: %f newSum: %f indptr: %3d rowFinished: %d carriedSum: %f reducedOut: %f rowCounter %d outputEnable %d  rowEmpty %d\n",
+                            cycleCount,
+                            value,
+                            value * vRom.read(indptr), newSum,
+                            indptr, rowFinished,
+                            carriedSum, reducedOut,
                             rowCounter,
                             outputEnable,
-                            rowEmpty
-                            );
+                            rowEmpty);
+            // debug.simPrintf("  reduced = ");
+            // for (int i = 0; i < fpL; i++)
+            //     debug.simPrintf("%f, ", reduced[i]);
+            // debug.simPrintf("\n");
+        }
 
         io.output("b", reducedOut, dfeFloat(11, 53), outputEnable);
         // io.output("outputCycle", outputCycle, dfeUIn(32));
