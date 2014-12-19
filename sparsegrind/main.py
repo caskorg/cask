@@ -18,6 +18,7 @@ from storage import storage
 import os
 import sparsegrindio
 
+
 def storage_analysis(matrix):
     """Plots the storage cost in bytes of various formats."""
     fig, ax = pl.subplots()
@@ -105,18 +106,25 @@ def reorder_analysis(matrix):
 
 def compression_analysis(matrix, name):
     results = [name]
+    sh = matrix.shape
+    if sh[0] <= 1 or sh[1] <= 1:
+        return
     results.append('?')
     results.append(matrix.nnz)
     results.append(len(matrix.indptr))
-    results.append(len(set(matrix.data)))
 
-    bcsr = storage.csr_bounded_dictionary(matrix, 128)
+    # Bounded dictionary only targets value compression
+    bcsr, counter, covered = storage.bounded_dictionary(matrix.data, 128)
+    t = 0
+    for v, c in counter.iteritems():
+        t += c
+
+    results.append(len(counter) / float(matrix.nnz))  # uvals percent
     csr = storage.csr(matrix)
-    total = (csr[0] + csr[1]) / (bcsr[0] + bcsr[1])
-    metadata = -1 if not bcsr[0] else csr[0] / bcsr[0]
-    value = -1 if not bcsr[1] else csr[1] / bcsr[1]
+    total = (csr[0] + csr[1]) / (csr[0] + bcsr)
+    value = -1 if not bcsr else csr[1] / bcsr
     results.append(value)
-    results.append(metadata)
+    results.append(covered / matrix.nnz)
     results.append(total)
 
     sparsegrindio.io.write_org_table_row(results)
@@ -213,8 +221,8 @@ def main():
 
     if args.recursive:
         if args.analysis == 'compression':
-            header = ['name', 'sym', 'nnzs', 'dim', 'uvals',
-                      'B_CSR(values)', 'B_CSR(meta)', 'B_CSR(total)']
+            header = ['name', 'sym', 'nnzs', 'dim', 'uvals %',
+                      'B_CSR128(values)', 'covered', 'B_CSR128(total)']
             sparsegrindio.io.write_org_table_header(header)
         parent_dir = os.path.dirname(os.path.abspath(args.file))
         for root, dirs, files in os.walk(parent_dir):

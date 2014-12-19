@@ -4,6 +4,7 @@ from scipy.sparse import dia_matrix
 
 import collections
 import math
+from math import ceil
 
 bytes_per_data = 8
 bytes_per_metadata = 4
@@ -49,12 +50,10 @@ def bounded_dictionary(matrix_values, k):
     covered = 0.0
     for v, c in counter.most_common(k):
         covered += c
-    # print len(matrix_values)
-    # print k, counter.most_common(k)
-    # print covered
-    return math.ceil(covered * math.ceil(math.log(k, 2)) +
+
+    return ceil(ceil(covered * ceil(math.log(k, 2)) / 8) +
                      (len(matrix_values) - covered) * bytes_per_data +
-                     math.ceil(len(matrix_values) / 8))
+                     ceil(len(matrix_values) / 8)), counter, covered
 
 
 def csr_bounded_dictionary(matrix, dict_size=10):
