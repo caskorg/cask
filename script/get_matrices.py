@@ -42,34 +42,51 @@ Sym = []
 # Legal values for positive definite
 Spd = []
 
+class MatrixFetcher(object):
+    def __init__(self):
+        pass
+
 def ToInt(stringVal):
     return int(stringVal.replace(',', ''))
 
-def ShouldDownload(group, name, rows, cols, nonZeros, spd, sym, valuetype):
-    if valuetype != ValueType:
-        return False
-    if Rows and rows not in Rows:
-        return False
-    if Cols and cols not in Cols:
-        return False
-    if Spd and not spd in Spd:
-        return False
-    if Sym and not sym in Sym:
-        return False
-    if MAX_NON_ZEROS and nonZeros > MAX_NON_ZEROS:
-        return False
-    return True
 
 class MyHtmlParser(HTMLParser):
 
-    def __init__(self, dryrun):
+    def ShouldDownload(self, group, name, rows, cols, nonZeros, spd, sym, valuetype):
+        if self.matrix_names and not name in self.matrix_names:
+            return False
+        if valuetype != ValueType:
+            return False
+        if Rows and rows not in Rows:
+            return False
+        if Cols and cols not in Cols:
+            return False
+        if Spd and not spd in Spd:
+            return False
+        if Sym and not sym in Sym:
+            return False
+        if MAX_NON_ZEROS and nonZeros > MAX_NON_ZEROS:
+            return False
+        return True
+
+    def __init__(self, args):
         HTMLParser.__init__(self)
         self.state = 'NONE'
         self.skipped_header = False
         self.value_fields = []
         self.downloaded_matrices = 0
         self.matrices = []
-        self.dryrun = dryrun
+        self.dryrun = args.dryrun
+        self.matrix_names = self.GetMatrixList(args.matrix_list_file)
+        print self.matrix_names
+
+    def GetMatrixList(self, matrix_list_file):
+        f = open(matrix_list_file)
+        res = []
+        for l in f.readlines():
+            res.append(l.strip())
+        f.close()
+        return res
 
     def handle_starttag(self, tag, attrs):
         if self.state == 'FINISHED':
@@ -117,7 +134,7 @@ class MyHtmlParser(HTMLParser):
         spd = fields[10]
         sym = fields[11]
 
-        if ShouldDownload(group, name, rows, cols, nonZeros, spd, sym, valuetype):
+        if self.ShouldDownload(group, name, rows, cols, nonZeros, spd, sym, valuetype):
             url = 'http://www.cise.ufl.edu/research/sparse/MM/' + group + '/' + name + '.tar.gz'
 
             print 'Fetching matrix: ' + group + ' ' + name, valuetype
@@ -152,6 +169,8 @@ def main():
                         action='store_true',
                         default=False,
                         help='Print matrices that would be downloaded.')
+    parser.add_argument('-f', '--matrix-list-file',
+                        help='File containing a list of matrices to download.')
     args = parser.parse_args()
 
     print 'Fetching matrix list...'
@@ -162,7 +181,7 @@ def main():
     filename = 'list_by_nnz.html'
     f = open(filename)
 
-    parser = MyHtmlParser(args.dryrun)
+    parser = MyHtmlParser(args)
     parser.feed(f.read())
 
     matrices = parser.GetDownloadedMatrices()
