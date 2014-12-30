@@ -1,6 +1,5 @@
 import os
 import shutil
-import sys
 import wget
 import argparse
 
@@ -8,13 +7,30 @@ from collections import namedtuple
 from subprocess import call
 from HTMLParser import HTMLParser
 
-Matrix=namedtuple('Matrix', ['group', 'name', 'id', 'rows', 'cols', 'nonZeros', 'file', 'valuetype'])
 
-benchmarks=[
-    ('matrix-vector', 'armadillo.cpp', 'g++ armadillo.cpp -o armadillo -O1 -larmadillo', 'armadillo')]
+class Matrix(object):
+
+    def __init__(self, group, name, id, rows, cols,
+                 nonZeros, valuetype, spd, sym):
+        self.group = group
+        self.group = group
+        self.name = name
+        self.id = id
+        self.rows = rows
+        self.cols = cols
+        self.nonZeros = nonZeros
+        self.valuetype = valuetype
+        self.spd = spd
+        self.sym = sym
+        self.filename = group + '/' + name + '.tar.gz'
+        self.downloaded = False
+
+    def __str__(self):
+        return self.name + ' ' + self.group
+
 
 # Max number of matrices to fetch
-MATRIX_LIMIT=460
+MATRIX_LIMIT = 460
 
 # What groups to fetch matrices from
 MATRIX_GROUPS = []
@@ -25,7 +41,7 @@ MATRIX_NAMES = []
 # Max row and col sizes to fetch. Set to None if no limit is required
 MAX_NON_ZEROS = 1E9
 
-ValueType = 'real' # 'real', 'integer', 'complex', 'binary'
+ValueType = 'real'  # 'real', 'integer', 'complex', 'binary'
 
 # The range of legal non-zero values
 NonZeros = []
@@ -42,9 +58,6 @@ Sym = []
 # Legal values for positive definite
 Spd = []
 
-class MatrixFetcher(object):
-    def __init__(self):
-        pass
 
 def ToInt(stringVal):
     return int(stringVal.replace(',', ''))
@@ -52,20 +65,20 @@ def ToInt(stringVal):
 
 class MyHtmlParser(HTMLParser):
 
-    def ShouldDownload(self, group, name, rows, cols, nonZeros, spd, sym, valuetype):
-        if self.matrix_names and not name in self.matrix_names:
+    def ShouldDownload(self, matrix):
+        if self.matrix_names and matrix.name not in self.matrix_names:
             return False
-        if valuetype != ValueType:
+        if matrix.valuetype != ValueType:
             return False
-        if Rows and rows not in Rows:
+        if Rows and matrix.rows not in Rows:
             return False
-        if Cols and cols not in Cols:
+        if Cols and matrix.cols not in Cols:
             return False
-        if Spd and not spd in Spd:
+        if Spd and matrix.spd not in Spd:
             return False
-        if Sym and not sym in Sym:
+        if Sym and matrix.sym not in Sym:
             return False
-        if MAX_NON_ZEROS and nonZeros > MAX_NON_ZEROS:
+        if MAX_NON_ZEROS and matrix.nonZeros > MAX_NON_ZEROS:
             return False
         return True
 
@@ -94,7 +107,7 @@ class MyHtmlParser(HTMLParser):
         if tag == 'table':
             self.state = 'PARSING_TABLE'
         elif tag == 'td':
-            self.state ='PARSING_VALUE'
+            self.state = 'PARSING_VALUE'
         elif tag == 'tr':
             if self.skipped_header:
                 self.state = 'PARSING_ENTRY'
@@ -105,7 +118,7 @@ class MyHtmlParser(HTMLParser):
         if self.state == 'FINISHED':
             return
         if tag == 'table':
-            self.state ='FINISHED'
+            self.state = 'FINISHED'
         elif tag == 'td':
             self.state = 'PARSING_ENTRY'
         elif tag == 'tr':
@@ -124,35 +137,27 @@ class MyHtmlParser(HTMLParser):
     def handle_matrix_entry(self):
 
         fields = self.value_fields
-        group = fields[0]
-        name = fields[1]
-        matrixId = fields[2]
-        rows = ToInt(fields[6])
-        cols = ToInt(fields[7])
-        nonZeros = ToInt(fields[8])
-        valuetype = fields[9].split()[0]
-        spd = fields[10]
-        sym = fields[11]
 
-        if self.ShouldDownload(group, name, rows, cols, nonZeros, spd, sym, valuetype):
-            url = 'http://www.cise.ufl.edu/research/sparse/MM/' + group + '/' + name + '.tar.gz'
+        m = Matrix(group=fields[0],
+                   name=fields[1],
+                   id=fields[2],
+                   rows=ToInt(fields[6]),
+                   cols=ToInt(fields[7]),
+                   nonZeros=ToInt(fields[8]),
+                   valuetype=fields[9].split()[0],
+                   spd=fields[10],
+                   sym=fields[11])
 
-            print 'Fetching matrix: ' + group + ' ' + name, valuetype
-
-            filename = None
+        if self.ShouldDownload(m):
+            url = 'http://www.cise.ufl.edu/research/sparse/MM/' + m.filename
             if not self.dryrun:
-                filename = wget.download(url)
+                wget.download(url)
                 print '... Done'
+                m.downloaded = True
             self.downloaded_matrices += 1
-            self.matrices.append(Matrix(group, name, matrixId,
-                                        rows, cols, nonZeros, filename,
-                                        valuetype
-                                    ))
+            self.matrices.append(m)
             if self.downloaded_matrices >= MATRIX_LIMIT:
                 self.state = 'FINISHED'
-
-        if group == 'Springer':
-            print group, name, valuetype
 
     def GetDownloadedMatrices(self):
         return self.matrices
@@ -171,6 +176,10 @@ def main():
                         help='Print matrices that would be downloaded.')
     parser.add_argument('-f', '--matrix-list-file',
                         help='File containing a list of matrices to download.')
+    parser.add_argument('-v', '--verbose',
+                        action='store_true',
+                        default=False,
+                        help='Print the list of downloaded matrices.')
     args = parser.parse_args()
 
     print 'Fetching matrix list...'
@@ -188,17 +197,20 @@ def main():
 
     # print matrices
     print 'Fetched {} matrices: '.format(len(matrices))
+    if args.verbose:
+        for m in matrices:
+            print m
 
     # prepare matrices (move to directory, extract archive...)
     shutil.rmtree('matrices', True)
     os.mkdir('matrices')
 
     for matrix in matrices:
-        if not matrix.file:
+        if not matrix.downloaded:
             continue
-        print matrix.file
-        shutil.move(matrix.file, 'matrices')
-        call(['tar','-xvzf', 'matrices/' + matrix.file, '-C', 'matrices/'])
+        print matrix.filename
+        shutil.move(matrix.filename, 'matrices')
+        call(['tar', '-xvzf', 'matrices/' + matrix.file, '-C', 'matrices/'])
         RunBenchmark(matrix)
 
 if __name__ == '__main__':
