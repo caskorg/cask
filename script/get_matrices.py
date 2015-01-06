@@ -22,7 +22,8 @@ class Matrix(object):
         self.valuetype = valuetype
         self.spd = spd
         self.sym = sym
-        self.filename = group + '/' + name + '.tar.gz'
+        self.filename = name + '.tar.gz'
+        self.url = group + '/' + self.filename
         self.downloaded = False
 
     def __str__(self):
@@ -39,7 +40,7 @@ MATRIX_GROUPS = []
 MATRIX_NAMES = []
 
 # Max row and col sizes to fetch. Set to None if no limit is required
-MAX_NON_ZEROS = 1E9
+MAX_NON_ZEROS = None
 
 ValueType = 'real'  # 'real', 'integer', 'complex', 'binary'
 
@@ -50,7 +51,7 @@ NonZeros = []
 Rows = []
 
 # The range of legal cols
-Cols = xrange(10000, 100000)
+Cols = []  # xrange(10000, 100000)
 
 # Legal values for symmetry
 Sym = []
@@ -68,8 +69,8 @@ class MyHtmlParser(HTMLParser):
     def ShouldDownload(self, matrix):
         if self.matrix_names and matrix.name not in self.matrix_names:
             return False
-        if matrix.valuetype != ValueType:
-            return False
+        # if matrix.valuetype != ValueType:
+        #     return False
         if Rows and matrix.rows not in Rows:
             return False
         if Cols and matrix.cols not in Cols:
@@ -149,7 +150,7 @@ class MyHtmlParser(HTMLParser):
                    sym=fields[11])
 
         if self.ShouldDownload(m):
-            url = 'http://www.cise.ufl.edu/research/sparse/MM/' + m.filename
+            url = 'http://www.cise.ufl.edu/research/sparse/MM/' + m.url
             if not self.dryrun:
                 wget.download(url)
                 print '... Done'
@@ -205,13 +206,13 @@ def main():
     shutil.rmtree('matrices', True)
     os.mkdir('matrices')
 
-    for matrix in matrices:
-        if not matrix.downloaded:
+    for m in matrices:
+        if not m.downloaded:
             continue
-        print matrix.filename
-        shutil.move(matrix.filename, 'matrices')
-        call(['tar', '-xvzf', 'matrices/' + matrix.file, '-C', 'matrices/'])
-        RunBenchmark(matrix)
+        print m.filename
+        shutil.move(m.filename, 'matrices')
+        call(['tar', '-xvzf', 'matrices/' + m.filename, '-C', 'matrices/'])
+        RunBenchmark(m)
 
 if __name__ == '__main__':
     main()
