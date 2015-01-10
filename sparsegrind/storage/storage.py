@@ -39,21 +39,32 @@ def dia(matrix):
             'DIA')
 
 
-def bounded_dictionary(matrix_values, k):
+def bounded_dictionary(n, matrix_values, k=None):
     """Do a bounded dictionary compression of the given stream of values.
     This works by finding the k highest frequency elements and
-    replacing their occurence with a pointer."""
+    replacing their occurence with a pointer. When k is not specified,
+    the encoding includes all elements. """
     counter = collections.Counter()
     for v in matrix_values:
         counter[v] += 1
 
-    covered = 0.0
-    for v, c in counter.most_common(k):
-        covered += c
+    nnzs = len(matrix_values)
 
-    return ceil(ceil(covered * ceil(math.log(k, 2)) / 8) +
-                     (len(matrix_values) - covered) * bytes_per_data +
-                     ceil(len(matrix_values) / 8)), counter, covered
+    # assume all are covered if k is not specified
+    covered = float(nnzs)
+    bits_per_entry = ceil(math.log(k if k else nnzs, 2))
+    if k:
+        covered = 0.0
+        for v, c in counter.most_common(k):
+            covered += c
+
+    bytes_compressed_entries = ceil(covered * bits_per_entry / 8.0)
+    bytes_uncompressed_entries = (nnzs - covered) * bytes_per_data
+    bytes_overhead = n * bytes_per_metadata if k else 0
+
+    return ceil(bytes_compressed_entries +
+                bytes_uncompressed_entries +
+                bytes_overhead), counter, covered
 
 
 def csr_bounded_dictionary(matrix, dict_size=10):

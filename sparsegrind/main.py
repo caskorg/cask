@@ -17,6 +17,7 @@ from sparsegrindio import io
 from storage import storage
 import os
 import sparsegrindio
+import sys
 
 
 def storage_analysis(matrix):
@@ -104,7 +105,8 @@ def reorder_analysis(matrix):
             reorder.cm(matrix)]
 
 
-def compression_analysis(matrix, name):
+def compression_analysis(matrix, name, results_map):
+    """Returns compression results for BCSRVI normalized wrt CSR and CSRVI."""
     results = [name]
     sh = matrix.shape
     if sh[0] <= 1 or sh[1] <= 1:
@@ -113,21 +115,34 @@ def compression_analysis(matrix, name):
     results.append(matrix.nnz)
     results.append(len(matrix.indptr))
 
-    # Bounded dictionary only targets value compression
-    bcsr, counter, covered = storage.bounded_dictionary(matrix.data, 128)
-    t = 0
-    for v, c in counter.iteritems():
-        t += c
-
-    results.append(len(counter) / float(matrix.nnz))  # uvals percent
+    # First find reference CSR and CSRVI values
     csr = storage.csr(matrix)
-    total = (csr[0] + csr[1]) / (csr[0] + bcsr)
-    value = -1 if not bcsr else csr[1] / bcsr
-    results.append(value)
-    results.append(covered / matrix.nnz)
-    results.append(total)
+    csr_values = csr[1]
+    csr_total = csr[0] + csr[1]
 
-    sparsegrindio.io.write_org_table_row(results)
+    n = len(matrix.indptr)
+    
+    bcsrv_reference_values = storage.bounded_dictionary(n, matrix.data)[0]
+    bcsrv_reference_total = csr[0] + bcsrv_reference_values
+
+    print name,
+    for ts, results_entry in results_map.iteritems():
+        bcsr = storage.bounded_dictionary(n, matrix.data, ts)[0]
+
+        ratio = csr_values / bcsr
+
+        # Values of normalized CSR Values
+        values_csr_results_entry = results_entry[0]
+        values_csr_results_entry[0] = min(values_csr_results_entry[0], ratio)
+        values_csr_results_entry[1] = max(values_csr_results_entry[1], ratio)
+        values_csr_results_entry[2] += ratio
+
+        print "{} = {:2f}".format(ts, ratio),
+
+    print
+    return results_map
+
+##    sparsegrindio.io.write_org_table_row(results)
 
 
 def plot_matrices(list_of_matrices):
@@ -139,7 +154,7 @@ def plot_matrices(list_of_matrices):
     pl.show()
 
 
-def grind_matrix(file, args):
+def grind_matrix(file, args, results_map):
 
     name = os.path.basename(file).replace('.mtx', '')
 
@@ -188,7 +203,7 @@ def grind_matrix(file, args):
         print 'Running storage format analysis'
         storage_analysis(realms[0])
     elif args.analysis == 'compression':
-        compression_analysis(realms[0], name)
+        compression_analysis(realms[0], name, results_map)
     else:
         print 'Unspported analysis'
         return
@@ -223,12 +238,21 @@ def main():
         if args.analysis == 'compression':
             header = ['name', 'sym', 'nnzs', 'dim', 'uvals %',
                       'B_CSR128(values)', 'covered', 'B_CSR128(total)']
-            sparsegrindio.io.write_org_table_header(header)
+            # sparsegrindio.io.write_org_table_header(header)
         parent_dir = os.path.dirname(os.path.abspath(args.file))
+
+        # create results map
+        max_def = 0
+        min_def = sys.maxint
+        sum_def = 0
+        results_map = {}
+        for i in [2, 8, 64, 1024]:
+            results_map[i] = [[min_def, max_def, sum_def]]
+
         for root, dirs, files in os.walk(parent_dir):
             for f in files:
                 if f.endswith('.mtx'):
-                    grind_matrix(os.path.join(root, f), args)
+                    grind_matrix(os.path.join(root, f), args, results_map)
         return
 
     grind_matrix(args.file, args)
