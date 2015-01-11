@@ -39,20 +39,31 @@ def dia(matrix):
             'DIA')
 
 
-def bounded_dictionary(n, matrix_values, k=None):
+def bounded_dictionary(n, matrix_values,
+                       decoding_table_bitwidth=None, counter=None):
     """Do a bounded dictionary compression of the given stream of values.
     This works by finding the k highest frequency elements and
-    replacing their occurence with a pointer. When k is not specified,
-    the encoding includes all elements. """
-    counter = collections.Counter()
-    for v in matrix_values:
-        counter[v] += 1
+    replacing their occurence with a pointer.
+
+    If decoding_table_width is specified then k is 1 <<
+    decoding_table_bitwidth. Otherwise k is the minimal number of bits
+    to represent the unique values of the matrix =
+    ceil(log(len(set(matrix_values)), 2).
+
+    """
+    if not counter:
+        counter = collections.Counter()
+        for v in matrix_values:
+            counter[v] += 1
 
     nnzs = len(matrix_values)
 
     # assume all are covered if k is not specified
     covered = float(nnzs)
-    bits_per_entry = ceil(math.log(k if k else nnzs, 2))
+    bits_per_entry = decoding_table_bitwidth
+    if not decoding_table_bitwidth:
+        bits_per_entry = int(ceil(math.log(len(counter), 2)))
+    k = 1 << bits_per_entry
     if k:
         covered = 0.0
         for v, c in counter.most_common(k):
