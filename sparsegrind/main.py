@@ -149,6 +149,15 @@ def plot_matrices(list_of_matrices):
     pl.show()
 
 
+def summary_analysis(matrix, name):
+    """Prints generic information about the provided sparse matrix."""
+    print "Name, Nonzeros, Unique Values, Sparsity, Ratio Uniques"
+    uniques = len(set(matrix.data))
+    print name, matrix.nnz, uniques,
+    print "{:.2f}".format(float(matrix.nnz) / len(matrix.indptr)**2),
+    print "{:.2f}".format(uniques / float(matrix.nnz)),
+
+
 def grind_matrix(file, args):
 
     name = os.path.basename(file).replace('.mtx', '')
@@ -199,6 +208,8 @@ def grind_matrix(file, args):
         storage_analysis(realms[0])
     elif args.analysis == 'compression':
         compression_analysis(realms[0], name)
+    elif args.analysis == 'summary':
+        summary_analysis(realms[0], name)
     else:
         print 'Unspported analysis'
         return
@@ -217,7 +228,8 @@ def main():
                         choices=['sparsity', 'range',
                                  'storage', 'changes',
                                  'reordering',
-                                 'compression'],
+                                 'compression',
+                                 'summary'],
                         help='Analysis to run')
     parser.add_argument('-t', '--timestep',
                         default=0,
