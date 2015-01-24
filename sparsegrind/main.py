@@ -141,7 +141,7 @@ def compression_analysis(matrix, name):
 
 
 def plot_matrices(list_of_matrices):
-    """"Plots the given list of sparse matrices using plt.spy()"""
+    """Plots the given list of sparse matrices using plt.spy()"""
     nplots = len(list_of_matrices)
     for i, m in enumerate(list_of_matrices):
         pl.subplot(nplots, 1, i + 1)
