@@ -16,6 +16,7 @@ from math import log, ceil
 from reorder import reorder
 from sparsegrindio import io
 from storage import storage
+from precision import precision
 import os
 import sparsegrindio
 import sys
@@ -106,7 +107,7 @@ def reorder_analysis(matrix):
             reorder.cm(matrix)]
 
 
-def compression_analysis(matrix, name):
+def compression_analysis_bcsrvi(matrix, name):
     """Prints compression results for BCSRVI normalized wrt CSR and CSRVI."""
     results = [name]
     sh = matrix.shape
@@ -138,6 +139,49 @@ def compression_analysis(matrix, name):
                                          csr_total / bcsrv_total,
                                          bcsrv_reference_values / bcsr),
     print
+
+def compression_analysis_avg(matrix, name, norm_tolerance):
+    """Prints lossy value compression results for fixed size bucketing normalized wrt CSR."""
+    results = [name]
+    sh = matrix.shape
+    if sh[0] <= 1 or sh[1] <= 1:
+        return
+    results.append('?')
+    results.append(matrix.nnz)
+    results.append(len(matrix.indptr))
+
+    # First find reference CSR
+    csr = storage.csr(matrix)
+    csr_values = csr[1]
+    csr_total = csr[0] + csr[1]
+
+    n = len(matrix.indptr)
+
+    # interpret norm_tolerance as elementwise tolerance
+    #bucketing_values = storage.bucketing(n, matrix, norm_tolerance);
+    #print bucketing_values
+
+    reduced_matrix = precision.reduce_elementwise(n, matrix, 16, norm_tolerance)
+
+    # analyse precision loss
+
+    print precision.calculate_norms(matrix)
+    print precision.calculate_norms(reduced_matrix)
+
+    print precision.solve_cg(matrix, norm_tolerance)
+    print precision.solve_cg(reduced_matrix, norm_tolerance)
+
+    '''
+    print name,
+    for decoding_table_bitwidth in range(1, 17):
+        bcsr = storage.bounded_dictionary(n, matrix.data,
+                                          decoding_table_bitwidth, counter)[0]
+        bcsrv_total = bcsr + csr[0]
+        print "{:2f} {:2f} {:2f}".format(csr_values / bcsr,
+                                         csr_total / bcsrv_total,
+                                         bcsrv_reference_values / bcsr),
+    print
+    '''
 
 
 def plot_matrices(list_of_matrices):
@@ -206,8 +250,10 @@ def grind_matrix(file, args):
     elif args.analysis == 'storage':
         print 'Running storage format analysis'
         storage_analysis(realms[0])
-    elif args.analysis == 'compression':
-        compression_analysis(realms[0], name)
+    elif args.analysis == 'compress_bcsrvi':
+        compression_analysis_bcsrvi(realms[0], name)
+    elif args.analysis == 'compress_avg':
+        compression_analysis_avg(realms[0], name, args.norm_tolerance)
     elif args.analysis == 'summary':
         summary_analysis(realms[0], name)
     else:
@@ -228,13 +274,18 @@ def main():
                         choices=['sparsity', 'range',
                                  'storage', 'changes',
                                  'reordering',
-                                 'compression',
+                                 'compress_bcsrvi',
+                                 'compress_avg',
                                  'summary'],
                         help='Analysis to run')
     parser.add_argument('-t', '--timestep',
                         default=0,
                         type=int,
                         help='Time step when using the matlabtl format')
+    parser.add_argument('-e', '--norm_tolerance',
+                        default=1e-5,
+                        type=float,
+                        help='Tolerance for allowed loss in accuracy wrt norm L1')
     parser.add_argument('-r', '--recursive',
                         action='store_true',
                         help='Recursive. Only for .mtx files.')

@@ -16,6 +16,7 @@ usage: main.py [-h] [-f {mm,csr,coo,matlabtl}]
 ## Requires
 
 ```
+pip install --user scipy
 pip install --user nosetests
 pip install --user networkx
 pip install --user coverage
