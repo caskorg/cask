@@ -2,40 +2,51 @@
 
 from scipy.sparse import dia_matrix
 
+import numpy as np
 import collections
 import math
 from math import ceil
 
-bytes_per_data = 8
+bytes_per_double_data = 8
 bytes_per_metadata = 4
 
 
 def coo(matrix):
     nnz = matrix.nnz
     return (2 * nnz * bytes_per_metadata,
-            nnz * bytes_per_data,
+            nnz * bytes_per_double_data,
             'COO')
 
 
 def csc(matrix):
     nnz = matrix.nnz
     return ((len(matrix.indptr) + nnz) * bytes_per_metadata,
-            nnz * bytes_per_data,
+            nnz * bytes_per_double_data,
             'CSC')
 
-
-def csr(matrix):
+def csr(matrix, mantissa_bitwidth = 52, index_bitwidth = 32):
+    '''
+       Compute storage size for CSR matrix with IEEE 745 values with 11 bit
+       exponent (as for IEEE double) and custom bitwidth of mantissa.
+    '''
     nnz = matrix.nnz
-    return ((len(matrix.indptr) + nnz) * bytes_per_metadata,
-            nnz * bytes_per_data,
-            'CSR')
+    # IEEE float bitwidth: mantissa_bitwidth + sign bit + 11 bit exponent,
+    # assuming mantissa_bitwidth is a number of explicitly stored bits
+    bits_per_custom_data = (mantissa_bitwidth + 12)
+    metadata_bitsize = (len(matrix.indptr) + nnz) * index_bitwidth
+
+    return ((metadata_bitsize).astype(np.float64)/8,
+            (nnz * bits_per_custom_data).astype(np.float64)/8,
+            "CSR: {:2d} bit data and ".format(bits_per_custom_data) +
+            str(index_bitwidth) + " bit index")
+
 
 
 def dia(matrix):
     dia_m = dia_matrix(matrix)
     nnz = dia_m.nnz
     return (bytes_per_metadata * len(dia_m.offsets),
-            nnz * bytes_per_data,
+            nnz * bytes_per_double_data,
             'DIA')
 
 
@@ -70,7 +81,7 @@ def bounded_dictionary(n, matrix_values,
             covered += c
 
     bytes_compressed_entries = ceil(covered * bits_per_entry / 8.0)
-    bytes_uncompressed_entries = (nnzs - covered) * bytes_per_data
+    bytes_uncompressed_entries = (nnzs - covered) * bytes_per_double_data
     bytes_overhead = n * bytes_per_metadata if k else 0
 
     return ceil(bytes_compressed_entries +

@@ -140,8 +140,8 @@ def compression_analysis_bcsrvi(matrix, name):
                                          bcsrv_reference_values / bcsr),
     print
 
-def compression_analysis_avg(matrix, name, norm_tolerance):
-    """Prints lossy value compression results for fixed size bucketing normalized wrt CSR."""
+def compression_analysis_precision(matrix, name, tolerance):
+    """Evenly reduce precision of matrix entries and check if it is still fine for iterative method"""
     results = [name]
     sh = matrix.shape
     if sh[0] <= 1 or sh[1] <= 1:
@@ -154,34 +154,70 @@ def compression_analysis_avg(matrix, name, norm_tolerance):
     csr = storage.csr(matrix)
     csr_values = csr[1]
     csr_total = csr[0] + csr[1]
+    norm_orig     = precision.matrix_norms(matrix)
+    status, orig_iterations, sol_orig = precision.solve_cg(matrix, tolerance)
 
     n = len(matrix.indptr)
 
-    # interpret norm_tolerance as elementwise tolerance
-    #bucketing_values = storage.bucketing(n, matrix, norm_tolerance);
-    #print bucketing_values
+    if status != 0: print "This matrix, as given, did not ever converge"; return
 
-    reduced_matrix = precision.reduce_elementwise(n, matrix, 16, norm_tolerance)
+    # Total # of flops over num iterations
+    orig_flop_count = matrix.nnz * orig_iterations
+    # Total traffic: fetching matrix, vectors x and y and a diagonal
+    # preconditioner @ each iteration.
+    orig_traffic = (csr_total + 3*n) * orig_iterations
 
-    # analyse precision loss
+    np.set_printoptions(precision=2)
+    print name,"\n"
+    for mantissa_bitwidth in (8,16,20,24,32):
+      print "| mantissa {:2d} bits:".format(mantissa_bitwidth),
 
-    print precision.calculate_norms(matrix)
-    print precision.calculate_norms(reduced_matrix)
+      reduced_matrix, error = precision.reduce_elementwise(n, matrix, mantissa_bitwidth)
 
-    print precision.solve_cg(matrix, norm_tolerance)
-    print precision.solve_cg(reduced_matrix, norm_tolerance)
+      # analyse precision loss
+      status, iterations, sol_reduced = precision.solve_cg(reduced_matrix, tolerance)
+      # ignore this precision if not even converged at all
+      if status != 0: print "did not converge"; continue
+      # did we ever converge to a sensible solution?
+      l2error       = precision.l2_error(sol_orig, sol_reduced)
+      # ignore this precision if converged to something completely different
+      # let's accept 10 times worse accuracy for reduced precision
+      if l2error > 10*tolerance: print "converged to a wrong solution"; continue
 
-    '''
-    print name,
-    for decoding_table_bitwidth in range(1, 17):
-        bcsr = storage.bounded_dictionary(n, matrix.data,
-                                          decoding_table_bitwidth, counter)[0]
-        bcsrv_total = bcsr + csr[0]
-        print "{:2f} {:2f} {:2f}".format(csr_values / bcsr,
-                                         csr_total / bcsrv_total,
-                                         bcsrv_reference_values / bcsr),
+      # this should stand for poor man estimation of reduction consequences,
+      # as _substitute_ to actually solving matrix problem. Matrix norms should
+      # be indicative to convergence rates.
+      norm_reduced  = precision.matrix_norms(reduced_matrix)
+
+      additional_iterations = iterations - orig_iterations
+
+      print "iterations {:2d} {:2d} {:2d}, l1 norm {:2f} {:2f} {:2f} ".format(
+                                       orig_iterations, iterations, additional_iterations,
+                                       norm_orig[0], norm_reduced[0],
+                                       norm_orig[0]-norm_reduced[0],)
+
+      csr_custom = storage.csr(matrix, mantissa_bitwidth=mantissa_bitwidth, index_bitwidth=np.array([16,32]))
+      reduced_total_storage = csr_custom[0] + csr_custom[1]
+      value_compression_rate = csr_values/csr_custom[1]
+      total_compression_rate = csr_total/reduced_total_storage
+
+      # OK, we reduced precision and got more iterations. Did we win?
+      reduced_flop_count = matrix.nnz * iterations
+      # Assuming only matrix precision is subject to reduction.
+      reduced_traffic = (reduced_total_storage + 3*n) * iterations
+
+      flops_improvement = (orig_flop_count).astype(np.float64)/reduced_flop_count
+      traffic_improvement = (orig_traffic).astype(np.float64)/reduced_traffic
+
+      print "  compression: values {:2f}, total ".format(value_compression_rate),
+      for c in total_compression_rate:
+        print "{:2f}".format(c),
+      print "| outcome: flops ratio {:2f}, traffic ratio".format(flops_improvement),
+      for t in traffic_improvement:
+        print "{:2f}".format(t),
+      print
+
     print
-    '''
 
 
 def plot_matrices(list_of_matrices):
@@ -252,8 +288,8 @@ def grind_matrix(file, args):
         storage_analysis(realms[0])
     elif args.analysis == 'compress_bcsrvi':
         compression_analysis_bcsrvi(realms[0], name)
-    elif args.analysis == 'compress_avg':
-        compression_analysis_avg(realms[0], name, args.norm_tolerance)
+    elif args.analysis == 'reduce_precision':
+        compression_analysis_precision(realms[0], name, args.tolerance)
     elif args.analysis == 'summary':
         summary_analysis(realms[0], name)
     else:
@@ -275,17 +311,17 @@ def main():
                                  'storage', 'changes',
                                  'reordering',
                                  'compress_bcsrvi',
-                                 'compress_avg',
+                                 'reduce_precision',
                                  'summary'],
                         help='Analysis to run')
     parser.add_argument('-t', '--timestep',
                         default=0,
                         type=int,
                         help='Time step when using the matlabtl format')
-    parser.add_argument('-e', '--norm_tolerance',
+    parser.add_argument('-e', '--tolerance',
                         default=1e-5,
                         type=float,
-                        help='Tolerance for allowed loss in accuracy wrt norm L1')
+                        help='Acceptable tolerance in floating point computes')
     parser.add_argument('-r', '--recursive',
                         action='store_true',
                         help='Recursive. Only for .mtx files.')

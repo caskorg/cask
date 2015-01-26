@@ -1,6 +1,6 @@
 """
-    This module is used for the precision analysis in lossy matrix
-    compression variations.
+    This module is used for the precision analysis in lossy/mixed precision
+    matrix representations.
 
     Here we analyse how much we can reduce precision of matrix values (and,
     apparently, drop some very tiny matrix entries), keeping matrix norms
@@ -21,7 +21,7 @@ bytes_per_data = 8
 bytes_per_metadata = 4
 
 
-def reduce_elementwise(n, matrix, target_bitwidth, tolerance):
+def reduce_elementwise(n, matrix, target_bitwidth):
     """
     Here we simply reduce precision of each matrix entry by representing it in a
     IEEE 745 floating point with same exponent but mantissa of target_bitwidth.
@@ -57,14 +57,12 @@ def reduce_elementwise(n, matrix, target_bitwidth, tolerance):
 
     target_matrix = csr_matrix( (value_in_target_bitwidth, matrix.indices, matrix.indptr), matrix.shape )
 
-    print target_bitwidth, total_error
-    print "original", matrix.data
-    print "target", value_in_target_bitwidth
+#    print "vector of errors: ", np.abs(matrix.data-value_in_target_bitwidth)
 
-    return target_matrix
+    return target_matrix, total_error
 
 
-def calculate_norms(matrix):
+def matrix_norms(matrix):
     """Calculating matrix norms for a given matrix:
         l_{fro}: frobenius norm
         l_{1}:  max(sum(abs(x), axis=0));
@@ -78,6 +76,7 @@ def calculate_norms(matrix):
     # we calculate vector norms: matrix.data is a ndarray, and there's no way
     # to correctly reshape it. Converting to dense... you don't want it.
 
+    #### Frobenius norm is not available for the vector objects
     ####frobenius_norm      = np.linalg.norm(matrix.data, 'fro');
     operator_l1_norm    = np.linalg.norm(matrix.data, 1);
     max_singular_value  = np.linalg.norm(matrix.data, 2);
@@ -86,9 +85,13 @@ def calculate_norms(matrix):
 
     return (operator_l1_norm, max_singular_value, min_singular_value, condition_number)
 
+def l2_error(vector1, vector2):
+    """Calculating L2 norm of abs difference between two vectors"""
+
+    return np.linalg.norm(vector1-vector2, 2)
 
 
-def solve_cg(matrix, matrix_norm_tolerance):
+def solve_cg(matrix, solve_tol = 1e-4, max_iterations=2000):
     """Solves matrix problem iteratively to count number of iterations"""
 
     rank = matrix.shape[0]
@@ -97,10 +100,6 @@ def solve_cg(matrix, matrix_norm_tolerance):
     P = spdiags(1. / matrix.diagonal(), 0, rank, rank)
     # vector of all ones
     b = np.ones(rank)
-    # result of iterative solve cannot be of better accuracy then given data,
-    # so let's ask for 10 times worse solve accuracy
-    solve_tol = 1e-3
-    max_iterations=2000
 
     iteration_count = np.zeros(1, dtype='int')
     def iteration_counter(v):
@@ -111,5 +110,4 @@ def solve_cg(matrix, matrix_norm_tolerance):
     # if sol[1] == 0, solution successful.
     # if positive, did not converge, equals the num of iterations
     # if negative, break down
-    return iteration_count, sol[1]
-
+    return sol[1], iteration_count[0], sol[0]
