@@ -169,7 +169,7 @@ def compression_analysis_precision(matrix, name, tolerance):
 
     np.set_printoptions(precision=2)
     print name,"\n"
-    for mantissa_bitwidth in (8,16,20,24,32):
+    for mantissa_bitwidth in [8,16,20,24,32,36,42,48]:
       print "| mantissa {:2d} bits:".format(mantissa_bitwidth),
 
       reduced_matrix, error = precision.reduce_elementwise(n, matrix, mantissa_bitwidth)

@@ -98,8 +98,8 @@ def solve_cg(matrix, solve_tol = 1e-4, max_iterations=2000):
     # constructing diagonal preconditioner: inverse diagonal entries of
     # a given matrix
     P = spdiags(1. / matrix.diagonal(), 0, rank, rank)
-    # vector of all ones
-    b = np.ones(rank)
+    # vector of all 1/1000.0
+    b = np.ones(rank)/10000.0
 
     iteration_count = np.zeros(1, dtype='int')
     def iteration_counter(v):

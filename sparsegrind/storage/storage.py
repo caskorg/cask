@@ -35,8 +35,8 @@ def csr(matrix, mantissa_bitwidth = 52, index_bitwidth = 32):
     bits_per_custom_data = (mantissa_bitwidth + 12)
     metadata_bitsize = (len(matrix.indptr) + nnz) * index_bitwidth
 
-    return ((metadata_bitsize).astype(np.float64)/8,
-            (nnz * bits_per_custom_data).astype(np.float64)/8,
+    return (metadata_bitsize/8.0,
+            (nnz * bits_per_custom_data)/8.0,
             "CSR: {:2d} bit data and ".format(bits_per_custom_data) +
             str(index_bitwidth) + " bit index")
 
