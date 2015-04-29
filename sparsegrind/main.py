@@ -229,13 +229,29 @@ def plot_matrices(list_of_matrices):
     pl.show()
 
 
+def most_common_covered(counter, dict_size, nnzs):
+    covered = 0
+    for v, c in counter.most_common(dict_size):
+            covered += c
+    return float(covered) / float(nnzs)
+
 def summary_analysis(matrix, name):
     """Prints generic information about the provided sparse matrix."""
-    print "Name, Nonzeros, Unique Values, Sparsity, Ratio Uniques"
     uniques = len(set(matrix.data))
-    print name, matrix.nnz, uniques,
-    print "{:.2f}".format(float(matrix.nnz) / len(matrix.indptr)**2),
-    print "{:.2f}".format(uniques / float(matrix.nnz)),
+    n = len(matrix.indptr) + 1
+    print name, n, matrix.nnz, uniques,
+    print "{:.5f}".format(float(matrix.nnz) / float(n**2) * 100),
+    # print "{:.5f}".format(uniques / float(matrix.nnz)),
+
+    counter = collections.Counter()
+    for v in matrix.data:
+            counter[v] += 1
+
+    print "{:.5f}".format(most_common_covered(counter, 1 << 2, matrix.nnz)),
+    print "{:.5f}".format(most_common_covered(counter, 1 << 5, matrix.nnz)),
+    print "{:.5f}".format(most_common_covered(counter, 1 << 8, matrix.nnz)),
+    print "{:.5f}".format(most_common_covered(counter, 1 << 10, matrix.nnz)),
+    print "{:.5f}".format(most_common_covered(counter, 1 << 13, matrix.nnz))
 
 
 def grind_matrix(file, args):
@@ -298,7 +314,7 @@ def grind_matrix(file, args):
 
 
 def main():
-
+    print "Name, Order, Nonzeros, Unique Values, Sparsity, MC(2), MC(5), MC(8), MC(10) "
     parser = argparse.ArgumentParser(
         description='Analyse sparse matrices.')
     parser.add_argument('-f', '--format',
