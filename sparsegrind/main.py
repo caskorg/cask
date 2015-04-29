@@ -124,20 +124,38 @@ def compression_analysis_bcsrvi(matrix, name):
 
     n = len(matrix.indptr)
 
-    bcsrv_reference_values = storage.bounded_dictionary(n, matrix.data)[0]
+    res = storage.bounded_dictionary(n, matrix.data)
+    bcsrv_reference_values = res[0]
+    bcsrv_reference_unique_values = len(res[1])
+    # only for Virtex 6 BRAMs
+    bram_size = 512 # double precision values in one BRAM
+    bcsrv_reference_brams = ceil(bcsrv_reference_unique_values / bram_size)
+
 
     counter = collections.Counter()
     for v in matrix.data:
         counter[v] += 1
 
+    print 'Running compression anaylsis'
+    print 'Name, vs CSR Values, vs CSR Total, vs CSRVI',
+    print 'Uniq(CSRVI), BRAMs (CSRVI), Uniq(BCSRVI), BRAMs(BCSRVI)'
     print name,
-    for decoding_table_bitwidth in range(1, 17):
-        bcsr = storage.bounded_dictionary(n, matrix.data,
-                                          decoding_table_bitwidth, counter)[0]
+    for decoding_table_bitwidth in [5]: # range(1, 17):
+        res = storage.bounded_dictionary(n, matrix.data,
+                                          decoding_table_bitwidth, counter)
+        bcsr = res[0]
         bcsrv_total = bcsr + csr[0]
         print "{:2f} {:2f} {:2f}".format(csr_values / bcsr,
                                          csr_total / bcsrv_total,
                                          bcsrv_reference_values / bcsr),
+        bcsrv_unique_values = min(len(res[1]), 1 << decoding_table_bitwidth)
+        bcsrv_brams = ceil(float(bcsrv_unique_values) / bram_size)
+        print "{:2f}".format(bcsrv_reference_brams / bcsrv_brams)
+#        print "{:2f} {:2f} {:2f} {:2f}".format(
+#                bcsrv_reference_unique_values,
+#                bcsrv_reference_brams,
+#                bcsrv_unique_values,
+#                bcsrv_brams)
     print
 
 def compression_analysis_precision(matrix, name, tolerance):
