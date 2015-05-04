@@ -136,11 +136,8 @@ def compression_analysis_bcsrvi(matrix, name):
     for v in matrix.data:
         counter[v] += 1
 
-    print 'Running compression anaylsis'
-    print 'Name, vs CSR Values, vs CSR Total, vs CSRVI',
-    print 'Uniq(CSRVI), BRAMs (CSRVI), Uniq(BCSRVI), BRAMs(BCSRVI)'
     print name,
-    for decoding_table_bitwidth in [5]: # range(1, 17):
+    for decoding_table_bitwidth in [12]: # range(1, 17):
         res = storage.bounded_dictionary(n, matrix.data,
                                           decoding_table_bitwidth, counter)
         bcsr = res[0]
@@ -150,13 +147,12 @@ def compression_analysis_bcsrvi(matrix, name):
                                          bcsrv_reference_values / bcsr),
         bcsrv_unique_values = min(len(res[1]), 1 << decoding_table_bitwidth)
         bcsrv_brams = ceil(float(bcsrv_unique_values) / bram_size)
+        print "{:2f} {:2f} {:2f} {:2f}".format(
+                bcsrv_reference_unique_values,
+                bcsrv_reference_brams,
+                bcsrv_unique_values,
+                bcsrv_brams),
         print "{:2f}".format(bcsrv_reference_brams / bcsrv_brams)
-#        print "{:2f} {:2f} {:2f} {:2f}".format(
-#                bcsrv_reference_unique_values,
-#                bcsrv_reference_brams,
-#                bcsrv_unique_values,
-#                bcsrv_brams)
-    print
 
 def compression_analysis_precision(matrix, name, tolerance):
     """Evenly reduce precision of matrix entries and check if it is still fine for iterative method"""
@@ -321,7 +317,7 @@ def grind_matrix(file, args):
         print 'Running storage format analysis'
         storage_analysis(realms[0])
     elif args.analysis == 'compress_bcsrvi':
-        compression_analysis_bcsrvi(realms[0], name)
+       compression_analysis_bcsrvi(realms[0], name)
     elif args.analysis == 'reduce_precision':
         compression_analysis_precision(realms[0], name, args.tolerance)
     elif args.analysis == 'summary':
@@ -332,7 +328,6 @@ def grind_matrix(file, args):
 
 
 def main():
-    print "Name, Order, Nonzeros, Unique Values, Sparsity, MC(2), MC(5), MC(8), MC(10) "
     parser = argparse.ArgumentParser(
         description='Analyse sparse matrices.')
     parser.add_argument('-f', '--format',
@@ -361,6 +356,12 @@ def main():
                         help='Recursive. Only for .mtx files.')
     parser.add_argument('file')
     args = parser.parse_args()
+
+    if args.analysis == 'compress_bcsrvi':
+      print 'Name, vs CSR Values, vs CSR Total, vs CSRVI',
+      print 'Uniq(CSRVI), BRAMs (CSRVI), Uniq(BCSRVI), BRAMs(BCSRVI), BRAM (CSRVI/BCSRVI)'
+    elif args.analysis == 'summary':
+      print "Name, Order, Nonzeros, Unique Values, Sparsity, MC(2), MC(5), MC(8), MC(10) "
 
     if args.recursive:
         if args.analysis == 'compression':
