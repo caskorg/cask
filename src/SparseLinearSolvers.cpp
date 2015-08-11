@@ -1,4 +1,4 @@
-#include "SparseLinearSolvers.hpp"
+#include <Spark/SparseLinearSolvers.hpp>
 
 extern "C" {
 #include <SuiteSparse_config.h>
