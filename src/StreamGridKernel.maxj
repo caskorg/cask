@@ -1,0 +1,25 @@
+/***
+	TODO: Add a descriptive comment!
+*/
+
+import com.maxeler.maxcompiler.v2.kernelcompiler.Kernel;
+import com.maxeler.maxcompiler.v2.kernelcompiler.KernelParameters;
+import com.maxeler.maxcompiler.v2.kernelcompiler.types.base.DFEVar;
+
+class StreamGridKernel extends Kernel {
+
+    protected StreamGridKernel(KernelParameters parameters) {
+        super(parameters);
+
+        DFEVar ex1U1 = io.input("ex1U1", dfeFloat(11, 53));
+        DFEVar ex1KR = io.input("ex1KR", dfeFloat(11, 53));
+        DFEVar ex1E1 = io.input("ex1E1", dfeFloat(11, 53));
+        DFEVar ex1TR = io.input("ex1TR", dfeFloat(11, 53));
+        DFEVar dt = io.scalarInput("dt", dfeFloat(11, 53));
+
+        DFEVar res = (ex1U1 * -1 + ex1KR * ex1E1) * dt / ex1TR + ex1U1;
+
+        io.output("res", res, dfeFloat(11, 53));
+    }
+
+}

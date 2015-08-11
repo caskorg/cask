@@ -1,0 +1,39 @@
+/***
+	TODO Add a descriptive comment!
+*/
+import com.maxeler.maxcompiler.v2.managers.engine_interfaces.CPUTypes;
+import com.maxeler.maxcompiler.v2.managers.engine_interfaces.EngineInterface;
+import com.maxeler.maxcompiler.v2.managers.engine_interfaces.InterfaceParam;
+import com.maxeler.maxcompiler.v2.managers.custom.CustomManager;
+import com.maxeler.maxcompiler.v2.managers.custom.blocks.KernelBlock;
+import com.maxeler.maxcompiler.v2.build.EngineParameters;
+
+public class StreamGridManager extends CustomManager{
+
+    private static final String s_kernelName  = "StreamGridKernel";
+
+    StreamGridManager(EngineParameters ep)
+    {
+        super(ep);
+
+        KernelBlock k = addKernel(new StreamGridKernel(makeKernelParameters(s_kernelName)));
+
+        for (String s : k.getAllInputs()) {
+          k.getInput(s) <== addStreamFromCPU(s);
+        }
+        for (String s : k.getAllOutputs()) {
+          addStreamToCPU(s) <== k.getOutput(s);
+        }
+    }
+
+    private static EngineInterface interfaceDefault() {
+        return new EngineInterface();
+    }
+
+
+    public static void main(String[] args) {
+        StreamGridManager manager = new StreamGridManager(new EngineParameters(args));
+        manager.createSLiCinterface(interfaceDefault());
+        manager.build();
+    }
+}
