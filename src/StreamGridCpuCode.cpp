@@ -1,4 +1,4 @@
-#include "StreamGridDfe.hpp"
+#include <Spark/StreamGridDfe.hpp>
 
 int main() {
  runDFE();
