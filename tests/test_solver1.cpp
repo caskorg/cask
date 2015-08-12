@@ -63,6 +63,6 @@ void test(int m, MatrixGenerator mg) {
 
 int main()
 {
-  test<IdentityGenerator>(10, IdentityGenerator{});
-  test<RandomGenerator>(100, RandomGenerator{});
+  test(10, IdentityGenerator{});
+  test(100, RandomGenerator{});
 }
