@@ -76,8 +76,9 @@ MAXCOMPILERSIM=maxcompilersim
 MAXOS_HW=/opt/maxeler/maxeleros/lib/libmaxeleros.so
 MAXOS_SIM=$(MAXELEROSDIR_SIM)/lib/libmaxeleros.so
 
-JFLAGS=-cp $(MAXCOMPILERDIR)/lib/MaxCompiler.jar -1.6 -d .
-CFLAGS= $(COMPILER_CFLAGS) $(OPT_FLAGS) -Wall -I${MAXCOMPILERDIR}/include -I${MAXCOMPILERDIR}/include/slic -I${MAXELEROSDIR}/include -D_XOPEN_SOURCE=600 -I../include/
+DFESNIPPETS=../dfe-snippets
+JFLAGS=-cp $(MAXCOMPILERDIR)/lib/MaxCompiler.jar:$(DFESNIPPETS)/src -1.6 -d .
+CFLAGS= $(COMPILER_CFLAGS) $(OPT_FLAGS) -Wall -I${MAXCOMPILERDIR}/include -I${MAXCOMPILERDIR}/include/slic -I${MAXELEROSDIR}/include -D_XOPEN_SOURCE=600 -I../include/ -I$(DFESNIPPETS)/include
 LFLAGS=-L${MAXCOMPILERDIR}/lib -L${MAXELEROSDIR}/lib -lmaxeleros -lslic -lm -lpthread
 
 # Add this on the command line to pass to make when compiling

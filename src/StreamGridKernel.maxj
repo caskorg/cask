@@ -6,6 +6,8 @@ import com.maxeler.maxcompiler.v2.kernelcompiler.Kernel;
 import com.maxeler.maxcompiler.v2.kernelcompiler.KernelParameters;
 import com.maxeler.maxcompiler.v2.kernelcompiler.types.base.DFEVar;
 
+import com.custom_computing_ic.dfe_snippets.blas.DenseBlasLib;
+
 class StreamGridKernel extends Kernel {
 
     protected StreamGridKernel(KernelParameters parameters) {

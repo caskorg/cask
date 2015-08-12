@@ -91,11 +91,17 @@ add_dependencies(StreamGridLib simlib)
 if (NOT SparseLib_DisableTesting)
   message(STATUS "Tests not disabled")
   enable_testing()
+  # Should include dfe-snippets headers as they might be used in tests
+  include_directories(dfe-snippets/include)
   add_executable(
     test_solver1
     tests/test_solver1.cpp)
+  target_link_libraries(
+    test_solver1
+    StreamGridLib
+    -lumfpack -lsuitesparseconfig -lopenblas -lcholmod -lcolamd -lrt -lklu -lbtf -lamd -lpthread)
   add_test(
     NAME test_solver_small
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-    COMMAND ../scripts/simrunner ./testsolver1)
+    COMMAND ../scripts/simrunner ./test_solver1)
 endif()

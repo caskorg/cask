@@ -50,9 +50,9 @@ Eigen::VectorXd solveUMFLU(
 }
 
 
-void SparseLinearSolvers::EigenSolver::solve(
-const Eigen::SparseMatrix<double>& A,
-double* x, double *b)
+void spark::sparse_linear_solvers::EigenSolver::solve(
+    const Eigen::SparseMatrix<double>& A,
+    double* x, double *b)
 {
 
   int n = A.cols();
