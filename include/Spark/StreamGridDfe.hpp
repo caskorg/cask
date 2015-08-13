@@ -46,30 +46,6 @@ void StreamGrid(
 #endif
 
 
-void runDFE()
-{
-//  const int inSize = 384;
-//
-//  std::vector<int> a(inSize), b(inSize), expected(inSize), out(inSize, 0);
-//
-//  for(int i = 0; i < inSize; ++i) {
-//    a[i] = i + 1;
-//    b[i] = i - 1;
-//    expected[i] = 2 * i;
-//  }
-//
-////  std::cout << "Running on DFE." << std::endl;
-//  StreamGrid(inSize, &a[0], &b[0], &out[0]);
-//
-//  for (int i = 0; i < inSize; i++)
-//    if (out[i] != expected[i]) {
-//      printf("Output from DFE did not match CPU: %d : %d != %d\n",
-//        i, out[i], expected[i]);
-//    }
-
-//  std::cout << "Test passed!" << std::endl;
-}
-
 std::vector<double> operator/(std::vector<double> a, std::vector<double> b) {
   std::vector<double> tmp(a.size());
   for (int i = 0; i < a.size(); i++)
