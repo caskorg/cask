@@ -6,6 +6,7 @@
 
 #include <dfesnippets/blas/Blas.hpp>
 #include <Eigen/Sparse>
+#include <Spark/ConjugateGradient.hpp>
 
 using Td = Eigen::Triplet<double>;
 using Md = Eigen::SparseMatrix<double>;
@@ -65,4 +66,7 @@ int main()
 {
   test(10, IdentityGenerator{});
   test(100, RandomGenerator{});
+
+  spark::cg::DfeCg cg{};
+  cg.solve();
 }

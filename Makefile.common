@@ -25,8 +25,8 @@ DFEMAXDIR=$(MAXCOMPILER_BUILD_DIR)/$(PRJ)_$(DFEModel)_DFE/results
 MAXELEROSDIR_SIM:=$(MAXCOMPILERDIR)/lib/maxeleros-sim
 
 # ---- Source files ----
-ENGINEFILES=$(wildcard ../src/*.maxj)
-CPUFILES=$(wildcard ../src/StreamGridCpuCode.cpp)
+ENGINEFILES?=$(wildcard ../src/*.maxj)
+CPUFILES?=$(wildcard ../src/StreamGridCpuCode.cpp)
 
 # ---- Compiler settings ----
 
@@ -76,9 +76,9 @@ MAXCOMPILERSIM=maxcompilersim
 MAXOS_HW=/opt/maxeler/maxeleros/lib/libmaxeleros.so
 MAXOS_SIM=$(MAXELEROSDIR_SIM)/lib/libmaxeleros.so
 
-DFESNIPPETS=../dfe-snippets
+DFESNIPPETS?=$(WHEREISROOT)/dfe-snippets
 JFLAGS=-cp $(MAXCOMPILERDIR)/lib/MaxCompiler.jar:$(DFESNIPPETS)/src -1.6 -d .
-CFLAGS= $(COMPILER_CFLAGS) $(OPT_FLAGS) -Wall -I${MAXCOMPILERDIR}/include -I${MAXCOMPILERDIR}/include/slic -I${MAXELEROSDIR}/include -D_XOPEN_SOURCE=600 -I../include/ -I$(DFESNIPPETS)/include
+CFLAGS= $(COMPILER_CFLAGS) $(OPT_FLAGS) -Wall -I${MAXCOMPILERDIR}/include -I${MAXCOMPILERDIR}/include/slic -I${MAXELEROSDIR}/include -D_XOPEN_SOURCE=600 -I$(WHEREISROOT)/include/ -I$(DFESNIPPETS)/include
 LFLAGS=-L${MAXCOMPILERDIR}/lib -L${MAXELEROSDIR}/lib -lmaxeleros -lslic -lm -lpthread
 
 # Add this on the command line to pass to make when compiling
@@ -123,7 +123,7 @@ all: runsim build
 
 $(SIMMAXDIR)/$(PRJ).max: $(ENGINEFILES)
 	$(MAXJC) $(JFLAGS) $(ENGINEFILES)
-	MAXAPPJCP=. MAXSOURCEDIRS='../src' $(MAXJAVARUN) -v -m 8192 $(MANAGER) DFEModel=$(DFEModel) maxFileName=$(PRJ) target='DFE_SIM' enableMPCX=$(MPCX)
+	MAXAPPJCP=.  $(MAXJAVARUN) -v -m 8192 $(MANAGER) DFEModel=$(DFEModel) maxFileName=$(PRJ) target='DFE_SIM' enableMPCX=$(MPCX)
 	cp $(SIMMAXDIR)/$(PRJ).h $(SIMMAXDIR)/Maxfiles.h
 
 $(PRJ)_sim.o: $(SIMMAXDIR)/$(PRJ).max

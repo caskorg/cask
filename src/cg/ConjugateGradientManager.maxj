@@ -8,15 +8,15 @@ import com.maxeler.maxcompiler.v2.managers.custom.CustomManager;
 import com.maxeler.maxcompiler.v2.managers.custom.blocks.KernelBlock;
 import com.maxeler.maxcompiler.v2.build.EngineParameters;
 
-public class StreamGridManager extends CustomManager{
+public class ConjugateGradientManager extends CustomManager{
 
-    private static final String s_kernelName  = "StreamGridKernel";
+    private static final String s_kernelName  = "ConjugateGradientKernel";
 
-    StreamGridManager(EngineParameters ep)
+    ConjugateGradientManager(EngineParameters ep)
     {
         super(ep);
 
-        KernelBlock k = addKernel(new StreamGridKernel(makeKernelParameters(s_kernelName)));
+        KernelBlock k = addKernel(new ConjugateGradientKernel(makeKernelParameters(s_kernelName)));
 
         for (String s : k.getAllInputs()) {
           k.getInput(s) <== addStreamFromCPU(s);
@@ -32,7 +32,7 @@ public class StreamGridManager extends CustomManager{
 
 
     public static void main(String[] args) {
-        StreamGridManager manager = new StreamGridManager(new EngineParameters(args));
+        ConjugateGradientManager manager = new ConjugateGradientManager(new EngineParameters(args));
         manager.createSLiCinterface(interfaceDefault());
         manager.build();
     }

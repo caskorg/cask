@@ -4,6 +4,41 @@ OPTION(SparseLib_DisableTesting "Disable execution of SparseLib tests" OFF)
 
 include_directories(include)
 
+# ---- Useful functions and macros
+
+# Adds a maxeler implementation
+function(AddMaxelerImpl path stem target)
+  set(DfeBuild "${CMAKE_CURRENT_LIST_DIR}/src/${path}/build")
+  set(Src
+    include/Spark/${stem}.hpp
+    src/${path}/${stem}Kernel.maxj
+    src/${path}/${stem}Manager.maxj
+    src/${path}/${stem}.cpp)
+  add_custom_target(
+    ${target}
+    WORKING_DIRECTORY .
+    COMMAND make -C ${DfeBuild} simlib
+    COMMAND cp ${DfeBuild}/lib* ${CMAKE_BINARY_DIR}
+    DEPENDS ${Src})
+endfunction()
+
+function(AddMaxelerImplTest name libtarget lib)
+    add_executable(
+      test_${name}
+      tests/test_${name}.cpp)
+    add_dependencies(test_${name} ${libtarget})
+    target_link_libraries(
+      test_${name}
+      -L. -l${lib}
+      SparkCpuLib
+      -lumfpack -lsuitesparseconfig -lopenblas -lcholmod
+      -lcolamd -lrt -lklu -lbtf -lamd -lpthread)
+    add_test(
+      NAME test_${name}
+      WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+      COMMAND ../scripts/simrunner ./test_${name})
+endfunction()
+
 # ---- Project wide configuration ----
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -march=native")
@@ -23,8 +58,8 @@ endif()
 if (EIGEN_HEADER)
   message(STATUS "  --> EIGEN ${EIGEN_HEADER}")
   add_definitions(-DUSEEIGEN)
-  set(Stream_Grid_sources
-    "${Stream_Grid_sources}"
+  set(SparkCpu_src
+    "${SparkCpu_src}"
     src/SparseLinearSolvers.cpp
     )
 endif()
@@ -38,6 +73,8 @@ if (KLU_LIB)
   #)
 endif()
 
+add_library(SparkCpuLib ${SparkCpu_src})
+
 if (DEFINED ENV{MAXCOMPILERDIR} AND DEFINED ENV{MAXELEROSDIR})
   set(DFE_LIB true)
   add_definitions(-DUSEDFE)
@@ -50,58 +87,26 @@ if (DEFINED ENV{MAXCOMPILERDIR} AND DEFINED ENV{MAXELEROSDIR})
   link_directories($ENV{MAXCOMPILERDIR}/lib)
   link_directories($ENV{MAXELEROSDIR}/lib)
 
-  # Set all Maxeler related files
-  #set(Stream_Grid_sources
-    #"${Stream_Grid_sources}"
-    #OneStepDfeSolver.cpp)
-  include_directories(
-    dfe/StreamGrid/include/)
+  # --- Configuration for Maxeler libs
+  include_directories(include)
+  AddMaxelerImpl("cg" "ConjugateGradient" "simcglib")
+  AddMaxelerImpl("bicg" "BiConjugateGradient" "simbicglib")
 
-  set(
-    StreamGridDfeBuild
-    "${CMAKE_CURRENT_LIST_DIR}/build"
+  add_custom_target(
+    distclean
+    COMMAND make -C${CMAKE_CURRENT_LIST_DIR}/src/cg/build distclean
+    COMMAND make -C${CMAKE_CURRENT_LIST_DIR}/src/bicg/build distclean
     )
 
-  set (StreamGridDfeSources
-    include/Spark/StreamGridDfe.hpp
-    src/StreamGridKernel.maxj
-    src/StreamGridManager.maxj)
+  if (NOT SparseLib_DisableTesting)
+    enable_testing()
 
-  # XXX Should use a find_library() to check for these library instead of including them directly
-  set(dfelibraries
-    -l. -lstreamgrid_sim)
+    # Should include dfe-snippets headers as they might be used in tests
+    include_directories(dfe-snippets/include)
 
-  add_custom_target(
-    simlib
-    WORKING_DIRECTORY .
-    COMMAND make -C ${StreamGridDfeBuild} simlib
-    COMMAND cp ${StreamGridDfeBuild}/lib* ${CMAKE_BINARY_DIR}
-    DEPENDS ${StreamGridDfeSources})
-
-  add_custom_target(
-    dfe_sim_distclean
-    COMMAND make -C ${StreamGridDfeBuild} distclean)
+    AddMaxelerImplTest("cg" simcglib "ConjugateGradient_sim")
+    AddMaxelerImplTest("bicg" simbicglib "BiConjugateGradient_sim")
+  endif()
 
 endif()
 
-add_library(StreamGridLib ${Stream_Grid_sources})
-
-add_dependencies(StreamGridLib simlib)
-
-if (NOT SparseLib_DisableTesting)
-  message(STATUS "Tests not disabled")
-  enable_testing()
-  # Should include dfe-snippets headers as they might be used in tests
-  include_directories(dfe-snippets/include)
-  add_executable(
-    test_solver1
-    tests/test_solver1.cpp)
-  target_link_libraries(
-    test_solver1
-    StreamGridLib
-    -lumfpack -lsuitesparseconfig -lopenblas -lcholmod -lcolamd -lrt -lklu -lbtf -lamd -lpthread)
-  add_test(
-    NAME test_solver_small
-    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-    COMMAND ../scripts/simrunner ./test_solver1)
-endif()
