@@ -1,6 +1,7 @@
 #include <vector>
 #include <iostream>
 #include <iterator>
+#include <algorithm>
 
 #include <Spark/SparseLinearSolvers.hpp>
 #include <Spark/ConjugateGradient.hpp>
@@ -18,7 +19,6 @@ Md one(int m) {
   std::vector<Td> nnzs;
   for (int i = 0; i < m; i++)
     nnzs.push_back(Td(i, i, 1));
-
   Md a(m, m);
   a.setFromTriplets(nnzs.begin(), nnzs.end());
   return a;
@@ -45,26 +45,29 @@ void test(int m, MatrixGenerator mg) {
         x[i] = i;
   Eigen::VectorXd b = a * x;
 
-  // solve with well known solver
   spark::sparse_linear_solvers::EigenSolver es;
-
-  // es.solve(a);
-  std::cout << a << std::endl;
-  std::cout << x << std::endl;
-  std::cout << b << std::endl;
-
   std::vector<double> sol(m);
   std::vector<double> newb(b.data(), b.data() + b.size());
   es.solve(a, &sol[0], &newb[0]);
 
-  std::cout << "Solution: " << std::endl;
-  std::copy(sol.begin(), sol.end(), std::ostream_iterator<double>{std::cout, " "});
-  std::cout << std::endl;
-
   spark::cg::DfeCg cg{};
   auto ublas = spark::converters::eigenToUblas(a);
   std::vector<double> res = cg.solve(*ublas, newb);
-  // TODO compare results
+
+  bool check = std::equal(sol.begin(), sol.end(), res.begin(),
+      [](double a, double b) {
+        return dfesnippets::utils::almost_equal(a, b, 1E-10);
+        });
+
+  if (!check) {
+    std::cout << "Results didn't match" << std::endl;
+    std::cout << "Solution (EIGEN): " << std::endl;
+    std::copy(sol.begin(), sol.end(), std::ostream_iterator<double>{std::cout, " "});
+    std::cout << std::endl;
+    std::cout << "Solution (DFE): " << std::endl;
+    std::copy(res.begin(), res.end(), std::ostream_iterator<double>{std::cout, " "});
+    std::cout << std::endl;
+  }
 }
 
 int main()
