@@ -3,10 +3,13 @@
 #include <iterator>
 
 #include <Spark/SparseLinearSolvers.hpp>
+#include <Spark/ConjugateGradient.hpp>
+#include <Spark/converters.hpp>
+#include <boost/numeric/ublas/io.hpp>
 
 #include <dfesnippets/blas/Blas.hpp>
+
 #include <Eigen/Sparse>
-#include <Spark/ConjugateGradient.hpp>
 
 using Td = Eigen::Triplet<double>;
 using Md = Eigen::SparseMatrix<double>;
@@ -58,15 +61,14 @@ void test(int m, MatrixGenerator mg) {
   std::copy(sol.begin(), sol.end(), std::ostream_iterator<double>{std::cout, " "});
   std::cout << std::endl;
 
-
-  // TODO run and test FPGA implementation
+  spark::cg::DfeCg cg{};
+  auto ublas = spark::converters::eigenToUblas(a);
+  std::vector<double> res = cg.solve(*ublas, newb);
+  // TODO compare results
 }
 
 int main()
 {
   test(10, IdentityGenerator{});
   test(100, RandomGenerator{});
-
-  spark::cg::DfeCg cg{};
-  cg.solve();
 }

@@ -73,6 +73,7 @@ if (KLU_LIB)
   #)
 endif()
 
+include_directories(include)
 add_library(SparkCpuLib ${SparkCpu_src})
 
 if (DEFINED ENV{MAXCOMPILERDIR} AND DEFINED ENV{MAXELEROSDIR})
@@ -88,7 +89,6 @@ if (DEFINED ENV{MAXCOMPILERDIR} AND DEFINED ENV{MAXELEROSDIR})
   link_directories($ENV{MAXELEROSDIR}/lib)
 
   # --- Configuration for Maxeler libs
-  include_directories(include)
   AddMaxelerImpl("cg" "ConjugateGradient" "simcglib")
   AddMaxelerImpl("bicg" "BiConjugateGradient" "simbicglib")
 
