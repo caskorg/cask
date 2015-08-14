@@ -13,8 +13,20 @@ class ConjugateGradientKernel extends Kernel {
   protected ConjugateGradientKernel(KernelParameters parameters) {
     super(parameters);
 
-    DFEVar a = io.input("a", dfeFloat(11, 53));
-    io.output("res", a, dfeFloat(11, 53));
-  }
+    DFEVar n = io.scalarInput("n", dfeUInt(32));
+    DFEVar alpha = io.scalarInput("alpha", dfeFloat(11, 53));
 
+    DFEVar x = io.input("x", dfeFloat(11, 53));
+    DFEVar r = io.input("r", dfeFloat(11, 53));
+    DFEVar p = io.input("p", dfeFloat(11, 53));
+    DFEVar ap = io.input("ap", dfeFloat(11, 53));
+
+    //debug.simPrintf("x: %f\n", x);
+
+    DFEVar newx = x + alpha * p;
+    DFEVar newr = r - alpha * ap;
+
+    io.output("xout", newx, dfeFloat(11, 53));
+    io.output("newr", newr, dfeFloat(11, 53));
+  }
 }
