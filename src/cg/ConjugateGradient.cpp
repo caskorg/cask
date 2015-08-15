@@ -7,7 +7,10 @@
 std::vector<double> dfeImpl(
     spark::sparse::CsrMatrix<> a,
     const std::vector<double>& bvec) {
-  std::cout << "Calling cg solve" << std::endl;
+  std::cout << "Calling DFE cg solve" << std::endl;
+  if (a.size1() != a.size2() || a.size1() < 16)
+    throw std::invalid_argument("Matrix must be square and at least 16 x 16 large");
+
   using namespace boost::numeric;
 
   ublas::vector<double> x(bvec.size(), 0);
@@ -34,6 +37,7 @@ std::vector<double> dfeImpl(
     std::vector<double> newxv(x.size());
 
     int nticks = b.size();
+    std::vector<double> rsnewv(ConjugateGradient_RSNEW_LOOP_LAT);
     ConjugateGradient(
         nticks,
         alpha,
@@ -43,13 +47,12 @@ std::vector<double> dfeImpl(
         &r[0], r.size() * sizeof(double),
         &x[0], x.size() * sizeof(double),
         &newrv[0], newrv.size() * sizeof(double),
+        &rsnewv[0], rsnewv.size() * sizeof(double),
         &newxv[0], newxv.size() * sizeof(double));
 
     std::copy(newxv.begin(), newxv.end(), x.begin());
     std::copy(newrv.begin(), newrv.end(), r.begin());
-    auto rsnew = inner_prod(r, r);
-
-    std::cout << rsnew << std::endl;
+    double rsnew = std::accumulate(rsnewv.begin(), rsnewv.end(), 0.0);
     if (sqrt(rsnew) < 1e-10)
       break;
     p = r + rsnew / rsold * p;

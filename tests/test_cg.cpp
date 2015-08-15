@@ -72,6 +72,6 @@ void test(int m, MatrixGenerator mg) {
 
 int main()
 {
-  test(10, IdentityGenerator{});
+  test(16, IdentityGenerator{});
   test(100, RandomGenerator{});
 }

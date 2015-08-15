@@ -11,12 +11,16 @@ import com.maxeler.maxcompiler.v2.build.EngineParameters;
 public class ConjugateGradientManager extends CustomManager{
 
     private static final String s_kernelName  = "ConjugateGradientKernel";
+    private static final int RSNEW_LOOP_LAT = 16;
 
     ConjugateGradientManager(EngineParameters ep)
     {
         super(ep);
 
-        KernelBlock k = addKernel(new ConjugateGradientKernel(makeKernelParameters(s_kernelName)));
+        KernelBlock k = addKernel(new ConjugateGradientKernel(
+              makeKernelParameters(s_kernelName),
+              RSNEW_LOOP_LAT
+              ));
 
         for (String s : k.getAllInputs()) {
           k.getInput(s) <== addStreamFromCPU(s);
@@ -24,6 +28,8 @@ public class ConjugateGradientManager extends CustomManager{
         for (String s : k.getAllOutputs()) {
           addStreamToCPU(s) <== k.getOutput(s);
         }
+
+        addMaxFileConstant("RSNEW_LOOP_LAT", RSNEW_LOOP_LAT);
     }
 
     private static EngineInterface interfaceDefault() {
