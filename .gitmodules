@@ -1,3 +1,6 @@
 [submodule "dfe-snippets"]
 	path = dfe-snippets
 	url = https://github.com/custom-computing-ic/dfe-snippets.git
+[submodule "sparsegrind"]
+	path = sparsegrind
+	url = https://github.com/paul-g/sparsegrind.git
