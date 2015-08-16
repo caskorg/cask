@@ -3,6 +3,7 @@ import shutil
 import sys
 import wget
 import argparse
+import sys
 
 from collections import namedtuple
 from subprocess import call
@@ -42,10 +43,12 @@ Sym = []
 # Legal values for positive definite
 Spd = []
 
+
 def ToInt(stringVal):
     return int(stringVal.replace(',', ''))
 
-def ShouldDownload(group, name, rows, cols, nonZeros, spd, sym, valuetype):
+
+def ShouldDownload(group, name, rows, cols, nonZeros, spd, sym, valuetype, containing=None):
     if valuetype != ValueType:
         return False
     if Rows and rows not in Rows:
@@ -58,11 +61,14 @@ def ShouldDownload(group, name, rows, cols, nonZeros, spd, sym, valuetype):
         return False
     if MAX_NON_ZEROS and nonZeros > MAX_NON_ZEROS:
         return False
+    if containing and name.find(containing) == -1:
+        return False
     return True
+
 
 class MyHtmlParser(HTMLParser):
 
-    def __init__(self, dryrun):
+    def __init__(self, dryrun, containing=None):
         HTMLParser.__init__(self)
         self.state = 'NONE'
         self.skipped_header = False
@@ -70,6 +76,7 @@ class MyHtmlParser(HTMLParser):
         self.downloaded_matrices = 0
         self.matrices = []
         self.dryrun = dryrun
+        self.containing = containing
 
     def handle_starttag(self, tag, attrs):
         if self.state == 'FINISHED':
@@ -117,7 +124,7 @@ class MyHtmlParser(HTMLParser):
         spd = fields[10]
         sym = fields[11]
 
-        if ShouldDownload(group, name, rows, cols, nonZeros, spd, sym, valuetype):
+        if ShouldDownload(group, name, rows, cols, nonZeros, spd, sym, valuetype, self.containing):
             url = 'http://www.cise.ufl.edu/research/sparse/MM/' + group + '/' + name + '.tar.gz'
 
             print 'Fetching matrix: ' + group + ' ' + name, valuetype
@@ -134,9 +141,6 @@ class MyHtmlParser(HTMLParser):
             if self.downloaded_matrices >= MATRIX_LIMIT:
                 self.state = 'FINISHED'
 
-        if group == 'Springer':
-            print group, name, valuetype
-
     def GetDownloadedMatrices(self):
         return self.matrices
 
@@ -146,29 +150,51 @@ def RunBenchmark(matrix):
 
 
 def main():
+
     parser = argparse.ArgumentParser(
         description='Download sparse matrices from UoF Collection.')
     parser.add_argument('-n', '--dryrun',
                         action='store_true',
                         default=False,
                         help='Print matrices that would be downloaded.')
+    parser.add_argument(
+        '-c', '--containing',
+        help='Only download matrices containing provided pattern')
+    parser.add_argument(
+        '-a', '--all',
+        help='Fetch all matrices matching default criteria')
+    parser.add_argument(
+        '-f', '--force',
+        action='store_true',
+        default=False,
+        help='Force a refetch of the list_by_nnz.html file containing the index of all matrices')
     args = parser.parse_args()
 
-    print 'Fetching matrix list...'
-    url = 'http://www.cise.ufl.edu/research/sparse/matrices/list_by_nnz.html'
-    filename = wget.download(url)
-    print 'Done'
+    if len(sys.argv) == 1:
+        parser.print_help()
+        return
 
     filename = 'list_by_nnz.html'
+    if not os.path.isfile(filename) or args.force:
+        print 'Fetching matrix list...'
+        url = 'http://www.cise.ufl.edu/research/sparse/matrices/list_by_nnz.html'
+        filename = wget.download(url)
+        print 'Done'
+    else:
+        print '--> Using cached', filename, '; to force refetch, use the -f option'
+
     f = open(filename)
 
-    parser = MyHtmlParser(args.dryrun)
+    if args.containing:
+      print '--> Only fetching matrices containing \'', args.containing, '\''
+
+    parser = MyHtmlParser(args.dryrun, args.containing)
     parser.feed(f.read())
 
     matrices = parser.GetDownloadedMatrices()
 
     # print matrices
-    print 'Fetched {} matrices: '.format(len(matrices))
+    print 'Fetched {} matrices'.format(len(matrices))
 
     # prepare matrices (move to directory, extract archive...)
     shutil.rmtree('matrices', True)
@@ -179,7 +205,7 @@ def main():
             continue
         print matrix.file
         shutil.move(matrix.file, 'matrices')
-        call(['tar','-xvzf', 'matrices/' + matrix.file, '-C', 'matrices/'])
+        call(['tar', '-xvzf', 'matrices/' + matrix.file, '-C', 'matrices/'])
         RunBenchmark(matrix)
 
 if __name__ == '__main__':
