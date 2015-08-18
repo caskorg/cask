@@ -16,6 +16,7 @@
 #include <Eigen/Sparse>
 
 using Td = Eigen::Triplet<double>;
+using Vd = Eigen::VectorXd;
 using Md = Eigen::SparseMatrix<double>;
 
 Md one(int m) {
@@ -48,13 +49,20 @@ struct EigenMatrixGenerator {
   }
 };
 
-template<typename MatrixGenerator>
-int test(int m, MatrixGenerator mg) {
+struct SimpleRhsGenerator {
+  Vd operator()(Md mat, int m) {
+    Eigen::VectorXd x(m);
+    for (int i = 0; i < m; i++)
+      x[i] = i;
+    return mat * x;
+  }
+};
+
+
+template<typename MatrixGenerator, typename RhsGenerator>
+int test(int m, MatrixGenerator mg, RhsGenerator rhsg) {
   Md a = mg(m);
-  Eigen::VectorXd x(m);
-  for (int i = 0; i < m; i++)
-        x[i] = i;
-  Eigen::VectorXd b = a * x;
+  Eigen::VectorXd b =  rhsg(a, m);
 
   spark::sparse_linear_solvers::EigenSolver es;
   std::vector<double> sol(m);
@@ -93,7 +101,9 @@ int main()
   auto eigenMatrix = spark::converters::tripletToEigen(matrix);
 
   int status = 0;
-  status |= test(eigenMatrix->rows(), EigenMatrixGenerator(*eigenMatrix));
+  status |= test(eigenMatrix->rows(),
+      EigenMatrixGenerator{*eigenMatrix},
+      SimpleRhsGenerator{});
 
   //for_each(matrix.begin(), matrix.end(),
       //[] (std::tuple<int, int, double> tpl) {
