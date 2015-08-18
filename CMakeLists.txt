@@ -105,7 +105,7 @@ if (DEFINED ENV{MAXCOMPILERDIR} AND DEFINED ENV{MAXELEROSDIR})
     include_directories(dfe-snippets/include)
 
     AddMaxelerImplTest("cg" simcglib "ConjugateGradient_sim")
-    AddMaxelerImplTest("bicg" simbicglib "BiConjugateGradient_sim")
+    #AddMaxelerImplTest("bicg" simbicglib "BiConjugateGradient_sim")
   endif()
 
 endif()

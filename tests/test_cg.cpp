@@ -6,6 +6,8 @@
 #include <Spark/SparseLinearSolvers.hpp>
 #include <Spark/ConjugateGradient.hpp>
 #include <Spark/converters.hpp>
+#include <Spark/io.hpp>
+
 #include <boost/numeric/ublas/io.hpp>
 
 #include <dfesnippets/blas/Blas.hpp>
@@ -37,6 +39,15 @@ struct RandomGenerator {
   }
 };
 
+struct EigenMatrixGenerator {
+  Md matrix;
+  EigenMatrixGenerator(Md _matrix) : matrix(_matrix) {}
+
+  Md operator()(int m) {
+    return matrix;
+  }
+};
+
 template<typename MatrixGenerator>
 void test(int m, MatrixGenerator mg) {
   Md a = mg(m);
@@ -56,7 +67,7 @@ void test(int m, MatrixGenerator mg) {
 
   bool check = std::equal(sol.begin(), sol.end(), res.begin(),
       [](double a, double b) {
-        return dfesnippets::utils::almost_equal(a, b, 1E-10);
+        return dfesnippets::utils::almost_equal(a, b, 1E-10, 1E-15);
         });
 
   if (!check) {
@@ -72,6 +83,19 @@ void test(int m, MatrixGenerator mg) {
 
 int main()
 {
-  test(16, IdentityGenerator{});
-  test(100, RandomGenerator{});
+  //test(16, IdentityGenerator{});
+  //test(100, RandomGenerator{});
+
+  spark::io::MmReader<double> m;
+  auto matrix = m.mmread("../test-matrices/bfwb62.mtx");
+  auto eigenMatrix = spark::converters::tripletToEigen(matrix);
+
+  test(eigenMatrix->rows(), EigenMatrixGenerator(*eigenMatrix));
+
+  //for_each(matrix.begin(), matrix.end(),
+      //[] (std::tuple<int, int, double> tpl) {
+      //std::cout << std::get<0>(tpl) << " " << std::get<1>(tpl) << " " << std::get<2>(tpl) << std::endl;
+      //});
+
+//  std::cout << *eigenMatrix << std::endl;
 }
