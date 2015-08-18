@@ -7,5 +7,4 @@ SLIC_CONF+="use_simulation=${USER}a" LD_PRELOAD=${MAXOS_SIM} $@ ${USER}a0:${USER
 exitCode=$?
 maxcompilersim -n ${USER}a -cMAIA stop
 
-echo "Exit code ${exitCode}"
 exit ${exitCode}
