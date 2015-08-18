@@ -49,7 +49,7 @@ struct EigenMatrixGenerator {
   }
 };
 
-struct SimpleRhsGenerator {
+struct SimpleVectorGenerator {
   Vd operator()(Md mat, int m) {
     Eigen::VectorXd x(m);
     for (int i = 0; i < m; i++)
@@ -58,20 +58,32 @@ struct SimpleRhsGenerator {
   }
 };
 
+struct EigenVectorGenerator {
+  Vd vd;
+  EigenVectorGenerator(Vd _vd) : vd(_vd) {}
+  Vd operator()(Md mat, int m) {
+    return vd;
+  }
+};
 
 template<typename MatrixGenerator, typename RhsGenerator>
 int test(int m, MatrixGenerator mg, RhsGenerator rhsg) {
   Md a = mg(m);
   Eigen::VectorXd b =  rhsg(a, m);
 
+  std::cout << "Running eigen solver" << std::endl;
   spark::sparse_linear_solvers::EigenSolver es;
   std::vector<double> sol(m);
   std::vector<double> newb(b.data(), b.data() + b.size());
   es.solve(a, &sol[0], &newb[0]);
+  std::cout << "Eigen solver complete!" << std::endl;
 
+  std::cout << "Running DFE solver" << std::endl;
   spark::cg::DfeCg cg{};
   auto ublas = spark::converters::eigenToUblas(a);
+  std::cout << "Conversion finished running solve" << std::endl;
   std::vector<double> res = cg.solve(*ublas, newb);
+  std::cout << "DFE solver complete!" << std::endl;
 
   bool check = std::equal(sol.begin(), sol.end(), res.begin(),
       [](double a, double b) {
@@ -91,25 +103,42 @@ int test(int m, MatrixGenerator mg, RhsGenerator rhsg) {
   return 0;
 }
 
+int runMatrixTest(std::string path) {
+  spark::io::MmReader<double> m(path);
+  auto eigenMatrix = spark::converters::tripletToEigen(m.mmreadMatrix(path));
+  return test(eigenMatrix->rows(),
+      EigenMatrixGenerator{*eigenMatrix},
+      SimpleVectorGenerator{});
+}
+
+int runMatrixVectorTest(std::string path, std::string vectorPath) {
+  spark::io::MmReader<double> m(path);
+  auto eigenMatrix = spark::converters::tripletToEigen(m.mmreadMatrix(path));
+  spark::io::MmReader<double> mv(vectorPath);
+  auto eigenVector = spark::converters::stdvectorToEigen(mv.readVector());
+//  std::cout << "Eigen Vector: " << eigenVector << std::endl;
+  return test(eigenMatrix->rows(),
+      EigenMatrixGenerator{*eigenMatrix},
+      EigenVectorGenerator{eigenVector});
+}
+
 int main()
 {
-  //test(16, IdentityGenerator{});
-  //test(100, RandomGenerator{});
-
-  spark::io::MmReader<double> m;
-  auto matrix = m.mmread("../test-matrices/bfwb62.mtx");
-  auto eigenMatrix = spark::converters::tripletToEigen(matrix);
-
   int status = 0;
-  status |= test(eigenMatrix->rows(),
-      EigenMatrixGenerator{*eigenMatrix},
-      SimpleRhsGenerator{});
+  status |= test(16, IdentityGenerator{}, SimpleVectorGenerator{});
+  status |= test(100, RandomGenerator{}, SimpleVectorGenerator{});
+  status |= runMatrixTest("../test-matrices/bfwb62.mtx");
+  status |= runMatrixVectorTest(
+      "../test-matrices/OPF_3754.mtx",
+      "../test-matrices/OPF_3754_b.mtx");
+  status |= runMatrixVectorTest(
+      "../test-matrices/OPF_6000.mtx",
+      "../test-matrices/OPF_6000_b.mtx");
 
   //for_each(matrix.begin(), matrix.end(),
       //[] (std::tuple<int, int, double> tpl) {
       //std::cout << std::get<0>(tpl) << " " << std::get<1>(tpl) << " " << std::get<2>(tpl) << std::endl;
       //});
 
-//  std::cout << *eigenMatrix << std::endl;
   return status;
 }

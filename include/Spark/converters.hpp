@@ -24,9 +24,10 @@ namespace spark {
 
       UblasSparseMatrix a(new spark::sparse::CsrMatrix<>(n, n));
 
-      for (int k=0; k<m.outerSize(); ++k)
+      for (int k=0; k<m.outerSize(); ++k) {
         for (Eigen::SparseMatrix<double>::InnerIterator it(m,k); it; ++it)
           (*a)(it.row(), it.col()) = it.value();
+      }
 
       return a;
     }
@@ -43,6 +44,13 @@ namespace spark {
               std::get<1>(coo[i]),
               std::get<2>(coo[i])));
       m->setFromTriplets(trips.begin(), trips.end());
+      return m;
+    }
+
+    Eigen::VectorXd stdvectorToEigen(std::vector<double> v) {
+      Eigen::VectorXd m(v.size());
+      for (int i = 0; i < v.size(); i++)
+        m[i] = v[i];
       return m;
     }
   }

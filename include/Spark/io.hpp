@@ -16,6 +16,9 @@ namespace spark {
     template<typename value_type>
       class MmReader {
 
+        bool sparse = false, symmetric = false, matrix = false;
+        int ncols, nrows, nnzs = -1;
+
         using SparseMatrix = spark::sparse::SparkCooMatrix<value_type>;
         using CoordType = typename SparseMatrix::CoordType;
 
@@ -27,9 +30,97 @@ namespace spark {
           return std::make_tuple(x - 1, y - 1, val);
         }
 
+        void parseHeader(std::string line) {
+            // is this dense / sparse ?
+            sparse = true;
+            if (line.find("coordinate") != std::string::npos) {
+              sparse = true;
+            } else if (line.find("array") != std::string::npos) {
+              sparse = false;
+            } else {
+              throw std::invalid_argument("Cannot parse header, requires either 'coordinate' or 'matrix' type");
+            }
+
+            if (line[0] =='%' && line[1] == '%') {
+              if (line.find("matrix") != std::string::npos) {
+                symmetric = line.find("symmetric") != std::string::npos;
+                std::cout << "Is symmetric" << std::endl;
+              } else
+                throw std::invalid_argument("Unsupported file type: " + line);
+            }
+            std::cout << "Header " << line  << std::endl;
+        }
+
+        bool parseHeader() {
+          std::string line;
+          if (!getline(*f, line))
+            throw std::invalid_argument("File " + path + " is empty");
+
+          parseHeader(line);
+
+          // skip comments
+          while (getline(*f, line) && line[0] == '%')
+            continue;
+
+          // read the dimensions
+          std::stringstream ss;
+          ss << line;
+          ss >> nrows >> ncols;
+          if (sparse)
+            ss >> nnzs;
+          matrix = ncols > 1;
+
+          std::cout << "sparse: " << sparse << std::endl;
+          std::cout << "symmetric: " << symmetric << std::endl;
+          std::cout << "matrix: " << matrix << std::endl;
+          std::cout << "ncols: " << ncols << std::endl;
+          std::cout << "nrows: " << nrows << std::endl;
+          std::cout << "nnzs: " << nnzs << std::endl;
+        }
+
+        std::ifstream* f;
+        std::string path;
+
         public:
 
-        MmReader() {}
+        MmReader(std::string _path) : path(_path) {
+          f = new std::ifstream{_path};
+          if (!f->is_open())
+            throw std::invalid_argument("Could not open file path " + path);
+        }
+
+        virtual ~MmReader() {
+          delete f;
+        }
+
+        std::vector<double> readVector() {
+          parseHeader();
+          if (matrix)
+            throw std::invalid_argument("Object has > 1 columns ==> Use readMatrix");
+          if (sparse)
+            throw std::invalid_argument("Sparse vectors not supported");
+
+          std::cout << "Reading vector" << std::endl;
+
+          std::vector<std::tuple<int, double>> tpls;
+          double val;
+
+          std::vector<double> res;
+          while (*f >> val )
+            res.push_back(val);
+
+            //tpls.push_back(std::make_tuple(i, val));
+          //std::sort(tpls.begin(), tpls.end(),
+              //[](std::tuple<int, double> x, std::tuple<int, double> y) {
+                //return std::get<0>(x) < std::get<0>(y);
+              //}
+          //);
+
+          //for (int i = 0; i < res.size(); i++)
+            //res[i] = std::get<1>(tpls[i]);
+
+          return res;
+        }
 
         // Read the given file as a MM format description of a sparse matrix.
         // Returns a COO representation of the matrix.
@@ -37,42 +128,21 @@ namespace spark {
         // - the values will be adjusted to 0 based indexing
         // - for symmetric matrices, the symmetric entries are also included
         // - Triplets will be sorted in lexicographical order of their coordinates (row, column)
-        spark::sparse::SparkCooMatrix<value_type> mmread(std::string path) {
-          std::ifstream f{path};
-          if (!f.is_open())
-            throw std::invalid_argument("Could not open file path " + path);
-          std::string line;
+        spark::sparse::SparkCooMatrix<value_type> mmreadMatrix(std::string path) {
+          parseHeader();
 
-          // handle header
-          bool isSymmetric = true;
-          if (getline(f, line)) {
-            if (line[0] =='%' && line[1] == '%') {
-              if (line.find("matrix") == std::string::npos) {
-                isSymmetric = line.find("symmetric") != std::string::npos;
-              }
-            }
-            std::cout << "Header " << line  << std::endl;
-          } else
-            throw std::invalid_argument("File " + path + " is empty");
-
-          // skip comments
-          while (getline(f, line) && line[0] == '%')
-            continue;
-
-          // read the dimensions
-          int ncols, nrows, nnzs;
-          std::stringstream ss;
-          ss << line;
-          ss >> nrows >> ncols >> nnzs;
+          if (!matrix)
+            throw std::invalid_argument("Matrix has only one column ==> Use readVector");
 
           // skip comments
           std::vector<CoordType> values;
-          while (getline(f, line)) {
+          std::string line;
+          while (getline(*f, line)) {
             auto tpl = mmparse(line);
             values.push_back(tpl);
             auto row = std::get<0>(tpl);
             auto col = std::get<1>(tpl);
-            if (isSymmetric && row != col)
+            if (symmetric && row != col)
               values.push_back(
                   std::make_tuple(
                     std::get<1>(tpl),
