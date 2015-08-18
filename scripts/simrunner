@@ -4,4 +4,8 @@ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${HARDWARE_SO_DIR}
 
 maxcompilersim -n ${USER}a -cMAIA -d1 restart
 SLIC_CONF+="use_simulation=${USER}a" LD_PRELOAD=${MAXOS_SIM} $@ ${USER}a0:${USER}a
+exitCode=$?
 maxcompilersim -n ${USER}a -cMAIA stop
+
+echo "Exit code ${exitCode}"
+exit ${exitCode}

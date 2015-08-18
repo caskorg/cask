@@ -11,6 +11,7 @@
 #include <boost/numeric/ublas/io.hpp>
 
 #include <dfesnippets/blas/Blas.hpp>
+#include <dfesnippets/sparse/utils.hpp>
 
 #include <Eigen/Sparse>
 
@@ -42,14 +43,13 @@ struct RandomGenerator {
 struct EigenMatrixGenerator {
   Md matrix;
   EigenMatrixGenerator(Md _matrix) : matrix(_matrix) {}
-
   Md operator()(int m) {
     return matrix;
   }
 };
 
 template<typename MatrixGenerator>
-void test(int m, MatrixGenerator mg) {
+int test(int m, MatrixGenerator mg) {
   Md a = mg(m);
   Eigen::VectorXd x(m);
   for (int i = 0; i < m; i++)
@@ -78,7 +78,9 @@ void test(int m, MatrixGenerator mg) {
     std::cout << "Solution (DFE): " << std::endl;
     std::copy(res.begin(), res.end(), std::ostream_iterator<double>{std::cout, " "});
     std::cout << std::endl;
+    return 1;
   }
+  return 0;
 }
 
 int main()
@@ -90,7 +92,8 @@ int main()
   auto matrix = m.mmread("../test-matrices/bfwb62.mtx");
   auto eigenMatrix = spark::converters::tripletToEigen(matrix);
 
-  test(eigenMatrix->rows(), EigenMatrixGenerator(*eigenMatrix));
+  int status = 0;
+  status |= test(eigenMatrix->rows(), EigenMatrixGenerator(*eigenMatrix));
 
   //for_each(matrix.begin(), matrix.end(),
       //[] (std::tuple<int, int, double> tpl) {
@@ -98,4 +101,5 @@ int main()
       //});
 
 //  std::cout << *eigenMatrix << std::endl;
+  return status;
 }
