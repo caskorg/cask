@@ -9,6 +9,18 @@ namespace spark {
       boost::numeric::ublas::compressed_matrix<T, boost::numeric::ublas::row_major, 0,
       std::vector<unsigned int>
         >;
+
+    template<typename value_type>
+      class SparkCooMatrix {
+
+        public:
+        using CoordType = std::tuple<int, int, value_type>;
+
+        int n, m;
+        std::vector<CoordType> data;
+
+        SparkCooMatrix(int _n, int _m) : n(_n), m(_m) {}
+      };
   }
 }
 

@@ -12,14 +12,17 @@
 namespace spark {
   namespace converters {
 
+    using UblasSparseMatrix = std::unique_ptr<spark::sparse::CsrMatrix<double>>;
+    using EigenSparseMatrix = std::unique_ptr<Eigen::SparseMatrix<double>>;
+
     // convert an Eigen SparseMatrix to a boost::ublas sparse matrix
-    std::unique_ptr<spark::sparse::CsrMatrix<double>> eigenToUblas(
+    UblasSparseMatrix eigenToUblas(
         Eigen::SparseMatrix<double> m) {
       int n = m.cols();
       if (m.rows() != m.cols())
         throw std::invalid_argument("Input matrix is not square!");
 
-      std::unique_ptr<spark::sparse::CsrMatrix<>> a(new spark::sparse::CsrMatrix<>(n, n));
+      UblasSparseMatrix a(new spark::sparse::CsrMatrix<>(n, n));
 
       for (int k=0; k<m.outerSize(); ++k)
         for (Eigen::SparseMatrix<double>::InnerIterator it(m,k); it; ++it)
@@ -28,6 +31,20 @@ namespace spark {
       return a;
     }
 
+    // convert a Spark COO matrix to an Eigen Sparse Matrix
+    EigenSparseMatrix tripletToEigen(spark::sparse::SparkCooMatrix<double> mat) {
+      auto coo = mat.data;
+      EigenSparseMatrix m(new Eigen::SparseMatrix<double>(mat.n, mat.m));
+      std::vector<Eigen::Triplet<double>> trips;
+      for (int i = 0; i < coo.size(); i++)
+        trips.push_back(
+            Eigen::Triplet<double>(
+              std::get<0>(coo[i]),
+              std::get<1>(coo[i]),
+              std::get<2>(coo[i])));
+      m->setFromTriplets(trips.begin(), trips.end());
+      return m;
+    }
   }
 }
 
