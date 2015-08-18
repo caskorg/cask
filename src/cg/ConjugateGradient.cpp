@@ -53,7 +53,7 @@ std::vector<double> dfeImpl(
     std::copy(newxv.begin(), newxv.end(), x.begin());
     std::copy(newrv.begin(), newrv.end(), r.begin());
     double rsnew = std::accumulate(rsnewv.begin(), rsnewv.end(), 0.0);
-    if (sqrt(rsnew) < 1e-10)
+    if (sqrt(rsnew) < 1e-20)
       break;
     p = r + rsnew / rsold * p;
     rsold = rsnew;
