@@ -50,60 +50,68 @@ struct EigenMatrixGenerator {
 };
 
 struct SimpleVectorGenerator {
-  Vd operator()(Md mat, int m) {
+  std::tuple<Vd, Vd> operator()(Md mat, int m) {
     Eigen::VectorXd x(m);
     for (int i = 0; i < m; i++)
-      x[i] = i;
-    return mat * x;
+      x[i] = i * 0.25;
+    return std::make_tuple(
+        mat * x,
+        x);
   }
 };
 
 struct EigenVectorGenerator {
   Vd vd;
   EigenVectorGenerator(Vd _vd) : vd(_vd) {}
-  Vd operator()(Md mat, int m) {
-    return vd;
+  std::tuple<Vd, Vd> operator()(Md mat, int m) {
+    std::cout << "Running eigen solver" << std::endl;
+    spark::sparse_linear_solvers::EigenSolver es;
+    std::vector<double> sol(m);
+    std::vector<double> newb(vd.data(), vd.data() + vd.size());
+    es.solve(mat, &sol[0], &newb[0]);
+    std::cout << "Eigen solver complete!" << std::endl;
+    Vd esol;
+    for (int i = 0; i < sol.size(); i++)
+      esol(i) = sol[i];
+    return std::make_tuple(vd, esol);
   }
 };
 
 template<typename MatrixGenerator, typename RhsGenerator>
 int test(int m, MatrixGenerator mg, RhsGenerator rhsg) {
   Md a = mg(m);
-  Eigen::VectorXd b =  rhsg(a, m);
-
-  std::cout << "Running eigen solver" << std::endl;
-  spark::sparse_linear_solvers::EigenSolver es;
-  std::vector<double> sol(m);
-  std::vector<double> newb(b.data(), b.data() + b.size());
-  es.solve(a, &sol[0], &newb[0]);
-  std::cout << "Eigen solver complete!" << std::endl;
+  auto tpl =  rhsg(a, m);
+  Vd b = std::get<0>(tpl);
+  Vd exp = std::get<1>(tpl);
 
   std::cout << "Running DFE solver" << std::endl;
   spark::cg::DfeCg cg{};
   auto ublas = spark::converters::eigenToUblas(a);
   std::cout << "Conversion finished running solve" << std::endl;
+
+  std::vector<double> newb(b.data(), b.data() + b.size());
+  std::vector<double> sol(exp.data(), exp.data() + exp.size());
   std::vector<double> res = cg.solve(*ublas, newb);
   std::cout << "DFE solver complete!" << std::endl;
 
-  bool check = std::equal(sol.begin(), sol.end(), res.begin(),
-      [](double a, double b) {
-        return dfesnippets::numeric_utils::almost_equal(a, b, 1E-10, 1E-15);
-        });
-
-  if (!check) {
-    std::cout << "Results didn't match" << std::endl;
-    std::cout << "Solution (EIGEN): " << std::endl;
-    std::copy(sol.begin(), sol.end(), std::ostream_iterator<double>{std::cout, " "});
-    std::cout << std::endl;
-    std::cout << "Solution (DFE): " << std::endl;
-    std::copy(res.begin(), res.end(), std::ostream_iterator<double>{std::cout, " "});
-    std::cout << std::endl;
-    return 1;
+  std::vector<std::tuple<int, double, double>> mismatches;
+  for (int i = 0; i < sol.size(); i++) {
+    if (!dfesnippets::numeric_utils::almost_equal(res[i], exp[i], 1E-10, 1E-15))
+      mismatches.push_back(std::make_tuple(i, res[i], exp[i]));
   }
-  return 0;
+
+  if (mismatches.empty())
+    return 0;
+
+  std::cout << "Results didn't match" << std::endl;
+  for (int i = 0; i < mismatches.size(); i++) {
+    std::cout << i << ": " << "Exp: " << std::get<1>(mismatches[i]);
+    std::cout << " got: "  << std::get<2>(mismatches[i]) << std::endl;
+  }
+  return 1;
 }
 
-int runMatrixTest(std::string path) {
+int runTest(std::string path) {
   spark::io::MmReader<double> m(path);
   auto eigenMatrix = spark::converters::tripletToEigen(m.mmreadMatrix(path));
   return test(eigenMatrix->rows(),
@@ -111,12 +119,11 @@ int runMatrixTest(std::string path) {
       SimpleVectorGenerator{});
 }
 
-int runMatrixVectorTest(std::string path, std::string vectorPath) {
+int runTest(std::string path, std::string vectorPath) {
   spark::io::MmReader<double> m(path);
   auto eigenMatrix = spark::converters::tripletToEigen(m.mmreadMatrix(path));
   spark::io::MmReader<double> mv(vectorPath);
   auto eigenVector = spark::converters::stdvectorToEigen(mv.readVector());
-//  std::cout << "Eigen Vector: " << eigenVector << std::endl;
   return test(eigenMatrix->rows(),
       EigenMatrixGenerator{*eigenMatrix},
       EigenVectorGenerator{eigenVector});
@@ -127,18 +134,12 @@ int main()
   int status = 0;
   status |= test(16, IdentityGenerator{}, SimpleVectorGenerator{});
   status |= test(100, RandomGenerator{}, SimpleVectorGenerator{});
-  status |= runMatrixTest("../test-matrices/bfwb62.mtx");
-  status |= runMatrixVectorTest(
-      "../test-matrices/OPF_3754.mtx",
-      "../test-matrices/OPF_3754_b.mtx");
-  status |= runMatrixVectorTest(
-      "../test-matrices/OPF_6000.mtx",
-      "../test-matrices/OPF_6000_b.mtx");
-
-  //for_each(matrix.begin(), matrix.end(),
-      //[] (std::tuple<int, int, double> tpl) {
-      //std::cout << std::get<0>(tpl) << " " << std::get<1>(tpl) << " " << std::get<2>(tpl) << std::endl;
-      //});
-
+  status |= runTest("../test-matrices/bfwb62.mtx");
+  //status |= runMatrixVectorTest(
+      //"../test-matrices/OPF_3754.mtx",
+      //"../test-matrices/OPF_3754_b.mtx");
+  //status |= runMatrixVectorTest(
+      //"../test-matrices/OPF_6000.mtx",
+      //"../test-matrices/OPF_6000_b.mtx");
   return status;
 }

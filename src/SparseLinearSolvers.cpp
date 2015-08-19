@@ -70,8 +70,9 @@ void spark::sparse_linear_solvers::EigenSolver::solve(
     ex(i) = 0;
   }
 
-  ex = solveCG(A, eb);
-  //  ex = solveBICG(A, eb);
+//  ex = solveCG(A, eb);
+  ex = solveBICG(A, eb);
+  std::cout << "Solution " << ex << std::endl;
   // ex = solveUMFLU(A, eb);
   // ex = solveLU(A, eb);
 
