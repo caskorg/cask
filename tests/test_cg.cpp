@@ -11,7 +11,7 @@
 #include <boost/numeric/ublas/io.hpp>
 
 #include <dfesnippets/blas/Blas.hpp>
-#include <dfesnippets/sparse/utils.hpp>
+#include <dfesnippets/NumericUtils.hpp>
 
 #include <Eigen/Sparse>
 
@@ -87,7 +87,7 @@ int test(int m, MatrixGenerator mg, RhsGenerator rhsg) {
 
   bool check = std::equal(sol.begin(), sol.end(), res.begin(),
       [](double a, double b) {
-        return dfesnippets::utils::almost_equal(a, b, 1E-10, 1E-15);
+        return dfesnippets::numeric_utils::almost_equal(a, b, 1E-10, 1E-15);
         });
 
   if (!check) {
