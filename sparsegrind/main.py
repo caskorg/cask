@@ -354,6 +354,7 @@ def main():
     parser.add_argument('-r', '--recursive',
                         action='store_true',
                         help='Recursive. Only for .mtx files.')
+    parser.add_argument('-i', '--ignore', help='Ignore matrices with given suffix')
     parser.add_argument('file')
     args = parser.parse_args()
 
@@ -373,6 +374,7 @@ def main():
         for root, dirs, files in os.walk(parent_dir):
             for f in files:
                 if f.endswith('.mtx'):
+                  if args.ignore and not f.endswith(args.ignore):
                     grind_matrix(os.path.join(root, f), args)
         return
 
