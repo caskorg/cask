@@ -91,6 +91,7 @@ if (DEFINED ENV{MAXCOMPILERDIR} AND DEFINED ENV{MAXELEROSDIR})
   # --- Configuration for Maxeler libs
   AddMaxelerImpl("cg" "ConjugateGradient" "simcglib")
   AddMaxelerImpl("bicg" "BiConjugateGradient" "simbicglib")
+  AddMaxelerImpl("spmv" "Spmv" "spmvlib")
 
   add_custom_target(
     distclean
@@ -103,8 +104,10 @@ if (DEFINED ENV{MAXCOMPILERDIR} AND DEFINED ENV{MAXELEROSDIR})
 
     # Should include dfe-snippets headers as they might be used in tests
     include_directories(dfe-snippets/include)
+    include_directories(tests/)
 
     AddMaxelerImplTest("cg" simcglib "ConjugateGradient_sim")
+    AddMaxelerImplTest("spmv" spmvlib "Spmv_sim")
     #AddMaxelerImplTest("bicg" simbicglib "BiConjugateGradient_sim")
   endif()
 

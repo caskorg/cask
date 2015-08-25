@@ -13,7 +13,7 @@ namespace spark {
   namespace converters {
 
     using UblasSparseMatrix = std::unique_ptr<spark::sparse::CsrMatrix<double>>;
-    using EigenSparseMatrix = std::unique_ptr<Eigen::SparseMatrix<double>>;
+    using EigenSparseMatrix = std::unique_ptr<Eigen::SparseMatrix<double, Eigen::RowMajor>>;
 
     // convert an Eigen SparseMatrix to a boost::ublas sparse matrix
     UblasSparseMatrix eigenToUblas(
@@ -35,7 +35,7 @@ namespace spark {
     // convert a Spark COO matrix to an Eigen Sparse Matrix
     EigenSparseMatrix tripletToEigen(spark::sparse::SparkCooMatrix<double> mat) {
       auto coo = mat.data;
-      EigenSparseMatrix m(new Eigen::SparseMatrix<double>(mat.n, mat.m));
+      EigenSparseMatrix m(new Eigen::SparseMatrix<double, Eigen::RowMajor>(mat.n, mat.m));
       std::vector<Eigen::Triplet<double>> trips;
       for (int i = 0; i < coo.size(); i++)
         trips.push_back(
@@ -53,6 +53,14 @@ namespace spark {
         m[i] = v[i];
       return m;
     }
+
+    std::vector<double> eigenVectorToStdVector(Eigen::VectorXd v) {
+      std::vector<double> m(v.size());
+      for (int i = 0; i < v.size(); i++)
+        m[i] = v[i];
+      return m;
+    }
+
   }
 }
 
