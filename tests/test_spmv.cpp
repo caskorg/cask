@@ -7,8 +7,7 @@
 
 using namespace std;
 
-int main() {
-  string path("../test-matrices/test_small.mtx");
+int test(string path) {
   spark::io::MmReader<double> m(path);
   auto eigenMatrix = spark::converters::tripletToEigen(m.mmreadMatrix(path));
 
@@ -32,4 +31,11 @@ int main() {
 
   std::cout << "Test failed" << std::endl;
   return 1;
+}
+
+int main() {
+  int status = 0;
+  status |= test("../test-matrices/test_empty_last_rows_small.mtx");
+  status |= test("../test-matrices/test_small.mtx");
+  return status;
 }

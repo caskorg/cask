@@ -11,6 +11,7 @@ import com.maxeler.maxcompiler.v2.managers.custom.blocks.StateMachineBlock;
 import com.maxeler.maxcompiler.v2.statemachine.manager.ManagerStateMachine;
 
 import com.custom_computing_ic.dfe_snippets.sparse.*;
+import com.custom_computing_ic.dfe_snippets.manager.*;
 
 public class SpmvManager extends CustomManager{
 
@@ -18,11 +19,11 @@ public class SpmvManager extends CustomManager{
     private static final int inputWidth = 8;
 
     private static final boolean DBG_CSR_DECODER = false;
-    private static final boolean DBG_PAR_CSR_CTL = false;
-    private static final boolean DBG_SPMV_KERNEL = true;
+    private static final boolean DBG_PAR_CSR_CTL = true;
+    private static final boolean DBG_SPMV_KERNEL = false;
 
-    SpmvManager(EngineParameters ep)
-    {
+
+    SpmvManager(EngineParameters ep) {
         super(ep);
         addMaxFileConstant("inputWidth", inputWidth);
 
@@ -63,6 +64,7 @@ public class SpmvManager extends CustomManager{
     public static void main(String[] args) {
         SpmvManager manager = new SpmvManager(new EngineParameters(args));
         manager.createSLiCinterface(interfaceDefault());
+        ManagerUtils.debug(manager);
         manager.build();
     }
 }

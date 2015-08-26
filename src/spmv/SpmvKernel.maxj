@@ -71,7 +71,6 @@ class SpmvKernel extends Kernel {
     DFEVector<DFEVar> values = selectValues(
         io.input("values", vtype, readEnable),
         readMask);
-
     DFEVector<DFEVar> colptr = selectValues(
         io.input("indptr", ivtype, readEnable),
          readMask);
