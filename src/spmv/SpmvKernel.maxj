@@ -26,7 +26,7 @@ class SpmvKernel extends Kernel {
 
   private final int cacheSize = 1024;
   private final  DFEVectorType<DFEVar> vtype, ivtype;
-//private final List<Memory<DFEVar>> vroms;
+  private final List<Memory<DFEVar>> vroms;
   private final int inputWidth;
   private final DFEType addressT;
   private final boolean dbg;
@@ -42,49 +42,42 @@ class SpmvKernel extends Kernel {
     // load entire vector or until cache is full
     int sizeBits = 32; // XXX may need to run for more cycles
     DFEVar currentCycle = control.count.simpleCounter(sizeBits);
-    //DFEVar vRomLoadEnable = (currentCycle < n) & (currentCycle < cacheSize);
+    DFEVar vRomLoadEnable = (currentCycle < n) & (currentCycle < cacheSize);
 
     vtype = new DFEVectorType<DFEVar> (dfeFloat(11, 53), inputWidth);
     ivtype = new DFEVectorType<DFEVar> (dfeUInt(32), inputWidth);
 
-    //DFEVar vectorValue = io.input("vromLoad", dfeFloat(11, 53), vRomLoadEnable);
+    DFEVar vectorValue = io.input("vromLoad", dfeFloat(11, 53), vRomLoadEnable);
 
      //--- Cache allocation and control
-    //vroms = new ArrayList<Memory<DFEVar>>();
-    //for (int i = 0; i < inputWidth; i++) {
-      //Memory<DFEVar> vrom = mem.alloc(dfeFloat(11, 53), cacheSize);
-      //vroms.add(vrom);
-       // XXX will have to reset the address at some point
-      //vrom.write(
-          //currentCycle.cast(addressT),
-          //vectorValue,
-          //vRomLoadEnable);
-    //}
+    vroms = new ArrayList<Memory<DFEVar>>();
+    for (int i = 0; i < inputWidth; i++) {
+      Memory<DFEVar> vrom = mem.alloc(dfeFloat(11, 53), cacheSize);
+      vroms.add(vrom);
+//        XXX will have to reset the address at some point
+      vrom.write(
+          currentCycle.cast(addressT),
+          vectorValue,
+          vRomLoadEnable);
+    }
 
     // --- I/O
-    DFEVar readEnable = io.input("readenable", dfeBool());
-    DFEVar readMask = io.input("readmask", dfeUInt(inputWidth));
+    DFEVar readEnable = io.input("readenable", dfeBool(), ~vRomLoadEnable) & ~vRomLoadEnable;
+    DFEVar readMask = io.input("readmask", dfeUInt(inputWidth), ~vRomLoadEnable);
 
     DFEVector<DFEVar> values = selectValues(
         io.input("values", vtype, readEnable),
-        readMask,
-        vtype
-        );
+        readMask);
 
     DFEVector<DFEVar> colptr = selectValues(
         io.input("indptr", ivtype, readEnable),
-        readMask,
-        ivtype);
+        readMask);
 
-    //DFEVector<DFEVar> vectorValues = resolveVectorReads(colptr);
-    //DFEVar result = Reductions.reduce(values * vectorValues);
-
+    DFEVector<DFEVar> vectorValues = resolveVectorReads(colptr);
+    DFEVar result = Reductions.reduce(values * vectorValues);
 
     // TODO still need reduction step
-    // if row end output result
-    //
-    io.output("output", values[0], dfeFloat(11, 53)); //, ~vRomLoadEnable);
-
+    io.output("output", result, dfeFloat(11, 53), ~vRomLoadEnable);
 
     if (dbg) {
       debug.simPrintf("Values: ");
@@ -105,20 +98,19 @@ class SpmvKernel extends Kernel {
 
   DFEVector<DFEVar> selectValues(
       DFEVector<DFEVar> in,
-      DFEVar readMask,
-      DFEVectorType<DFEVar> type) {
-    DFEVector<DFEVar> out = type.newInstance(this);
+      DFEVar readMask) {
+    DFEVector<DFEVar> out = in.getType().newInstance(this);
     for (int i = 0; i < in.getSize(); i++)
       out[i] <== readMask.slice(i) === 0 ?  0 : in[i];
     return out;
   }
 
 
-  //DFEVector<DFEVar> resolveVectorReads(DFEVector<DFEVar> reads) {
-    //DFEVector<DFEVar> out = vtype.newInstance(this);
-    //for (int i = 0; i < vroms.size(); i++)
-      //out[i] <== vroms.get(i).read(reads[i].cast(addressT));
-    //return out;
-  //}
+  DFEVector<DFEVar> resolveVectorReads(DFEVector<DFEVar> reads) {
+    DFEVector<DFEVar> out = vtype.newInstance(this);
+    for (int i = 0; i < vroms.size(); i++)
+      out[i] <== vroms.get(i).read(reads[i].cast(addressT));
+    return out;
+  }
 
 }

@@ -12,7 +12,6 @@ int cycleCount(int32_t* v, int size) {
   int bufferWidth = Spmv_inputWidth;
   for (int i = 0; i <= size; i++) {
     int toread = v[i] - v[i - 1];
-    std::cout << "v[i] " << v[i] << std::endl;
     while (toread > 0) {
       int canread = std::min(bufferWidth - crtPos, toread);
       crtPos += canread;
@@ -37,7 +36,7 @@ Eigen::VectorXd spark::spmv::dfespmv(
   std::cout << "Cycles required to compute" << cycles << std::endl;
 
   Spmv(
-      cycles, //uint64_t ticks_SpmvKernel,
+      v.size() + cycles, //uint64_t ticks_SpmvKernel,
       mat.cols(), //uint64_t inscalar_SpmvKernel_n,
       mat.rows(), //uint64_t inscalar_csrDecoder_nrows,
       mat.outerIndexPtr() + 1, //const void *instream_colptr,
@@ -46,6 +45,8 @@ Eigen::VectorXd spark::spmv::dfespmv(
       mat.nonZeros() * sizeof(int), //size_t instream_size_indptr,
       mat.valuePtr(), //const void *instream_values,
       mat.nonZeros() * sizeof(double),//size_t instream_size_values,
+      &v[0],
+      v.size() * sizeof(double),
       &out[0],//void *outstream_output,
       out.size() * sizeof(double));//size_t outstream_size_output);
 

@@ -45,7 +45,7 @@ public class SpmvManager extends CustomManager{
 //        addStreamToCPU("indptr_out") <== csrDecoderBlock.getOutput("indptr_out");
         k.getInput("readenable") <== readControlBlock.getOutput("readenable");
         k.getInput("readmask") <== readControlBlock.getOutput("readmask");
-        //k.getInput("vromLoad") <== addStreamFromCPU("vromLoad");
+        k.getInput("vromLoad") <== addStreamFromCPU("vromLoad");
         k.getInput("values") <== addStreamFromCPU("values");
         addStreamToCPU("output") <== k.getOutput("output");
 
