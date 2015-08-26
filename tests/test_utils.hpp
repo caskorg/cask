@@ -23,8 +23,9 @@ namespace spark {
       if (!mismatches.empty()) {
         std::cout << "Results didn't match" << std::endl;
         for (int i = 0; i < mismatches.size(); i++) {
-          std::cout << i << ": " << "Exp: " << std::get<1>(mismatches[i]);
-          std::cout << " got: "  << std::get<2>(mismatches[i]) << std::endl;
+          std::cout << "At " << std::get<0>(mismatches[i]);
+          std::cout << " got: " << std::get<1>(mismatches[i]);
+          std::cout << " exp: "  << std::get<2>(mismatches[i]) << std::endl;
         }
       }
       return mismatches;
