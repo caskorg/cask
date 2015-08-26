@@ -10,6 +10,7 @@ import com.maxeler.maxcompiler.v2.kernelcompiler.stdlib.memory.*;
 import com.maxeler.maxcompiler.v2.utils.MathUtils;
 
 import com.custom_computing_ic.dfe_snippets.utils.Reductions;
+import com.custom_computing_ic.dfe_snippets.reductions.LogAddReduce;
 
 class SpmvKernel extends Kernel {
 
@@ -30,6 +31,8 @@ class SpmvKernel extends Kernel {
   private final int inputWidth;
   private final DFEType addressT;
   private final boolean dbg;
+
+  private static final int fpL = 16;
 
   protected SpmvKernel(KernelParameters parameters, int inputWidth, boolean dbg) {
     super(parameters);
@@ -71,14 +74,39 @@ class SpmvKernel extends Kernel {
 
     DFEVector<DFEVar> colptr = selectValues(
         io.input("indptr", ivtype, readEnable),
-        readMask);
+         readMask);
 
     DFEVector<DFEVar> vectorValues = resolveVectorReads(colptr);
     DFEVar result = Reductions.reduce(values * vectorValues);
 
-    // TODO still need reduction step
-    io.output("output", result, dfeFloat(11, 53), ~vRomLoadEnable);
+    // --- Accumulation
+    DFEVar rowFinished = io.input("rowFinished", dfeBool(), ~vRomLoadEnable);
+    DFEVar rowLength = io.input("rowLength", dfeUInt(32), ~vRomLoadEnable);
 
+    Params params = control.count.makeParams(32)
+      .withReset(rowFinished)
+      .withMax(rowLength + 1);
+    DFEVar nnzCounter = control.count.makeCounter(params).getCount();
+
+    DFEVar carriedSum = dfeFloat(11, 53).newInstance(this);
+    DFEVar newSum = result + (nnzCounter < fpL ? 0 : carriedSum);
+    carriedSum <== stream.offset(newSum, -fpL);
+
+    DFEVar firstValidPartialSum = (rowLength + 1 > fpL)? (rowLength + 1 - fpL) : 0;
+    DFEVar validPartialSums = (nnzCounter >= firstValidPartialSum);
+    LogAddReduce r = new LogAddReduce(this,
+        validPartialSums,
+        rowFinished,
+        newSum,
+        dfeFloat(11, 53),
+        fpL);
+
+    // TODO still need reduction step
+    DFEVar outputEnable = ~vRomLoadEnable & rowFinished; // and row has finished
+    DFEVar output = rowLength === 0 ? 0 : r.getOutput();
+    io.output("output", output, dfeFloat(11, 53), outputEnable);
+
+    // --- Debug
     if (dbg) {
       debug.simPrintf("Values: ");
       for (int i = 0; i < inputWidth; i++)
@@ -91,8 +119,8 @@ class SpmvKernel extends Kernel {
       debug.simPrintf("\n");
 
       debug.simPrintf(
-          "Kernel -- readenable %d, readmask %d n %d\n",
-          readEnable, readMask, n);
+          "Kernel -- readenable %d, readmask %d rowFinished %d rowLength %d\n",
+          readEnable, readMask, rowFinished, rowLength);
     }
   }
 

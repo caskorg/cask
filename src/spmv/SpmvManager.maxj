@@ -30,7 +30,6 @@ public class SpmvManager extends CustomManager{
         StateMachineBlock csrDecoderBlock = addStateMachine("csrDecoder", csrDecoder);
         csrDecoderBlock.getInput("colptr") <== addStreamFromCPU("colptr");
 
-
         ManagerStateMachine readControl = new ParallelCsrReadControl(this, inputWidth, DBG_PAR_CSR_CTL);
         StateMachineBlock readControlBlock = addStateMachine("readControl", readControl);
         readControlBlock.getInput("length") <== csrDecoderBlock.getOutput("rowLength_out");
@@ -47,6 +46,8 @@ public class SpmvManager extends CustomManager{
         k.getInput("readmask") <== readControlBlock.getOutput("readmask");
         k.getInput("vromLoad") <== addStreamFromCPU("vromLoad");
         k.getInput("values") <== addStreamFromCPU("values");
+        k.getInput("rowLength") <== readControlBlock.getOutput("rowLength");
+        k.getInput("rowFinished") <== readControlBlock.getOutput("rowFinished");
         addStreamToCPU("output") <== k.getOutput("output");
 
         //addStreamToCPU("indptr_out") <== csrDecoderBlock.getOutput("indptr_out");
