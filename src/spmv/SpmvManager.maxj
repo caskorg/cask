@@ -7,25 +7,51 @@ import com.maxeler.maxcompiler.v2.managers.engine_interfaces.InterfaceParam;
 import com.maxeler.maxcompiler.v2.managers.custom.CustomManager;
 import com.maxeler.maxcompiler.v2.managers.custom.blocks.KernelBlock;
 import com.maxeler.maxcompiler.v2.build.EngineParameters;
+import com.maxeler.maxcompiler.v2.managers.custom.blocks.StateMachineBlock;
+import com.maxeler.maxcompiler.v2.statemachine.manager.ManagerStateMachine;
+
+import com.custom_computing_ic.dfe_snippets.sparse.*;
 
 public class SpmvManager extends CustomManager{
 
     private static final String s_kernelName  = "SpmvKernel";
+    private static final int inputWidth = 8;
+
+    private static final boolean DBG_CSR_DECODER = false;
+    private static final boolean DBG_PAR_CSR_CTL = false;
+    private static final boolean DBG_SPMV_KERNEL = true;
 
     SpmvManager(EngineParameters ep)
     {
         super(ep);
+        addMaxFileConstant("inputWidth", inputWidth);
+
+        ManagerStateMachine csrDecoder = new CsrDecoder(this, DBG_CSR_DECODER);
+        StateMachineBlock csrDecoderBlock = addStateMachine("csrDecoder", csrDecoder);
+        csrDecoderBlock.getInput("colptr") <== addStreamFromCPU("colptr");
+
+
+        ManagerStateMachine readControl = new ParallelCsrReadControl(this, inputWidth, DBG_PAR_CSR_CTL);
+        StateMachineBlock readControlBlock = addStateMachine("readControl", readControl);
+        readControlBlock.getInput("length") <== csrDecoderBlock.getOutput("rowLength_out");
 
         KernelBlock k = addKernel(new SpmvKernel(
-              makeKernelParameters(s_kernelName)
+              makeKernelParameters(s_kernelName),
+              inputWidth,
+              DBG_SPMV_KERNEL
               ));
+        k.getInput("indptr") <== addStreamFromCPU("indptr");
 
-        for (String s : k.getAllInputs()) {
-          k.getInput(s) <== addStreamFromCPU(s);
-        }
-        for (String s : k.getAllOutputs()) {
-          addStreamToCPU(s) <== k.getOutput(s);
-        }
+//        addStreamToCPU("indptr_out") <== csrDecoderBlock.getOutput("indptr_out");
+        k.getInput("readenable") <== readControlBlock.getOutput("readenable");
+        k.getInput("readmask") <== readControlBlock.getOutput("readmask");
+        //k.getInput("vromLoad") <== addStreamFromCPU("vromLoad");
+        k.getInput("values") <== addStreamFromCPU("values");
+        addStreamToCPU("output") <== k.getOutput("output");
+
+        //addStreamToCPU("indptr_out") <== csrDecoderBlock.getOutput("indptr_out");
+        //addStreamToCPU("readenable") <== readControlBlock.getOutput("readenable");
+        //addStreamToCPU("readmask") <== readControlBlock.getOutput("readmask");
     }
 
     private static EngineInterface interfaceDefault() {

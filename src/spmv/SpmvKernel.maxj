@@ -1,22 +1,124 @@
-/***
-TODO: Add a descriptive comment!
-*/
+import java.util.*;
 
 import com.maxeler.maxcompiler.v2.kernelcompiler.Kernel;
 import com.maxeler.maxcompiler.v2.kernelcompiler.KernelParameters;
-import com.maxeler.maxcompiler.v2.kernelcompiler.types.base.DFEVar;
-import com.maxeler.maxcompiler.v2.kernelcompiler.types.base.DFEType;
+import com.maxeler.maxcompiler.v2.kernelcompiler.types.base.*;
 import com.maxeler.maxcompiler.v2.kernelcompiler.stdlib.core.Count.*;
+import com.maxeler.maxcompiler.v2.kernelcompiler.types.composite.DFEVectorType;
+import com.maxeler.maxcompiler.v2.kernelcompiler.types.composite.DFEVector;
+import com.maxeler.maxcompiler.v2.kernelcompiler.stdlib.memory.*;
+import com.maxeler.maxcompiler.v2.utils.MathUtils;
 
-import com.custom_computing_ic.dfe_snippets.blas.DenseBlasLib;
+import com.custom_computing_ic.dfe_snippets.utils.Reductions;
 
 class SpmvKernel extends Kernel {
 
+  // N x N matrix, nnzs nonzeros
+  //
+  // load data for N cycles into cache
+  // compute for N cycles
+  // -- in the mean time load data for N cycles in double buffer
+  // repeat
+  //
+  // Sources of inefficiency:
+  // -- empty rows
+  // -- port sharing cannot be used
 
-  protected SpmvKernel(
-      KernelParameters parameters
-      ) {
+  private final int cacheSize = 1024;
+  private final  DFEVectorType<DFEVar> vtype, ivtype;
+//private final List<Memory<DFEVar>> vroms;
+  private final int inputWidth;
+  private final DFEType addressT;
+  private final boolean dbg;
+
+  protected SpmvKernel(KernelParameters parameters, int inputWidth, boolean dbg) {
     super(parameters);
 
+    this.inputWidth = inputWidth;
+    this.addressT = dfeUInt(MathUtils.bitsToAddress(cacheSize));
+    this.dbg = dbg;
+
+    DFEVar n = io.scalarInput("n", dfeUInt(32));
+    // load entire vector or until cache is full
+    int sizeBits = 32; // XXX may need to run for more cycles
+    DFEVar currentCycle = control.count.simpleCounter(sizeBits);
+    //DFEVar vRomLoadEnable = (currentCycle < n) & (currentCycle < cacheSize);
+
+    vtype = new DFEVectorType<DFEVar> (dfeFloat(11, 53), inputWidth);
+    ivtype = new DFEVectorType<DFEVar> (dfeUInt(32), inputWidth);
+
+    //DFEVar vectorValue = io.input("vromLoad", dfeFloat(11, 53), vRomLoadEnable);
+
+     //--- Cache allocation and control
+    //vroms = new ArrayList<Memory<DFEVar>>();
+    //for (int i = 0; i < inputWidth; i++) {
+      //Memory<DFEVar> vrom = mem.alloc(dfeFloat(11, 53), cacheSize);
+      //vroms.add(vrom);
+       // XXX will have to reset the address at some point
+      //vrom.write(
+          //currentCycle.cast(addressT),
+          //vectorValue,
+          //vRomLoadEnable);
+    //}
+
+    // --- I/O
+    DFEVar readEnable = io.input("readenable", dfeBool());
+    DFEVar readMask = io.input("readmask", dfeUInt(inputWidth));
+
+    DFEVector<DFEVar> values = selectValues(
+        io.input("values", vtype, readEnable),
+        readMask,
+        vtype
+        );
+
+    DFEVector<DFEVar> colptr = selectValues(
+        io.input("indptr", ivtype, readEnable),
+        readMask,
+        ivtype);
+
+    //DFEVector<DFEVar> vectorValues = resolveVectorReads(colptr);
+    //DFEVar result = Reductions.reduce(values * vectorValues);
+
+
+    // TODO still need reduction step
+    // if row end output result
+    //
+    io.output("output", values[0], dfeFloat(11, 53)); //, ~vRomLoadEnable);
+
+
+    if (dbg) {
+      debug.simPrintf("Values: ");
+      for (int i = 0; i < inputWidth; i++)
+        debug.simPrintf("%f ", values[i]);
+      debug.simPrintf("\n");
+
+      debug.simPrintf("Indices: ");
+      for (int i = 0; i < inputWidth; i++)
+        debug.simPrintf("%d ", colptr[i]);
+      debug.simPrintf("\n");
+
+      debug.simPrintf(
+          "Kernel -- readenable %d, readmask %d n %d\n",
+          readEnable, readMask, n);
+    }
   }
+
+  DFEVector<DFEVar> selectValues(
+      DFEVector<DFEVar> in,
+      DFEVar readMask,
+      DFEVectorType<DFEVar> type) {
+    DFEVector<DFEVar> out = type.newInstance(this);
+    for (int i = 0; i < in.getSize(); i++)
+      out[i] <== readMask.slice(i) === 0 ?  0 : in[i];
+    return out;
+  }
+
+
+  //DFEVector<DFEVar> resolveVectorReads(DFEVector<DFEVar> reads) {
+    //DFEVector<DFEVar> out = vtype.newInstance(this);
+    //for (int i = 0; i < vroms.size(); i++)
+      //out[i] <== vroms.get(i).read(reads[i].cast(addressT));
+    //return out;
+  //}
+
 }

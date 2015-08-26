@@ -7,19 +7,12 @@
 
 using namespace std;
 
-int main()
-{
-
+int main() {
   string path("../test-matrices/test_small.mtx");
   spark::io::MmReader<double> m(path);
   auto eigenMatrix = spark::converters::tripletToEigen(m.mmreadMatrix(path));
 
   int cols = eigenMatrix->cols();
-  int rows = eigenMatrix->rows();
-  int nnzs = eigenMatrix->nonZeros();
-  std::cout << cols << std::endl;
-  std::cout << rows << std::endl;
-  std::cout << nnzs << std::endl;
 
   Eigen::VectorXd x(cols);
   for (int i = 0; i < cols; i++)
