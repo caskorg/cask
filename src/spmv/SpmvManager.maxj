@@ -16,7 +16,7 @@ import com.custom_computing_ic.dfe_snippets.manager.*;
 public class SpmvManager extends CustomManager{
 
     private static final String s_kernelName  = "SpmvKernel";
-    private static final int inputWidth = 8;
+    private static final int inputWidth = 2;
 
     private static final boolean DBG_CSR_DECODER = false;
     private static final boolean DBG_PAR_CSR_CTL = false;
@@ -41,7 +41,6 @@ public class SpmvManager extends CustomManager{
               DBG_SPMV_KERNEL
               ));
         k.getInput("indptr") <== addStreamFromCPU("indptr");
-
 //        addStreamToCPU("indptr_out") <== csrDecoderBlock.getOutput("indptr_out");
         k.getInput("readenable") <== readControlBlock.getOutput("readenable");
         k.getInput("readmask") <== readControlBlock.getOutput("readmask");
@@ -49,7 +48,8 @@ public class SpmvManager extends CustomManager{
         k.getInput("values") <== addStreamFromCPU("values");
         k.getInput("rowLength") <== readControlBlock.getOutput("rowLength");
         k.getInput("rowFinished") <== readControlBlock.getOutput("rowFinished");
-        k.getInput("nnzCounter") <== readControlBlock.getOutput("nnzCounter");
+        k.getInput("cycleCounter") <== readControlBlock.getOutput("cycleCounter");
+        k.getInput("firstReadPosition") <== readControlBlock.getOutput("firstReadPosition");
         addStreamToCPU("output") <== k.getOutput("output");
 
         //addStreamToCPU("indptr_out") <== csrDecoderBlock.getOutput("indptr_out");

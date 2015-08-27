@@ -8,9 +8,9 @@
 using namespace std;
 
 int test(string path) {
+  std::cout << "File: " << path << std::endl;
   spark::io::MmReader<double> m(path);
   auto eigenMatrix = spark::converters::tripletToEigen(m.mmreadMatrix(path));
-
   int cols = eigenMatrix->cols();
 
   Eigen::VectorXd x(cols);
@@ -38,5 +38,12 @@ int main() {
   status |= test("../test-matrices/test_empty_last_rows_small.mtx");
   status |= test("../test-matrices/test_small.mtx");
   status |= test("../test-matrices/test_two_rows.mtx");
+  status |= test("../test-matrices/test_empty_last_rows_small.mtx");
+  status |= test("../test-matrices/test_long_row.mtx");
+  status |= test("../test-matrices/test_large_dense.mtx");
+  if (status == 0)
+    std::cout << "All tests passed!" << std::endl;
+  else
+    std::cout << "Tests failed!" << std::endl;
   return status;
 }
