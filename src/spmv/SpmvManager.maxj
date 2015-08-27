@@ -19,8 +19,8 @@ public class SpmvManager extends CustomManager{
     private static final int inputWidth = 8;
 
     private static final boolean DBG_CSR_DECODER = false;
-    private static final boolean DBG_PAR_CSR_CTL = true;
-    private static final boolean DBG_SPMV_KERNEL = false;
+    private static final boolean DBG_PAR_CSR_CTL = false;
+    private static final boolean DBG_SPMV_KERNEL = true;
 
 
     SpmvManager(EngineParameters ep) {
@@ -49,6 +49,7 @@ public class SpmvManager extends CustomManager{
         k.getInput("values") <== addStreamFromCPU("values");
         k.getInput("rowLength") <== readControlBlock.getOutput("rowLength");
         k.getInput("rowFinished") <== readControlBlock.getOutput("rowFinished");
+        k.getInput("nnzCounter") <== readControlBlock.getOutput("nnzCounter");
         addStreamToCPU("output") <== k.getOutput("output");
 
         //addStreamToCPU("indptr_out") <== csrDecoderBlock.getOutput("indptr_out");

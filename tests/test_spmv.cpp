@@ -37,5 +37,6 @@ int main() {
   int status = 0;
   status |= test("../test-matrices/test_empty_last_rows_small.mtx");
   status |= test("../test-matrices/test_small.mtx");
+  status |= test("../test-matrices/test_two_rows.mtx");
   return status;
 }

@@ -81,11 +81,7 @@ class SpmvKernel extends Kernel {
     // --- Accumulation
     DFEVar rowFinished = io.input("rowFinished", dfeBool(), ~vRomLoadEnable);
     DFEVar rowLength = io.input("rowLength", dfeUInt(32), ~vRomLoadEnable);
-
-    Params params = control.count.makeParams(32)
-      .withReset(rowFinished)
-      .withMax(rowLength + 1);
-    DFEVar nnzCounter = control.count.makeCounter(params).getCount();
+    DFEVar nnzCounter = io.input("nnzCounter", dfeUInt(32), ~vRomLoadEnable);
 
     DFEVar carriedSum = dfeFloat(11, 53).newInstance(this);
     DFEVar newSum = result + (nnzCounter < fpL ? 0 : carriedSum);
@@ -107,6 +103,7 @@ class SpmvKernel extends Kernel {
 
     // --- Debug
     if (dbg) {
+      debug.simPrintf("----------\n");
       debug.simPrintf("Values: ");
       for (int i = 0; i < inputWidth; i++)
         debug.simPrintf("%f ", values[i]);
