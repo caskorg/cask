@@ -89,8 +89,8 @@ class SpmvKernel extends Kernel {
     DFEVar newSum = result + (cycleCounter < fpL ? 0 : carriedSum);
     carriedSum <== stream.offset(newSum, -fpL);
 
-    DFEVar firstValidPartialSum = (totalCycles + 1 > fpL)? (totalCycles + 1 - fpL) : 0;
-    DFEVar validPartialSums = (totalCycles >= firstValidPartialSum);
+    DFEVar firstValidPartialSum = (totalCycles > fpL)? (totalCycles - fpL) : 0;
+    DFEVar validPartialSums = (cycleCounter >= firstValidPartialSum);
     LogAddReduce r = new LogAddReduce(this,
         validPartialSums,
         rowFinished,
@@ -106,8 +106,8 @@ class SpmvKernel extends Kernel {
     // --- Debug
     if (dbg) {
       debug.simPrintf(
-          "Kernel -- readenable %d, readmask %d rowFinished %d rowLength %d output: %f cycleCounter %d validPartialSums %d newSum %f ",
-          readEnable, readMask, rowFinished, rowLength, output, cycleCounter, validPartialSums, newSum);
+          "Kernel -- readenable %d, readmask %d rowFinished %d rowLength %d output: %f cycleCounter %d validPartialSums %d newSum %f firstRead %d",
+          readEnable, readMask, rowFinished, rowLength, output, cycleCounter, validPartialSums, newSum, firstReadPosition);
 
       debug.simPrintf("Values: ");
       for (int i = 0; i < inputWidth; i++)

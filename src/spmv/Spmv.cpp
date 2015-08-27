@@ -23,6 +23,15 @@ int cycleCount(int32_t* v, int size) {
   return cycles;
 }
 
+template<typename T>
+void align(std::vector<T>& v, int widthInBytes) {
+  int limit = widthInBytes / sizeof(T);
+  while ((v.size() * sizeof(T)) % widthInBytes != 0 && limit != 0) {
+    v.push_back(0);
+    limit--;
+  }
+}
+
 Eigen::VectorXd spark::spmv::dfespmv(
     Eigen::SparseMatrix<double, Eigen::RowMajor, int32_t> mat,
     Eigen::VectorXd x
@@ -52,14 +61,11 @@ Eigen::VectorXd spark::spmv::dfespmv(
     indptr.push_back(indPointer[i]);
   }
 
-  //while (values.size() % 4 != 0) {
-    //values.push_back(0);
-    //indptr.push_back(0);
-  //}
-
-  //while (colptr.size() %  4 != 0) {
-    //colptr.push_back(0);
-  //}
+  align(values, 16);
+  align(indptr, 16);
+  align(colptr, 16);
+  align(v, 16);
+  align(out, 16);
 
   Spmv(
       v.size() + cycles, //uint64_t ticks_SpmvKernel,
