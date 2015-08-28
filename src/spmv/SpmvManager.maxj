@@ -15,7 +15,7 @@ import com.custom_computing_ic.dfe_snippets.manager.*;
 
 public class SpmvManager extends CustomManager{
     private static final String s_kernelName  = "SpmvKernel";
-    private static final int inputWidth = 4;
+    private static final int inputWidth = 32;
 
     private static final boolean DBG_CSR_DECODER = false;
     private static final boolean DBG_PAR_CSR_CTL = false;
