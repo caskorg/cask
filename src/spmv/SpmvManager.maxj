@@ -14,14 +14,12 @@ import com.custom_computing_ic.dfe_snippets.sparse.*;
 import com.custom_computing_ic.dfe_snippets.manager.*;
 
 public class SpmvManager extends CustomManager{
-
     private static final String s_kernelName  = "SpmvKernel";
-    private static final int inputWidth = 2;
+    private static final int inputWidth = 4;
 
     private static final boolean DBG_CSR_DECODER = false;
     private static final boolean DBG_PAR_CSR_CTL = false;
     private static final boolean DBG_SPMV_KERNEL = true;
-
 
     SpmvManager(EngineParameters ep) {
         super(ep);
@@ -40,8 +38,8 @@ public class SpmvManager extends CustomManager{
               inputWidth,
               DBG_SPMV_KERNEL
               ));
+
         k.getInput("indptr") <== addStreamFromCPU("indptr");
-//        addStreamToCPU("indptr_out") <== csrDecoderBlock.getOutput("indptr_out");
         k.getInput("readenable") <== readControlBlock.getOutput("readenable");
         k.getInput("readmask") <== readControlBlock.getOutput("readmask");
         k.getInput("vromLoad") <== addStreamFromCPU("vromLoad");
@@ -51,10 +49,6 @@ public class SpmvManager extends CustomManager{
         k.getInput("cycleCounter") <== readControlBlock.getOutput("cycleCounter");
         k.getInput("firstReadPosition") <== readControlBlock.getOutput("firstReadPosition");
         addStreamToCPU("output") <== k.getOutput("output");
-
-        //addStreamToCPU("indptr_out") <== csrDecoderBlock.getOutput("indptr_out");
-        //addStreamToCPU("readenable") <== readControlBlock.getOutput("readenable");
-        //addStreamToCPU("readmask") <== readControlBlock.getOutput("readmask");
     }
 
     private static EngineInterface interfaceDefault() {

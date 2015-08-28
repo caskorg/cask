@@ -46,12 +46,9 @@ class SpmvKernel extends Kernel {
     int sizeBits = 32; // XXX may need to run for more cycles
     DFEVar currentCycle = control.count.simpleCounter(sizeBits);
     DFEVar vRomLoadEnable = (currentCycle < n) & (currentCycle < cacheSize);
-
     vtype = new DFEVectorType<DFEVar> (dfeFloat(11, 53), inputWidth);
     ivtype = new DFEVectorType<DFEVar> (dfeUInt(32), inputWidth);
-
     DFEVar vectorValue = io.input("vromLoad", dfeFloat(11, 53), vRomLoadEnable);
-
      //--- Cache allocation and control
     vroms = new ArrayList<Memory<DFEVar>>();
     for (int i = 0; i < inputWidth; i++) {
@@ -65,21 +62,19 @@ class SpmvKernel extends Kernel {
     }
 
     // --- I/O
-    DFEVar readEnable = io.input("readenable", dfeBool(), ~vRomLoadEnable) & ~vRomLoadEnable;
-    DFEVar readMask = io.input("readmask", dfeUInt(inputWidth), ~vRomLoadEnable);
-
+    DFEVar readEnable = (io.input("readenable", dfeUInt(32), ~vRomLoadEnable) === 1) & ~vRomLoadEnable;
+    DFEVar readMask = io.input("readmask", dfeUInt(32), ~vRomLoadEnable);
     DFEVector<DFEVar> values = selectValues(
         io.input("values", vtype, readEnable),
         readMask);
     DFEVector<DFEVar> colptr = selectValues(
         io.input("indptr", ivtype, readEnable),
          readMask);
-
     DFEVector<DFEVar> vectorValues = resolveVectorReads(colptr);
     DFEVar result = Reductions.reduce(values * vectorValues);
 
     // --- Accumulation
-    DFEVar rowFinished = io.input("rowFinished", dfeBool(), ~vRomLoadEnable);
+    DFEVar rowFinished = io.input("rowFinished", dfeUInt(32), ~vRomLoadEnable) === 1;
     DFEVar rowLength = io.input("rowLength", dfeUInt(32), ~vRomLoadEnable);
     DFEVar cycleCounter = io.input("cycleCounter", dfeUInt(32), ~vRomLoadEnable);
     DFEVar firstReadPosition = io.input("firstReadPosition", dfeUInt(32), ~vRomLoadEnable);
@@ -102,13 +97,11 @@ class SpmvKernel extends Kernel {
     DFEVar outputEnable = ~vRomLoadEnable & rowFinished; // and row has finished
     DFEVar output = rowLength === 0 ? 0 : r.getOutput();
     io.output("output", output, dfeFloat(11, 53), outputEnable);
-
     // --- Debug
     if (dbg) {
       debug.simPrintf(
           "Kernel -- readenable %d, readmask %d rowFinished %d rowLength %d output: %f cycleCounter %d validPartialSums %d newSum %f firstRead %d",
           readEnable, readMask, rowFinished, rowLength, output, cycleCounter, validPartialSums, newSum, firstReadPosition);
-
       debug.simPrintf("Values: ");
       for (int i = 0; i < inputWidth; i++)
         debug.simPrintf("%f ", values[i]);
