@@ -26,6 +26,8 @@ public class SpmvManager extends CustomManager{
         super(ep);
         addMaxFileConstant("inputWidth", inputWidth);
 
+        ManagerUtils.setDRAMFreq(this, ep, 800);
+
         ManagerStateMachine csrDecoder = new CsrDecoder(this, DBG_CSR_DECODER);
         StateMachineBlock csrDecoderBlock = addStateMachine("csrDecoder", csrDecoder);
         csrDecoderBlock.getInput("colptr") <== addStreamFromCPU("colptr");
