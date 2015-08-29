@@ -61,7 +61,6 @@ Eigen::VectorXd spark::spmv::dfespmv(
     indptr.push_back(indPointer[i]);
   }
 
-
   // XXX align to numPIpes
   int alignToBytesDouble = sizeof(double) * Spmv_inputWidth;
   int alignToBytesInt = sizeof(int) * Spmv_inputWidth;

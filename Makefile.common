@@ -204,3 +204,10 @@ lib$(PRJ)_sim.so: $(PRJ)_sim.o $(PRJ)_simc.o
 
 simlib: lib$(PRJ)_sim.so
 		cp lib$(PRJ)_sim.so lib$(PRJ)_sim.so.0
+
+lib$(PRJ)_dfe.so: $(PRJ)_dfe.o $(PRJ)_dfec.o
+		$(CPUCOMPILER) $(ALL_FLAGS) -shared -Wl,-soname,lib$(PRJ)_dfe.so.0 -o lib$(PRJ)_dfe.so $^ $(LFLAGS)
+
+dfelib: lib$(PRJ)_dfe.so
+		cp lib$(PRJ)_dfe.so lib$(PRJ)_dfe.so.0
+

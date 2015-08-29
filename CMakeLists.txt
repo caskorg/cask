@@ -11,13 +11,19 @@ function(AddMaxelerImpl path stem target)
   set(DfeBuild "${CMAKE_CURRENT_LIST_DIR}/src/${path}/build")
   set(Src
     include/Spark/${stem}.hpp
-    src/${path}/${stem}Kernel.maxj
-    src/${path}/${stem}Manager.maxj
-    src/${path}/${stem}.cpp)
+    src/${path}/src/${stem}Kernel.maxj
+    src/${path}/src/${stem}Manager.maxj
+    src/${path}/src/${stem}.cpp)
   add_custom_target(
     ${target}
     WORKING_DIRECTORY .
     COMMAND make -C ${DfeBuild} simlib
+    COMMAND cp ${DfeBuild}/lib* ${CMAKE_BINARY_DIR}
+    DEPENDS ${Src})
+  add_custom_target(
+    ${target}_dfe
+    WORKING_DIRECTORY .
+    COMMAND make -C ${DfeBuild} dfelib
     COMMAND cp ${DfeBuild}/lib* ${CMAKE_BINARY_DIR}
     DEPENDS ${Src})
 endfunction()
