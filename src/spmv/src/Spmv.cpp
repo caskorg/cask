@@ -62,13 +62,23 @@ Eigen::VectorXd spark::spmv::dfespmv(
   }
 
   // XXX align to numPIpes
-  int alignToBytesDouble = sizeof(double) * Spmv_inputWidth;
-  int alignToBytesInt = sizeof(int) * Spmv_inputWidth;
+  int alignToBytesDouble = std::max((int)sizeof(double) * Spmv_inputWidth, 384);
+  int alignToBytesInt = std::max((int)sizeof(int) * Spmv_inputWidth, 384);
   align(values, alignToBytesDouble);
   align(indptr, alignToBytesInt);
   align(colptr, 16);
   align(v, 16);
   align(out, 16);
+
+  Spmv_write(
+      values.size() * sizeof(double),
+      0,
+      (uint8_t *)&values[0]
+      );
+  Spmv_write(
+      indptr.size() * sizeof(int),
+      values.size() * sizeof(double),
+      (uint8_t *)&indptr[0]);
 
   Spmv(
       v.size() + cycles, //uint64_t ticks_SpmvKernel,
@@ -76,14 +86,15 @@ Eigen::VectorXd spark::spmv::dfespmv(
       mat.rows(), //uint64_t inscalar_csrDecoder_nrows,
       &colptr[0], //const void *instream_colptr,
       colptr.size() * sizeof(int), //size_t instream_size_colptr,
-      &indptr[0], //const void *instream_indptr,
-      indptr.size() * sizeof(int), //size_t instream_size_indptr,
-      &values[0], //const void *instream_values,
-      values.size() * sizeof(double),//size_t instream_size_values,
       &v[0],
       v.size() * sizeof(double),
       &out[0],//void *outstream_output,
-      out.size() * sizeof(double));//size_t outstream_size_output);
+      out.size() * sizeof(double),
+      values.size() * sizeof(double), // lmlem_address_indptr
+      indptr.size() * sizeof(int),
+      0,
+      values.size() * sizeof(double) // lmlem_address_indptr
+      );//size_t outstream_size_output);
 
   return spark::converters::stdvectorToEigen(out);
 }

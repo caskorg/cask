@@ -9,6 +9,7 @@ import com.maxeler.maxcompiler.v2.managers.custom.blocks.KernelBlock;
 import com.maxeler.maxcompiler.v2.build.EngineParameters;
 import com.maxeler.maxcompiler.v2.managers.custom.blocks.StateMachineBlock;
 import com.maxeler.maxcompiler.v2.statemachine.manager.ManagerStateMachine;
+import com.maxeler.maxcompiler.v2.managers.custom.stdlib.MemoryControlGroup;
 
 import com.custom_computing_ic.dfe_snippets.sparse.*;
 import com.custom_computing_ic.dfe_snippets.manager.*;
@@ -39,11 +40,15 @@ public class SpmvManager extends CustomManager{
               DBG_SPMV_KERNEL
               ));
 
-        k.getInput("indptr") <== addStreamFromCPU("indptr");
+        addStreamToOnCardMemory("cpu2lmem", MemoryControlGroup.MemoryAccessPattern.LINEAR_1D) <== addStreamFromCPU("fromcpu");
+
+        ManagerUtils.addLinearStreamFromLmemToKernel(this, k, "indptr");
+        ManagerUtils.addLinearStreamFromLmemToKernel(this, k, "values");
+
+        k.getInput("vromLoad") <== addStreamFromCPU("vromLoad");
+
         k.getInput("readenable") <== readControlBlock.getOutput("readenable");
         k.getInput("readmask") <== readControlBlock.getOutput("readmask");
-        k.getInput("vromLoad") <== addStreamFromCPU("vromLoad");
-        k.getInput("values") <== addStreamFromCPU("values");
         k.getInput("rowLength") <== readControlBlock.getOutput("rowLength");
         k.getInput("rowFinished") <== readControlBlock.getOutput("rowFinished");
         k.getInput("cycleCounter") <== readControlBlock.getOutput("cycleCounter");
@@ -52,14 +57,18 @@ public class SpmvManager extends CustomManager{
     }
 
     private static EngineInterface interfaceDefault() {
-        return new EngineInterface();
+      EngineInterface ei = new EngineInterface();
+      ei.ignoreLMem("cpu2lmem");
+      ei.ignoreStream("fromcpu");
+      return ei;
     }
-
 
     public static void main(String[] args) {
         SpmvManager manager = new SpmvManager(new EngineParameters(args));
         manager.createSLiCinterface(interfaceDefault());
         ManagerUtils.debug(manager);
+        manager.createSLiCinterface(ManagerUtils.interfaceWrite(
+              "write", "fromcpu", "cpu2lmem"));
         manager.build();
     }
 }
