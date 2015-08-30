@@ -20,7 +20,8 @@ public class SpmvManager extends CustomManager{
 
     private static final boolean DBG_CSR_DECODER = false;
     private static final boolean DBG_PAR_CSR_CTL = false;
-    private static final boolean DBG_SPMV_KERNEL = true;
+    private static final boolean DBG_SPMV_KERNEL = false;
+
 
     SpmvManager(EngineParameters ep) {
         super(ep);

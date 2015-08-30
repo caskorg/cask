@@ -10,7 +10,9 @@
 namespace spark {
   namespace test {
 
-    std::vector<std::tuple<int, double, double>> check(
+    using MismatchT = std::vector<std::tuple<int, double, double>>;
+
+    MismatchT check(
         const std::vector<double>& got,
         const std::vector<double>& exp
         ) {
@@ -20,6 +22,10 @@ namespace spark {
           mismatches.push_back(std::make_tuple(i, got[i], exp[i]));
       }
 
+      return mismatches;
+    }
+
+    void print_mismatches(const MismatchT& mismatches) {
       if (!mismatches.empty()) {
         std::cout << "Results didn't match" << std::endl;
         for (int i = 0; i < mismatches.size(); i++) {
@@ -28,9 +34,7 @@ namespace spark {
           std::cout << " exp: "  << std::get<2>(mismatches[i]) << std::endl;
         }
       }
-      return mismatches;
     }
-
   }
 }
 

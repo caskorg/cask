@@ -33,29 +33,14 @@ int test(string path) {
   return 1;
 }
 
-int main() {
-  int status = 0;
-  status |= test("../test-matrices/test_empty_last_rows_small.mtx");
-  status |= test("../test-matrices/test_small.mtx");
-  status |= test("../test-matrices/test_two_rows.mtx");
-  status |= test("../test-matrices/test_long_row.mtx");
-  status |= test("../test-matrices/test_large_dense.mtx");
-  status |= test("../test-matrices/test_break.mtx");
-  status |= test("../test-matrices/test_no_empty_rows.mtx");
-  status |= test("../test-matrices/test_non_multiple.mtx");
-  status |= test("../test-matrices/test_one_row.mtx");
-  status |= test("../test-matrices/test_one_value_one_index_per_row.mtx");
-  status |= test("../test-matrices/test_tols90.mtx");
-  status |= test("../test-matrices/test_cage6.mtx");
-  status |= test("../test-matrices/bfwb62.mtx");
-  status |= test("../test-matrices/test_tiny_odd.mtx");
-  status |= test("../test-matrices/test_tiny.mtx");
-  status |= test("../test-matrices/test_some_empty_rows.mtx");
+int main(int argc, char** argv) {
+  cout << "Program arguments:" << endl;
+  for (int i = 0; i < argc; i++)
+    cout << "   " << argv[i] << endl;
+  // XXX Reasonable argument parsing
+  string p{argv[1]};
 
-  //status |= test("../test-matrices/TSOPF_RS_b39_c7.mtx");
-  //status |= test("../test-matrices/OPF_3754.mtx");
-  //status |= test("../test-matrices/OPF_6000.mtx");
-
+  int status = test(p);
   if (status == 0)
     std::cout << "All tests passed!" << std::endl;
   else

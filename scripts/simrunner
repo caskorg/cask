@@ -1,9 +1,9 @@
-RDWARE_SO_DIR=../../build
+HARDWARE_SO_DIR=../build
 MAXOS_SIM=${MAXCOMPILERDIR}/lib/maxeleros-sim/lib/libmaxeleros.so
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${HARDWARE_SO_DIR}
 
 maxcompilersim -n ${USER}a -cMAIA -d1 restart
-SLIC_CONF+="use_simulation=${USER}a" LD_PRELOAD=${MAXOS_SIM} $@ ${USER}a0:${USER}a
+SLIC_CONF+="use_simulation=${USER}a" LD_PRELOAD=${MAXOS_SIM} $@
 exitCode=$?
 maxcompilersim -n ${USER}a -cMAIA stop
 

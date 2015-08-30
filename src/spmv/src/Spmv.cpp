@@ -50,12 +50,9 @@ Eigen::VectorXd spark::spmv::dfespmv(
   int* outerIndexPtr = mat.outerIndexPtr() + 1;
   double *valuesptr = mat.valuePtr();
   int* indPointer = mat.innerIndexPtr();
-  std::cout << "colptr: " << std::endl;
   for (int i = 0; i < mat.cols(); i++) {
     colptr.push_back(outerIndexPtr[i]);
-    std::cout << colptr[i] << " ";
   }
-  std::cout  << std::endl;
   for (int i = 0; i < mat.nonZeros(); i++) {
     values.push_back(valuesptr[i]);
     indptr.push_back(indPointer[i]);
