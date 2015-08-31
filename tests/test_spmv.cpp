@@ -17,8 +17,8 @@ int test(string path) {
   for (int i = 0; i < cols; i++)
     x[i] = (double)i * 0.25;
 
-  auto got = spark::spmv::dfespmv(*eigenMatrix, x);
-  auto exp = *eigenMatrix * x;
+  Eigen::VectorXd got = spark::spmv::dfespmv(*eigenMatrix, x);
+  Eigen::VectorXd exp = *eigenMatrix * x;
 
   auto mismatches = spark::test::check(
       spark::converters::eigenVectorToStdVector(got),
