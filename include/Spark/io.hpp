@@ -137,7 +137,9 @@ namespace spark {
           // skip comments
           std::vector<CoordType> values;
           std::string line;
-          while (getline(*f, line)) {
+          for (int i = 0; i < nnzs; i++) {
+            if (!getline(*f, line))
+              throw std::invalid_argument("File has less than given nonzeros!");
             auto tpl = mmparse(line);
             values.push_back(tpl);
             auto row = std::get<0>(tpl);
