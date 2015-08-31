@@ -16,6 +16,7 @@ import com.custom_computing_ic.dfe_snippets.manager.*;
 
 public class SpmvManager extends CustomManager{
     private static final String s_kernelName  = "SpmvKernel";
+    private static final int cacheSize = 1024;
     private static final int inputWidth = 4;
 
     private static final boolean DBG_CSR_DECODER = false;
@@ -26,6 +27,7 @@ public class SpmvManager extends CustomManager{
     SpmvManager(EngineParameters ep) {
         super(ep);
         addMaxFileConstant("inputWidth", inputWidth);
+        addMaxFileConstant("cacheSize", cacheSize);
 
         ManagerUtils.setDRAMFreq(this, ep, 800);
 
@@ -40,6 +42,7 @@ public class SpmvManager extends CustomManager{
         KernelBlock k = addKernel(new SpmvKernel(
               makeKernelParameters(s_kernelName),
               inputWidth,
+              cacheSize,
               DBG_SPMV_KERNEL
               ));
 

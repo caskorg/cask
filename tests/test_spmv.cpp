@@ -15,7 +15,7 @@ int test(string path) {
 
   Eigen::VectorXd x(cols);
   for (int i = 0; i < cols; i++)
-    x[i] = i * 0.25;
+    x[i] = (double)i * 0.25;
 
   auto got = spark::spmv::dfespmv(*eigenMatrix, x);
   auto exp = *eigenMatrix * x;
@@ -29,7 +29,8 @@ int test(string path) {
     return 0;
   }
 
-  std::cout << "Test failed" << std::endl;
+  spark::test::print_mismatches(mismatches);
+  std::cout << "Test failed: " << mismatches.size() << " mismatches " << std::endl;
   return 1;
 }
 
