@@ -7,6 +7,7 @@ import com.maxeler.maxcompiler.v2.kernelcompiler.stdlib.core.Count.*;
 import com.maxeler.maxcompiler.v2.kernelcompiler.types.composite.DFEVectorType;
 import com.maxeler.maxcompiler.v2.kernelcompiler.types.composite.DFEVector;
 import com.maxeler.maxcompiler.v2.kernelcompiler.stdlib.memory.*;
+import com.maxeler.maxcompiler.v2.kernelcompiler.stdlib.KernelMath;
 import com.maxeler.maxcompiler.v2.utils.MathUtils;
 
 import com.custom_computing_ic.dfe_snippets.utils.Reductions;
@@ -83,7 +84,12 @@ class SpmvKernel extends Kernel {
     DFEVar cycleCounter = io.input("cycleCounter", dfeUInt(32), ~vRomLoadEnable);
     DFEVar firstReadPosition = io.input("firstReadPosition", dfeUInt(32), ~vRomLoadEnable);
 
-    DFEVar totalCycles = (firstReadPosition + rowLength) / inputWidth;  // / inputWidth (transform to multily;
+    DFEVar runLength = firstReadPosition + rowLength;
+    DFEVar modulo = KernelMath.modulo(runLength, inputWidth);
+    DFEVar quot = (runLength - modulo.cast(dfeUInt(32))) / inputWidth;
+
+    DFEVar totalCycles = quot + (modulo === 0 ? constant.var(dfeUInt(32), 0) : 1);
+
     DFEVar carriedSum = dfeFloat(11, 53).newInstance(this);
     DFEVar newSum = result + (cycleCounter < fpL ? 0 : carriedSum);
     carriedSum <== stream.offset(newSum, -fpL);
@@ -111,10 +117,10 @@ class SpmvKernel extends Kernel {
         Params rowCounterParams = control.count.makeParams(32)
           .withEnable(rowFinished);
         DFEVar rowCounter = control.count.makeCounter(rowCounterParams).getCount();
-        debug.simPrintf("Kernel -- row %d\n", rowCounter);
       debug.simPrintf(
-          "Kernel -- outputPadding %d readenable %d, readmask %d rowFinished %d rowLength %d output: %f cycleCounter %d validPartialSums %d newSum %f firstRead %d",
-          outputPadding, readEnable, readMask, rowFinished, rowLength, output, cycleCounter, validPartialSums, newSum, firstReadPosition);
+          rowLength !== 0,
+          "Kernel -- row %d totalCycles %d, outputPadding %d readenable %d, readmask %d rowFinished %d rowLength %d output: %f cycleCounter %d validPartialSums %d newSum %f firstRead %d\n",
+          rowCounter, totalCycles, outputPadding, readEnable, readMask, rowFinished, rowLength, output, cycleCounter, validPartialSums, newSum, firstReadPosition);
       //debug.simPrintf("Values: ");
       //for (int i = 0; i < inputWidth; i++)
         //debug.simPrintf("%f ", values[i]);
