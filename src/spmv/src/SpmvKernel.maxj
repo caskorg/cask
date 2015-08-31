@@ -68,7 +68,7 @@ class SpmvKernel extends Kernel {
 
     // --- I/O
     DFEVar readEnable = (io.input("readenable", dfeUInt(32), ~vRomLoadEnable) === 1) & ~vRomLoadEnable;
-    DFEVar readMask = io.input("readmask", dfeUInt(32), ~vRomLoadEnable);
+    DFEVar readMask = io.input("readmask", dfeUInt(inputWidth), ~vRomLoadEnable);
     DFEVector<DFEVar> values = selectValues(
         io.input("values", vtype, readEnable),
         readMask);
