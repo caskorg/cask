@@ -10,7 +10,7 @@ include_directories(include)
 function(AddMaxelerImpl path stem target)
   set(DfeBuild "${CMAKE_CURRENT_LIST_DIR}/src/${path}/build")
   set(Src
-    include/Spark/${stem}.hpp
+    include/Spark/SparseLinearSolvers.hpp
     src/${path}/src/${stem}Kernel.maxj
     src/${path}/src/${stem}Manager.maxj
     src/${path}/src/${stem}.cpp)

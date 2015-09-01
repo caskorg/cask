@@ -58,25 +58,9 @@ Eigen::VectorXd solveCG(
   return cg.solve(b);
 }
 
-void spark::sparse_linear_solvers::EigenSolver::solve(
+Eigen::VectorXd spark::sparse_linear_solvers::EigenSolver::solve(
     const Eigen::SparseMatrix<double>& A,
-    double* x, double *b)
+    const Eigen::VectorXd& b)
 {
-
-  int n = A.cols();
-  Eigen::VectorXd eb(n), ex(n);
-  for (int i = 0; i < n; i++) {
-    eb(i) = b[i];
-    ex(i) = 0;
-  }
-
-//  ex = solveCG(A, eb);
-  ex = solveBICG(A, eb);
-  std::cout << "Solution " << ex << std::endl;
-  // ex = solveUMFLU(A, eb);
-  // ex = solveLU(A, eb);
-
-  for (int i = 0; i < n; i++) {
-    x[i] = ex(i);
-  }
+  return solveBICG(A, b);
 }

@@ -54,7 +54,7 @@ namespace spark {
       return m;
     }
 
-    std::vector<double> eigenVectorToStdVector(Eigen::VectorXd v) {
+    std::vector<double> eigenVectorToStdVector(const Eigen::VectorXd& v) {
       std::vector<double> m(v.size());
       for (int i = 0; i < v.size(); i++)
         m[i] = v[i];

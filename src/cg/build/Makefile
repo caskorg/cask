@@ -10,8 +10,8 @@ PRJ=ConjugateGradient
 KERNEL=$(PRJ)Kernel
 MANAGER=$(PRJ)Manager
 
-ENGINEFILES=../ConjugateGradientKernel.maxj ../ConjugateGradientManager.maxj
-CPUFILES=../ConjugateGradient.cpp
+ENGINEFILES=../src/*.maxj
+CPUFILES=../src/*.cpp
 
 # Using known hardware settings
 include $(WHEREISROOT)/Makefile.Maia.hardware
