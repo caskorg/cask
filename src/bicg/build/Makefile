@@ -10,8 +10,8 @@ PRJ=BiConjugateGradient
 KERNEL=$(PRJ)Kernel
 MANAGER=$(PRJ)Manager
 
-ENGINEFILES=../$(KERNEL).maxj ../$(MANAGER).maxj
-CPUFILES=../$(PRJ).cpp
+ENGINEFILES=../src/*.maxj
+CPUFILES=../src/*.cpp
 
 # Using known hardware settings
 include $(WHEREISROOT)/Makefile.Maia.hardware

@@ -1,20 +1,18 @@
-#include <Spark/BiConjugateGradient.hpp>
+#include <Spark/SparseLinearSolvers.hpp>
+#include <test_utils.hpp>
 
 int main() {
-  spark::bicg::DfeBiCg bicg{};
-  bicg.solve();
 
-  spark::sparse_linear_solvers::EigenSolver solver;
-  solver.solve(
-
-
-
-
-
-  // load system matrix from file
-  // generate test case
-  // run with eigen
-  // run with bicg
-  // check results
-  return 0;
+  int status = 0;
+  spark::sparse_linear_solvers::DfeBiCgSolver solver{};
+  status |= test(16, spark::test::IdentityGenerator{}, spark::test::SimpleVectorGenerator{}, solver);
+  status |= test(100, spark::test::RandomGenerator{}, spark::test::SimpleVectorGenerator{}, solver);
+  status |= spark::test::runTest("../test-matrices/bfwb62.mtx", solver);
+  //status |= runMatrixVectorTest(
+      //"../test-matrices/OPF_3754.mtx",
+      //"../test-matrices/OPF_3754_b.mtx");
+  //status |= runMatrixVectorTest(
+      //"../test-matrices/OPF_6000.mtx",
+      //"../test-matrices/OPF_6000_b.mtx");
+  return status;
 }
