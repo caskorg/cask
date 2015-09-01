@@ -44,14 +44,12 @@ namespace spark {
             if (line[0] =='%' && line[1] == '%') {
               if (line.find("matrix") != std::string::npos) {
                 symmetric = line.find("symmetric") != std::string::npos;
-                std::cout << "Is symmetric" << std::endl;
               } else
                 throw std::invalid_argument("Unsupported file type: " + line);
             }
-            std::cout << "Header " << line  << std::endl;
         }
 
-        bool parseHeader() {
+        bool parseHeader(bool pprint=false) {
           std::string line;
           if (!getline(*f, line))
             throw std::invalid_argument("File " + path + " is empty");
@@ -70,12 +68,14 @@ namespace spark {
             ss >> nnzs;
           matrix = ncols > 1;
 
-          std::cout << "sparse: " << sparse << std::endl;
-          std::cout << "symmetric: " << symmetric << std::endl;
-          std::cout << "matrix: " << matrix << std::endl;
-          std::cout << "ncols: " << ncols << std::endl;
-          std::cout << "nrows: " << nrows << std::endl;
-          std::cout << "nnzs: " << nnzs << std::endl;
+          if (pprint) {
+            std::cout << "sparse: " << sparse << std::endl;
+            std::cout << "symmetric: " << symmetric << std::endl;
+            std::cout << "matrix: " << matrix << std::endl;
+            std::cout << "ncols: " << ncols << std::endl;
+            std::cout << "nrows: " << nrows << std::endl;
+            std::cout << "nnzs: " << nnzs << std::endl;
+          }
         }
 
         std::ifstream* f;
