@@ -7,6 +7,7 @@ namespace spark {
   namespace sparse {
 
     using CsrMatrix = std::tuple<std::vector<int>, std::vector<int>, std::vector<double>>;
+
     using PartitionedCsrMatrix = std::vector<CsrMatrix>;
 
     template<typename value_type>

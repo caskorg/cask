@@ -126,6 +126,9 @@ Eigen::VectorXd dfeImplUnprecon(
   int maxIter = 2000;
   double normErr = 1E-32;
 
+  // partition once
+  spark::sparse::PartitionedCsrMatrix partA = spark::spmv::partition(A);
+
   for (int i = 0; i < maxIter; i++) {
 
     std::cout << "Iteration " << i << std::endl;
@@ -134,14 +137,14 @@ Eigen::VectorXd dfeImplUnprecon(
     p = r + beta * (p - omega_prev * v);
 
     //v = A * p;
-    v = spark::spmv::dfespmv(A, p); // spmv
+    v = spark::spmv::dfespmv(partA, p); // spmv
 
     alpha = rho / rhat.dot(v);
     Vd s = r - alpha * v;
     if (s.norm() < normErr) {
       return x + alpha * p;
     }
-    Vd t = A * s;  // spmv
+    Vd t = spark::spmv::dfespmv(partA, s);  // spmv
     omega = t.dot(s) / t.dot(t);
     x = x + alpha * p + omega * s;
     r = s - omega * t;

@@ -19,7 +19,7 @@ namespace spark {
       auto coo = mat.data;
       EigenSparseMatrix m(new Eigen::SparseMatrix<double, Eigen::RowMajor, int32_t>(mat.n, mat.m));
       std::vector<Eigen::Triplet<double>> trips;
-      for (int i = 0; i < coo.size(); i++)
+      for (size_t i = 0; i < coo.size(); i++)
         trips.push_back(
             Eigen::Triplet<double>(
               std::get<0>(coo[i]),

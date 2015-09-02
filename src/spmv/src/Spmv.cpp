@@ -44,26 +44,31 @@ Eigen::VectorXd spark::spmv::dfespmv(
   using namespace std;
 
   mat.makeCompressed();
+
+  return spark::spmv::dfespmv(spark::spmv::partition(mat), x);
+}
+
+Eigen::VectorXd spark::spmv::dfespmv(
+    const spark::sparse::PartitionedCsrMatrix& result,
+    const Eigen::VectorXd& x)
+{
+
+  using namespace std;
+
+  // Assume that the system has been correctly defined
+  // and that v.size() === result.rows() === result.total_columns()
+  int n = x.size();
+
   vector<double> v = spark::converters::eigenVectorToStdVector(x);
-
-  auto result = spark::spmv::partition(
-      mat.outerIndexPtr(),
-      mat.innerIndexPtr(),
-      mat.valuePtr(),
-      mat.cols(),
-      mat.rows(),
-      mat.nonZeros(),
-      Spmv_cacheSize);
-
   int i = 0;
-  std::vector<double> total(mat.rows(), 0);
+  std::vector<double> total(v.size(), 0);
   int vidx = 0;
   for (auto p : result) {
     auto p_colptr = std::get<0>(p);
     auto p_indptr = std::get<1>(p);
     auto p_values = std::get<2>(p);
-    vector<double> out(mat.cols(), 0);
-    int cycles = cycleCount(&p_colptr[0], mat.rows());
+    vector<double> out(n, 0);
+    int cycles = cycleCount(&p_colptr[0], n);
     //std::cout << "  Cycles required to compute" << cycles << std::endl;
 
     //std::cout << "  partition " << i++ << std::endl;
@@ -99,11 +104,11 @@ Eigen::VectorXd spark::spmv::dfespmv(
     int totalCycles = vector_load_cycles + cycles;
     Spmv(
         totalCycles + paddingCycles, //uint64_t ticks_SpmvKernel,
-        mat.cols(), //uint64_t inscalar_SpmvKernel_n,
+        n, //uint64_t inscalar_SpmvKernel_n,
         paddingCycles,
         totalCycles,
         vector_load_cycles,
-        mat.rows(), //uint64_t inscalar_csrDecoder_nrows,
+        n, //uint64_t inscalar_csrDecoder_nrows,
         &p_colptr[0], //const void *instream_colptr,
         p_colptr.size() * sizeof(int), //size_t instream_size_colptr,
         &v[vidx],
@@ -119,7 +124,7 @@ Eigen::VectorXd spark::spmv::dfespmv(
     //dfesnippets::vectorutils::print_vector(out);
     std::cout << "Done on DFE" << std::endl;
 
-    for (int i = 0; i < mat.rows(); i++)
+    for (int i = 0; i < n; i++)
       total[i] += out[i];
     vidx += Spmv_cacheSize;
   }
@@ -127,3 +132,6 @@ Eigen::VectorXd spark::spmv::dfespmv(
   return spark::converters::stdvectorToEigen(total);
 }
 
+int spark::spmv::getPartitionSize() {
+  return Spmv_cacheSize;
+}

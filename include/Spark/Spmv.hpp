@@ -9,17 +9,24 @@ namespace spark {
 
     Eigen::VectorXd dfespmv(
         Eigen::SparseMatrix<double, Eigen::RowMajor> mat,
-        Eigen::VectorXd x
-        );
+        Eigen::VectorXd x);
+
+    Eigen::VectorXd dfespmv(
+        const spark::sparse::PartitionedCsrMatrix& result,
+        const Eigen::VectorXd& x);
+
+    int getPartitionSize();
 
     spark::sparse::PartitionedCsrMatrix partition(
-        const int* colptr,
-        const int* indptr,
-        const double* values,
-        int cols,
-        int rows,
-        int nnzs,
-        int partitionSize) {
+        const Eigen::SparseMatrix<double, Eigen::RowMajor, int32_t> mat)
+    {
+
+      int partitionSize = getPartitionSize();
+      const int* indptr = mat.innerIndexPtr();
+      const double* values = mat.valuePtr();
+      const int* colptr = mat.outerIndexPtr();
+      int rows = mat.rows();
+      int cols = mat.cols();
 
       int nPartitions = cols / partitionSize + (cols % partitionSize == 0 ? 0 : 1);
       //std::cout << "Npartitions: " << nPartitions << std::endl;
