@@ -22,13 +22,6 @@ namespace spark {
 
         SparkCooMatrix(int _n, int _m) : n(_n), m(_m) {}
       };
-
-    Eigen::VectorXd Spmv_dfe(
-        const Eigen::SparseMatrix<double>& A,
-        const Eigen::VectorXd& b
-        ) {
-      return A * b;
-    }
   }
 }
 

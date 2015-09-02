@@ -114,7 +114,11 @@ if (DEFINED ENV{MAXCOMPILERDIR} AND DEFINED ENV{MAXELEROSDIR})
 
     #AddMaxelerImplTest("cg" simcglib "ConjugateGradient_sim")
     #AddMaxelerImplTest("spmv" spmvlib "Spmv_sim")
+
     AddMaxelerImplTest("bicg" simbicglib "BiConjugateGradient_sim")
+    add_dependencies(test_bicg smpvlib)
+    target_link_libraries(test_bicg -lSpmv_sim)
+
   endif()
 
 endif()

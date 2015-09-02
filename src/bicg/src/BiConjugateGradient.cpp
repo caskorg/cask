@@ -1,5 +1,5 @@
 #include <Spark/SparseLinearSolvers.hpp>
-#include <Spark/SparseMatrix.hpp>
+#include <Spark/Spmv.hpp>
 #include <iostream>
 #include <stdexcept>
 
@@ -25,17 +25,8 @@ Vd cpuReferenceUnprecon(
   v.setZero();
   p.setZero();
 
-  int maxIter = 2000000;
+  int maxIter = 2000;
   double normErr = 1E-32;
-
-  std::cout << A.diagonal() << std::endl;
-  Vd precon(b.size());
-  for (int i = 0; i < b.size(); i++) {
-    if (A.diagonal()(i) == 0)
-      throw std::invalid_argument("Main diagonal contains zero elements");
-    precon[i] = 1/A.diagonal()(i);
-  }
-  std::cout << precon << std::endl;
 
   for (int i = 0; i < maxIter; i++) {
     std::cout << "Iteration " << i << std::endl;
@@ -143,7 +134,7 @@ Eigen::VectorXd dfeImplUnprecon(
     p = r + beta * (p - omega_prev * v);
 
     //v = A * p;
-    v = spark::sparse::Spmv_dfe(A, p); // spmv
+    v = spark::spmv::dfespmv(A, p); // spmv
 
     alpha = rho / rhat.dot(v);
     Vd s = r - alpha * v;
@@ -165,5 +156,5 @@ Eigen::VectorXd spark::sparse_linear_solvers::DfeBiCgSolver::solve(
             const Eigen::SparseMatrix<double>& A,
             const Eigen::VectorXd& b)
 {
-  return dfeImplUnprecon(A, b);
+  return cpuReferenceUnprecon(A, b);
 }

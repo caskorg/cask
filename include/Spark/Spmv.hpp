@@ -5,6 +5,7 @@
 
 namespace spark {
   namespace spmv {
+
     Eigen::VectorXd dfespmv(
         Eigen::SparseMatrix<double, Eigen::RowMajor> mat,
         Eigen::VectorXd x
