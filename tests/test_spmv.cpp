@@ -52,6 +52,9 @@ int main(int argc, char** argv) {
   int status = test("../test-matrices/bfwb62.mtx");
   status |= test("../test-matrices/test_cage6.mtx");
   status |= test("../test-matrices/test_tols90.mtx");
+  //status |= test("../test-matrices/OPF_3754.mtx");
+  //status |= test("../test-matrices/OPF_6000.mtx");
+  //status |= test("../test-matrices/test_dense_128.mtx");
   return status;
 }
 

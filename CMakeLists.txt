@@ -28,7 +28,7 @@ function(AddMaxelerImpl path stem target)
     DEPENDS ${Src})
 endfunction()
 
-function(AddMaxelerImplTest name libtarget lib)
+function(AddMaxelerImplTest name libtarget lib args)
     add_executable(
       test_${name}
       tests/test_${name}.cpp)
@@ -39,10 +39,13 @@ function(AddMaxelerImplTest name libtarget lib)
       SparkCpuLib
       -lumfpack -lsuitesparseconfig -lopenblas -lcholmod
       -lcolamd -lrt -lklu -lbtf -lamd -lpthread)
+endfunction()
+
+function(AddMaxelerImplTestRun binary name args)
     add_test(
       NAME test_${name}
       WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-      COMMAND ../scripts/simrunner ./test_${name})
+      COMMAND ../scripts/simrunner ./${binary} ${args})
 endfunction()
 
 # ---- Project wide configuration ----
@@ -113,9 +116,16 @@ if (DEFINED ENV{MAXCOMPILERDIR} AND DEFINED ENV{MAXELEROSDIR})
     include_directories(tests/)
 
     #AddMaxelerImplTest("cg" simcglib "ConjugateGradient_sim")
-    AddMaxelerImplTest("spmv" spmvlib "Spmv_sim")
+    AddMaxelerImplTest("spmv" spmvlib "Spmv_sim" "")
+    AddMaxelerImplTestRun("test_spmv" "spmv_bfwb62" "../test-matrices/bfwb62.mtx")
+    AddMaxelerImplTestRun("test_spmv" "spmv_cage6" "../test-matrices/test_cage6.mtx")
+    AddMaxelerImplTestRun("test_spmv" "spmv_tols90" "../test-matrices/test_tols90.mtx")
+    AddMaxelerImplTestRun("test_spmv" "spmv_OPF_3754" "../test-matrices/OPF_3754.mtx")
+    AddMaxelerImplTestRun("test_spmv" "spmv_OPF_6000" "../test-matrices/OPF_6000.mtx")
+    AddMaxelerImplTestRun("test_spmv" "spmv_dense128" "../test-matrices/test_dense_128.mtx")
 
-    AddMaxelerImplTest("bicg" simbicglib "BiConjugateGradient_sim")
+    AddMaxelerImplTest("bicg" simbicglib "BiConjugateGradient_sim" "")
+    AddMaxelerImplTestRun("test_bicg" "bicg" "")
     add_dependencies(test_bicg smpvlib)
     target_link_libraries(test_bicg -lSpmv_sim)
 
