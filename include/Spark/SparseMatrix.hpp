@@ -2,6 +2,7 @@
 #define SPARSEMATRIX_HPP_1BWMMLC8
 
 #include <boost/numeric/ublas/matrix_sparse.hpp>
+#include <Eigen/Sparse>
 
 namespace spark {
   namespace sparse {
@@ -21,6 +22,13 @@ namespace spark {
 
         SparkCooMatrix(int _n, int _m) : n(_n), m(_m) {}
       };
+
+    Eigen::VectorXd Spmv_dfe(
+        const Eigen::SparseMatrix<double>& A,
+        const Eigen::VectorXd& b
+        ) {
+      return A * b;
+    }
   }
 }
 
