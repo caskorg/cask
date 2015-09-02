@@ -156,5 +156,5 @@ Eigen::VectorXd spark::sparse_linear_solvers::DfeBiCgSolver::solve(
             const Eigen::SparseMatrix<double>& A,
             const Eigen::VectorXd& b)
 {
-  return cpuReferenceUnprecon(A, b);
+  return dfeImplUnprecon(A, b);
 }

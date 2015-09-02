@@ -8,7 +8,6 @@ int main() {
   status |= test(16, spark::test::IdentityGenerator{}, spark::test::SimpleVectorGenerator{}, solver);
   status |= test(100, spark::test::RandomGenerator{}, spark::test::SimpleVectorGenerator{}, solver);
   status |= test(10000, spark::test::RandomGenerator{}, spark::test::SimpleVectorGenerator{}, solver);
-  status |= test(100000, spark::test::RandomGenerator{}, spark::test::SimpleVectorGenerator{}, solver);
   status |= spark::test::runTest("../test-matrices/bfwb62.mtx", solver);
   return status;
 }
