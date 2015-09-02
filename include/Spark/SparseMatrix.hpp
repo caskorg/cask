@@ -1,15 +1,13 @@
 #ifndef SPARSEMATRIX_HPP_1BWMMLC8
 #define SPARSEMATRIX_HPP_1BWMMLC8
 
-#include <boost/numeric/ublas/matrix_sparse.hpp>
 #include <Eigen/Sparse>
 
 namespace spark {
   namespace sparse {
-    template<typename T = double> using CsrMatrix =
-      boost::numeric::ublas::compressed_matrix<T, boost::numeric::ublas::row_major, 0,
-      std::vector<unsigned int>
-        >;
+
+    using CsrMatrix = std::tuple<std::vector<int>, std::vector<int>, std::vector<double>>;
+    using PartitionedCsrMatrix = std::vector<CsrMatrix>;
 
     template<typename value_type>
       class SparkCooMatrix {

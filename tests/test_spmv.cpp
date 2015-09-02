@@ -39,13 +39,19 @@ int main(int argc, char** argv) {
   for (int i = 0; i < argc; i++)
     cout << "   " << argv[i] << endl;
   // XXX Reasonable argument parsing
-  string p{argv[1]};
 
-  int status = test(p);
-  if (status == 0)
-    std::cout << "All tests passed!" << std::endl;
-  else
-    std::cout << "Tests failed!" << std::endl;
+  if (argc > 1) {
+    int status = test(argv[1]);
+    if (status == 0)
+      std::cout << "All tests passed!" << std::endl;
+    else
+      std::cout << "Tests failed!" << std::endl;
+    return status;
+  }
+
+  int status = test("../test-matrices/bfwb62.mtx");
+  status |= test("../test-matrices/test_cage6.mtx");
+  status |= test("../test-matrices/test_tols90.mtx");
   return status;
 }
 
