@@ -104,7 +104,6 @@ Eigen::VectorXd spark::spmv::dfespmv(
     int totalCycles = vector_load_cycles + cycles;
     Spmv(
         totalCycles + paddingCycles, //uint64_t ticks_SpmvKernel,
-        n, //uint64_t inscalar_SpmvKernel_n,
         paddingCycles,
         totalCycles,
         vector_load_cycles,

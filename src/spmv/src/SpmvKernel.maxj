@@ -44,11 +44,11 @@ class SpmvKernel extends Kernel {
     optimization.pushPipeliningFactor(0);
     optimization.pushDSPFactor(1);
 
+
     this.inputWidth = inputWidth;
     this.addressT = dfeUInt(MathUtils.bitsToAddress(cacheSize));
     this.dbg = dbg;
 
-    DFEVar n = io.scalarInput("n", dfeUInt(32));
     DFEVar vectorLoadCycles = io.scalarInput("vectorLoadCycles", dfeUInt(32));
     // load entire vector or until cache is full
     int sizeBits = 32; // XXX may need to run for more cycles
@@ -70,7 +70,7 @@ class SpmvKernel extends Kernel {
     }
 
     // --- I/O
-    DFEVar readEnable = (io.input("readenable", dfeUInt(32), ~vRomLoadEnable) === 1) & ~vRomLoadEnable;
+    DFEVar readEnable = io.input("readenable", dfeBool(), ~vRomLoadEnable) & ~vRomLoadEnable;
     DFEVar readMask = io.input("readmask", dfeUInt(inputWidth), ~vRomLoadEnable);
     DFEVector<DFEVar> values = selectValues(
         io.input("values", vtype, readEnable),
@@ -82,7 +82,7 @@ class SpmvKernel extends Kernel {
     DFEVar result = Reductions.reduce(values * vectorValues);
 
     // --- Accumulation
-    DFEVar rowFinished = io.input("rowFinished", dfeUInt(32), ~vRomLoadEnable) === 1;
+    DFEVar rowFinished = io.input("rowFinished", dfeBool(), ~vRomLoadEnable);
     DFEVar rowLength = io.input("rowLength", dfeUInt(32), ~vRomLoadEnable);
     DFEVar cycleCounter = io.input("cycleCounter", dfeUInt(32), ~vRomLoadEnable);
     DFEVar firstReadPosition = io.input("firstReadPosition", dfeUInt(32), ~vRomLoadEnable);
