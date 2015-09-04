@@ -16,7 +16,7 @@ int cycleCount(int32_t* v, int size) {
   int crtPos = 0;
   int bufferWidth = Spmv_inputWidth;
   for (int i = 0; i < size; i++) {
-    int toread = v[i] - v[i - 1];
+    int toread = v[i] - (i > 0 ? v[i - 1] : 0);
     do {
       int canread = std::min(bufferWidth - crtPos, toread);
       crtPos += canread;
@@ -70,7 +70,6 @@ Eigen::VectorXd spark::spmv::dfespmv(
     vector<double> out(n, 0);
     int cycles = cycleCount(&p_colptr[0], n);
     //std::cout << "  Cycles required to compute" << cycles << std::endl;
-
     //std::cout << "  partition " << i++ << std::endl;
     //std::cout << "  nrows = " << p_colptr.size() << std::endl;
     //dfesnippets::vectorutils::print_vector(p_colptr);
@@ -89,6 +88,8 @@ Eigen::VectorXd spark::spmv::dfespmv(
     int paddingCycles = out.size() % 2;
     align(out, 16);
 
+    std::cout << "Partition " << i++ << std::endl;
+
     Spmv_write(
         p_values.size() * sizeof(double),
         0,
@@ -98,22 +99,41 @@ Eigen::VectorXd spark::spmv::dfespmv(
         p_indptr.size() * sizeof(int),
         p_values.size() * sizeof(double),
         (uint8_t *)&p_indptr[0]);
-
     int vector_load_cycles = std::min((int)v.size(), Spmv_cacheSize);
     std::cout << "Running on DFE" << std::endl;
-    int totalCycles = vector_load_cycles + cycles;
+    int totalCycles = cycles + vector_load_cycles;
+    std::cout << "Vector load cycles " << vector_load_cycles << std::endl;
+    std::cout << "Padding cycles = " << paddingCycles << std::endl;
+    std::cout << "Total cycles = " << totalCycles << std::endl;
+    std::cout << "Nrows = " << n << std::endl;
+    std::cout << "Compute cycles = " << cycles << std::endl;
+
+    //void Spmv(
+        //int64_t param_nrows,
+        //int64_t param_paddingCycles,
+        //int64_t param_totalCycles,
+        //int64_t param_vectorSize,
+        //uint64_t inscalar_SpmvKernel_vectorLoadCycles,
+        //uint64_t inscalar_readControl_nPartitions,
+        //const void *instream_colptr,
+        //size_t instream_size_colptr,
+        //const double *instream_vromLoad,
+        //double *outstream_output,
+        //size_t lmem_address_indptr,
+        //size_t lmem_arr_size_indptr,
+        //size_t lmem_address_values,
+        //size_t lmem_arr_size_values);
+
     Spmv(
-        totalCycles + paddingCycles, //uint64_t ticks_SpmvKernel,
+        n,
         paddingCycles,
         totalCycles,
         vector_load_cycles,
-        n, //uint64_t inscalar_csrDecoder_nrows,
+        1, // nPartitions
         &p_colptr[0], //const void *instream_colptr,
         p_colptr.size() * sizeof(int), //size_t instream_size_colptr,
         &v[vidx],
-        vector_load_cycles * sizeof(double),
         &out[0],//void *outstream_output,
-        out.size() * sizeof(double),
         p_values.size() * sizeof(double), // lmlem_address_indptr
         p_indptr.size() * sizeof(int),
         0,

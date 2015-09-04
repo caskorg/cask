@@ -59,11 +59,31 @@ public class SpmvManager extends CustomManager{
         k.getInput("rowFinished") <== readControlBlock.getOutput("rowFinished");
         k.getInput("cycleCounter") <== readControlBlock.getOutput("cycleCounter");
         k.getInput("firstReadPosition") <== readControlBlock.getOutput("firstReadPosition");
+        k.getInput("loadEnabled") <== readControlBlock.getOutput("vectorLoad");
         addStreamToCPU("output") <== k.getOutput("output");
     }
 
     private static EngineInterface interfaceDefault() {
       EngineInterface ei = new EngineInterface();
+
+      InterfaceParam n = ei.addParam("nrows", CPUTypes.INT);
+      InterfaceParam vectorSize = ei.addParam("vectorSize", CPUTypes.INT);
+      InterfaceParam totalCycles = ei.addParam("totalCycles", CPUTypes.INT);
+      InterfaceParam paddingCycles = ei.addParam("paddingCycles", CPUTypes.INT);
+
+      ei.setTicks(s_kernelName, totalCycles + paddingCycles);
+      ei.setScalar(s_kernelName, "paddingCycles", paddingCycles);
+      ei.setScalar(s_kernelName, "totalCycles", totalCycles);
+
+      ei.setScalar("csrDecoder", "nrows", n);
+
+      ei.setScalar("readControl", "nrows", n);
+      ei.setScalar("readControl", "vectorLoadCycles", vectorSize);
+      ei.setScalar("readControl", "paddingCycles", paddingCycles);
+
+      ei.setStream("output", CPUTypes.DOUBLE, (n + paddingCycles) * CPUTypes.DOUBLE.sizeInBytes());
+      ei.setStream("vromLoad", CPUTypes.DOUBLE, vectorSize * CPUTypes.DOUBLE.sizeInBytes());
+
       ei.ignoreLMem("cpu2lmem");
       ei.ignoreStream("fromcpu");
       return ei;
@@ -72,8 +92,8 @@ public class SpmvManager extends CustomManager{
     public static void main(String[] args) {
         SpmvManager manager = new SpmvManager(new EngineParameters(args));
         manager.createSLiCinterface(interfaceDefault());
-        //ManagerUtils.debug(manager);
-        ManagerUtils.setFullBuild(manager, 2, 2);
+        ManagerUtils.debug(manager);
+        //ManagerUtils.setFullBuild(manager, 2, 2);
         manager.createSLiCinterface(ManagerUtils.interfaceWrite(
               "write", "fromcpu", "cpu2lmem"));
         manager.build();

@@ -49,11 +49,10 @@ class SpmvKernel extends Kernel {
     this.addressT = dfeUInt(MathUtils.bitsToAddress(cacheSize));
     this.dbg = dbg;
 
-    DFEVar vectorLoadCycles = io.scalarInput("vectorLoadCycles", dfeUInt(32));
     // load entire vector or until cache is full
     int sizeBits = 32; // XXX may need to run for more cycles
     DFEVar currentCycle = control.count.simpleCounter(sizeBits);
-    DFEVar vRomLoadEnable = currentCycle < vectorLoadCycles;
+    DFEVar vRomLoadEnable = io.input("loadEnabled", dfeBool());
     vtype = new DFEVectorType<DFEVar> (dfeFloat(11, 53), inputWidth);
     ivtype = new DFEVectorType<DFEVar> (dfeUInt(32), inputWidth);
     DFEVar vectorValue = io.input("vromLoad", dfeFloat(11, 53), vRomLoadEnable);
@@ -70,8 +69,8 @@ class SpmvKernel extends Kernel {
     }
 
     // --- I/O
-    DFEVar readEnable = io.input("readenable", dfeBool(), ~vRomLoadEnable) & ~vRomLoadEnable;
-    DFEVar readMask = io.input("readmask", dfeUInt(inputWidth), ~vRomLoadEnable);
+    DFEVar readEnable = io.input("readenable", dfeBool()) & ~vRomLoadEnable;
+    DFEVar readMask = io.input("readmask", dfeUInt(inputWidth));
     DFEVector<DFEVar> values = selectValues(
         io.input("values", vtype, readEnable),
         readMask);
@@ -82,10 +81,10 @@ class SpmvKernel extends Kernel {
     DFEVar result = Reductions.reduce(values * vectorValues);
 
     // --- Accumulation
-    DFEVar rowFinished = io.input("rowFinished", dfeBool(), ~vRomLoadEnable);
-    DFEVar rowLength = io.input("rowLength", dfeUInt(32), ~vRomLoadEnable);
-    DFEVar cycleCounter = io.input("cycleCounter", dfeUInt(32), ~vRomLoadEnable);
-    DFEVar firstReadPosition = io.input("firstReadPosition", dfeUInt(32), ~vRomLoadEnable);
+    DFEVar rowFinished = io.input("rowFinished", dfeBool());
+    DFEVar rowLength = io.input("rowLength", dfeUInt(32));
+    DFEVar cycleCounter = io.input("cycleCounter", dfeUInt(32));
+    DFEVar firstReadPosition = io.input("firstReadPosition", dfeUInt(32));
 
     DFEVar runLength = firstReadPosition + rowLength;
     DFEVar modulo = KernelMath.modulo(runLength, inputWidth);
@@ -109,7 +108,7 @@ class SpmvKernel extends Kernel {
     // TODO still need reduction step
     DFEVar totalRunCycles = io.scalarInput("totalCycles", dfeUInt(32));
     DFEVar paddingCycles = io.scalarInput("paddingCycles", dfeUInt(32));
-    DFEVar outputPadding = cycleCounter >= totalRunCycles & (cycleCounter - totalRunCycles < paddingCycles);
+    DFEVar outputPadding = currentCycle >= totalRunCycles & (currentCycle - totalRunCycles < paddingCycles);
     DFEVar outputEnable = (~vRomLoadEnable & rowFinished) | outputPadding;
     DFEVar output = rowLength === 0 ? 0 : r.getOutput();
     DFEVar paddedOutput = outputPadding ? 0 : output;
