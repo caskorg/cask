@@ -31,7 +31,7 @@ namespace spark {
 
     Eigen::VectorXd stdvectorToEigen(std::vector<double> v) {
       Eigen::VectorXd m(v.size());
-      for (int i = 0; i < v.size(); i++)
+      for (size_t i = 0; i < v.size(); i++)
         m[i] = v[i];
       return m;
     }
