@@ -39,12 +39,9 @@ void align(std::vector<T>& v, int widthInBytes) {
 
 Eigen::VectorXd spark::spmv::dfespmv(
     EigenSparseMatrix mat,
-    Eigen::VectorXd x
-    ) {
-  using namespace std;
-
+    Eigen::VectorXd x)
+{
   mat.makeCompressed();
-
   return spark::spmv::dfespmv(spark::spmv::partition(mat), x);
 }
 
@@ -52,7 +49,6 @@ Eigen::VectorXd spark::spmv::dfespmv(
     const spark::sparse::PartitionedCsrMatrix& result,
     const Eigen::VectorXd& x)
 {
-
   using namespace std;
 
   // Assume that the system has been correctly defined
@@ -60,93 +56,77 @@ Eigen::VectorXd spark::spmv::dfespmv(
   int n = x.size();
 
   vector<double> v = spark::converters::eigenVectorToStdVector(x);
-  int i = 0;
   std::vector<double> total(v.size(), 0);
-  int vidx = 0;
+  vector<double> m_values;
+  vector<int> m_colptr, m_indptr;
+
+  int cycles = 0;
   for (auto p : result) {
     auto p_colptr = std::get<0>(p);
     auto p_indptr = std::get<1>(p);
     auto p_values = std::get<2>(p);
-    vector<double> out(n, 0);
-    int cycles = cycleCount(&p_colptr[0], n);
-    //std::cout << "  Cycles required to compute" << cycles << std::endl;
-    //std::cout << "  partition " << i++ << std::endl;
-    //std::cout << "  nrows = " << p_colptr.size() << std::endl;
-    //dfesnippets::vectorutils::print_vector(p_colptr);
-    //dfesnippets::vectorutils::print_vector(p_indptr);
-    //dfesnippets::vectorutils::print_vector(p_values);
-
-    // XXX align to numPIpes
-    int alignToBytesDouble = std::max((int)sizeof(double) * Spmv_inputWidth, 384);
-    int alignToBytesInt = std::max((int)sizeof(int) * Spmv_inputWidth, 384);
-
-    align(p_values, alignToBytesDouble);
-    align(p_indptr, alignToBytesInt);
-    align(p_colptr, 16);
-    align(v, 16); // XXX should partition
-    int outOldSize = out.size();
-    int paddingCycles = out.size() % 2;
-    align(out, 16);
-
-    std::cout << "Partition " << i++ << std::endl;
-
-    Spmv_write(
-        p_values.size() * sizeof(double),
-        0,
-        (uint8_t *)&p_values[0]
-        );
-    Spmv_write(
-        p_indptr.size() * sizeof(int),
-        p_values.size() * sizeof(double),
-        (uint8_t *)&p_indptr[0]);
-    int vector_load_cycles = std::min((int)v.size(), Spmv_cacheSize);
-    std::cout << "Running on DFE" << std::endl;
-    int totalCycles = cycles + vector_load_cycles;
-    std::cout << "Vector load cycles " << vector_load_cycles << std::endl;
-    std::cout << "Padding cycles = " << paddingCycles << std::endl;
-    std::cout << "Total cycles = " << totalCycles << std::endl;
-    std::cout << "Nrows = " << n << std::endl;
-    std::cout << "Compute cycles = " << cycles << std::endl;
-
-    //void Spmv(
-        //int64_t param_nrows,
-        //int64_t param_paddingCycles,
-        //int64_t param_totalCycles,
-        //int64_t param_vectorSize,
-        //uint64_t inscalar_SpmvKernel_vectorLoadCycles,
-        //uint64_t inscalar_readControl_nPartitions,
-        //const void *instream_colptr,
-        //size_t instream_size_colptr,
-        //const double *instream_vromLoad,
-        //double *outstream_output,
-        //size_t lmem_address_indptr,
-        //size_t lmem_arr_size_indptr,
-        //size_t lmem_address_values,
-        //size_t lmem_arr_size_values);
-
-    Spmv(
-        n,
-        paddingCycles,
-        totalCycles,
-        vector_load_cycles,
-        1, // nPartitions
-        &p_colptr[0], //const void *instream_colptr,
-        p_colptr.size() * sizeof(int), //size_t instream_size_colptr,
-        &v[vidx],
-        &out[0],//void *outstream_output,
-        p_values.size() * sizeof(double), // lmlem_address_indptr
-        p_indptr.size() * sizeof(int),
-        0,
-        p_values.size() * sizeof(double) // lmlem_address_indptr
-        );//size_t outstream_size_output);
-    //std::cout << "Result" << std::endl;
-    //dfesnippets::vectorutils::print_vector(out);
-    std::cout << "Done on DFE" << std::endl;
-
-    for (int i = 0; i < n; i++)
-      total[i] += out[i];
-    vidx += Spmv_cacheSize;
+    cycles += cycleCount(&p_colptr[0], n);
+    align(p_indptr, sizeof(int) * Spmv_inputWidth);
+    align(p_values, sizeof(double) * Spmv_inputWidth);
+    std::copy(p_values.begin(), p_values.end(), back_inserter(m_values));
+    std::copy(p_indptr.begin(), p_indptr.end(), back_inserter(m_indptr));
+    std::copy(p_colptr.begin(), p_colptr.end(), back_inserter(m_colptr));
   }
+
+  int nPartitions = result.size();
+  int outSize = n * nPartitions;
+  int paddingCycles = outSize % 2;
+  outSize += paddingCycles;
+
+  vector<double> out(outSize , 0);
+
+  align(m_colptr, 16);
+  align(m_values, 384);
+  align(m_indptr, 384);
+  align(v, sizeof(double) * Spmv_cacheSize);
+
+  Spmv_write(
+      m_values.size() * sizeof(double),
+      0,
+      (uint8_t *)&m_values[0]
+      );
+
+  Spmv_write(
+      m_indptr.size() * sizeof(int),
+      m_values.size() * sizeof(double),
+      (uint8_t *)&m_indptr[0]);
+
+  int vector_load_cycles = v.size() / nPartitions;
+  std::cout << "Running on DFE" << std::endl;
+  int totalCycles = cycles + vector_load_cycles * nPartitions;
+  std::cout << "Vector load cycles " << vector_load_cycles << std::endl;
+  std::cout << "Padding cycles = " << paddingCycles << std::endl;
+  std::cout << "Total cycles = " << totalCycles << std::endl;
+  std::cout << "Nrows = " << n << std::endl;
+  std::cout << "Compute cycles = " << cycles << std::endl;
+  std::cout << "Partitions = " << nPartitions << std::endl;
+  std::cout << "Expected out size = " << out.size() << std::endl;
+  Spmv(
+      nPartitions,
+      n,
+      paddingCycles,
+      totalCycles,
+      vector_load_cycles,
+      v.size(),
+      &m_colptr[0], //const void *instream_colptr,
+      m_colptr.size() * sizeof(int), //size_t instream_size_colptr,
+      &v[0],
+      &out[0],//void *outstream_output,
+      m_values.size() * sizeof(double), // lmlem_address_indptr
+      m_indptr.size() * sizeof(int),
+      0,
+      m_values.size() * sizeof(double) // lmlem_address_indptr
+      );//size_t outstream_size_output);
+  std::cout << "Done on DFE" << std::endl;
+
+  for (int j = 0; j < nPartitions; j++)
+    for (int i = 0; i < n; i++)
+      total[i] += out[n * j + i];
 
   return spark::converters::stdvectorToEigen(total);
 }

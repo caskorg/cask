@@ -53,6 +53,13 @@ class SpmvKernel extends Kernel {
     int sizeBits = 32; // XXX may need to run for more cycles
     DFEVar currentCycle = control.count.simpleCounter(sizeBits);
     DFEVar vRomLoadEnable = io.input("loadEnabled", dfeBool());
+
+    DFEVar vectorLoadCycles = io.scalarInput("vectorLoadCycles", dfeUInt(32));
+    Params loadAddressParams = control.count.makeParams(sizeBits )
+      .withMax(vectorLoadCycles)
+      .withEnable(vRomLoadEnable);
+    DFEVar loadAddress = control.count.makeCounter(loadAddressParams).getCount();
+
     vtype = new DFEVectorType<DFEVar> (dfeFloat(11, 53), inputWidth);
     ivtype = new DFEVectorType<DFEVar> (dfeUInt(32), inputWidth);
     DFEVar vectorValue = io.input("vromLoad", dfeFloat(11, 53), vRomLoadEnable);
@@ -61,9 +68,8 @@ class SpmvKernel extends Kernel {
     for (int i = 0; i < inputWidth; i++) {
       Memory<DFEVar> vrom = mem.alloc(dfeFloat(11, 53), cacheSize);
       vroms.add(vrom);
-//        XXX will have to reset the address at some point
       vrom.write(
-          currentCycle.cast(addressT),
+          loadAddress.cast(addressT),
           vectorValue,
           vRomLoadEnable);
     }
@@ -121,12 +127,13 @@ class SpmvKernel extends Kernel {
         DFEVar rowCounter = control.count.makeCounter(rowCounterParams).getCount();
       debug.simPrintf(
           rowLength !== 0,
-          "Kernel -- row %d totalCycles %d, outputPadding %d readenable %d, readmask %d rowFinished %d rowLength %d output: %f cycleCounter %d validPartialSums %d newSum %f firstRead %d\n",
+          "Kernel -- row %d totalCycles %d, outputPadding %d readenable %d, readmask %d rowFinished %d rowLength %d output: %f cycleCounter %d validPartialSums %d newSum %f firstRead %d",
           rowCounter, totalCycles, outputPadding, readEnable, readMask, rowFinished, rowLength, output, cycleCounter, validPartialSums, newSum, firstReadPosition);
+      debug.simPrintf(rowLength !== 0 , " loadEnable %d loadAddress %d\n", vRomLoadEnable, loadAddress);
+      //debug.simPrintf("\n");
       //debug.simPrintf("Values: ");
       //for (int i = 0; i < inputWidth; i++)
         //debug.simPrintf("%f ", values[i]);
-
       //debug.simPrintf("Indices: ");
       //for (int i = 0; i < inputWidth; i++)
         //debug.simPrintf("%d ", colptr[i]);

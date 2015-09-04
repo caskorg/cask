@@ -1,6 +1,3 @@
-/***
-	TODO Add a descriptive comment!
-*/
 import com.maxeler.maxcompiler.v2.managers.engine_interfaces.CPUTypes;
 import com.maxeler.maxcompiler.v2.managers.engine_interfaces.EngineInterface;
 import com.maxeler.maxcompiler.v2.managers.engine_interfaces.InterfaceParam;
@@ -22,7 +19,6 @@ public class SpmvManager extends CustomManager{
     private static final boolean DBG_CSR_DECODER = false;
     private static final boolean DBG_PAR_CSR_CTL = false;
     private static final boolean DBG_SPMV_KERNEL = false;
-
 
     SpmvManager(EngineParameters ep) {
         super(ep);
@@ -68,20 +64,24 @@ public class SpmvManager extends CustomManager{
 
       InterfaceParam n = ei.addParam("nrows", CPUTypes.INT);
       InterfaceParam vectorSize = ei.addParam("vectorSize", CPUTypes.INT);
+      InterfaceParam vectorLoadCycles = ei.addParam("vectorLoadCycles", CPUTypes.INT);
       InterfaceParam totalCycles = ei.addParam("totalCycles", CPUTypes.INT);
       InterfaceParam paddingCycles = ei.addParam("paddingCycles", CPUTypes.INT);
+      InterfaceParam nPartitions = ei.addParam("nPartitions", CPUTypes.INT);
 
       ei.setTicks(s_kernelName, totalCycles + paddingCycles);
       ei.setScalar(s_kernelName, "paddingCycles", paddingCycles);
       ei.setScalar(s_kernelName, "totalCycles", totalCycles);
+      ei.setScalar(s_kernelName, "vectorLoadCycles", vectorLoadCycles);
 
       ei.setScalar("csrDecoder", "nrows", n);
 
       ei.setScalar("readControl", "nrows", n);
-      ei.setScalar("readControl", "vectorLoadCycles", vectorSize);
+      ei.setScalar("readControl", "vectorLoadCycles", vectorLoadCycles);
       ei.setScalar("readControl", "paddingCycles", paddingCycles);
+      ei.setScalar("readControl", "nPartitions", nPartitions);
 
-      ei.setStream("output", CPUTypes.DOUBLE, (n + paddingCycles) * CPUTypes.DOUBLE.sizeInBytes());
+      ei.setStream("output", CPUTypes.DOUBLE, (n * nPartitions + paddingCycles) * CPUTypes.DOUBLE.sizeInBytes());
       ei.setStream("vromLoad", CPUTypes.DOUBLE, vectorSize * CPUTypes.DOUBLE.sizeInBytes());
 
       ei.ignoreLMem("cpu2lmem");
