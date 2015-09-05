@@ -87,9 +87,7 @@ public class SpmvManager extends CustomManager{
       InterfaceParam paddingCycles = ei.addParam("paddingCycles", CPUTypes.INT);
       InterfaceParam nPartitions = ei.addParam("nPartitions", CPUTypes.INT);
 
-      ei.setTicks(s_kernelName, totalCycles + paddingCycles);
-      ei.setScalar(s_kernelName, "paddingCycles", paddingCycles);
-      ei.setScalar(s_kernelName, "totalCycles", totalCycles);
+      ei.setTicks(s_kernelName, totalCycles);
       ei.setScalar(s_kernelName, "vectorLoadCycles", vectorLoadCycles);
 
       ei.setTicks(s_reductionKernel, (n * nPartitions));
@@ -103,7 +101,6 @@ public class SpmvManager extends CustomManager{
 
       ei.setScalar("readControl", "nrows", n);
       ei.setScalar("readControl", "vectorLoadCycles", vectorLoadCycles);
-      ei.setScalar("readControl", "paddingCycles", paddingCycles);
       ei.setScalar("readControl", "nPartitions", nPartitions);
 
       ei.setStream("output", CPUTypes.DOUBLE, (n + paddingCycles) * CPUTypes.DOUBLE.sizeInBytes());

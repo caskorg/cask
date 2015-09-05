@@ -112,13 +112,8 @@ class SpmvKernel extends Kernel {
         fpL);
 
     // TODO still need reduction step
-    DFEVar totalRunCycles = io.scalarInput("totalCycles", dfeUInt(32));
-    DFEVar paddingCycles = io.scalarInput("paddingCycles", dfeUInt(32));
-    DFEVar outputPadding = currentCycle >= totalRunCycles & (currentCycle - totalRunCycles < paddingCycles);
-    DFEVar outputEnable = (~vRomLoadEnable & rowFinished) | outputPadding;
-    DFEVar output = rowLength === 0 ? 0 : r.getOutput();
-    DFEVar paddedOutput = outputPadding ? 0 : output;
-    io.output("output", paddedOutput, dfeFloat(11, 53), outputEnable);
+    DFEVar outputEnable = ~vRomLoadEnable & rowFinished;
+    io.output("output", r.getOutput(), dfeFloat(11, 53), outputEnable);
 
     // --- Debug
     if (dbg) {
@@ -127,8 +122,8 @@ class SpmvKernel extends Kernel {
         DFEVar rowCounter = control.count.makeCounter(rowCounterParams).getCount();
       debug.simPrintf(
           rowLength !== 0,
-          "Kernel -- row %d totalCycles %d, outputPadding %d readenable %d, readmask %d rowFinished %d rowLength %d output: %f cycleCounter %d validPartialSums %d newSum %f firstRead %d",
-          rowCounter, totalCycles, outputPadding, readEnable, readMask, rowFinished, rowLength, output, cycleCounter, validPartialSums, newSum, firstReadPosition);
+          "Kernel -- row %d totalCycles %d, readenable %d, readmask %d rowFinished %d rowLength %d output: %f cycleCounter %d validPartialSums %d newSum %f firstRead %d",
+          rowCounter, totalCycles, readEnable, readMask, rowFinished, rowLength, r.getOutput(), cycleCounter, validPartialSums, newSum, firstReadPosition);
       debug.simPrintf(rowLength !== 0 , " loadEnable %d loadAddress %d\n", vRomLoadEnable, loadAddress);
       //debug.simPrintf("\n");
       //debug.simPrintf("Values: ");
