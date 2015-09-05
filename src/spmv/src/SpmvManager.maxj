@@ -13,8 +13,14 @@ import com.custom_computing_ic.dfe_snippets.manager.*;
 
 public class SpmvManager extends CustomManager{
     private static final String s_kernelName  = "SpmvKernel";
+    private static final String s_reductionKernel = "SpmvReductionKernel";
+    private static final String s_paddingKernel = "SpmvPaddingKernel";
+
     private static final int cacheSize = 1024 * 2;
     private static final int inputWidth = 48;
+    private static final int MAX_ROWS = 30000;
+
+    private static final int FLOATING_POINT_LATENCY = 16;
 
     private static final boolean DBG_CSR_DECODER = false;
     private static final boolean DBG_PAR_CSR_CTL = false;
@@ -24,6 +30,7 @@ public class SpmvManager extends CustomManager{
         super(ep);
         addMaxFileConstant("inputWidth", inputWidth);
         addMaxFileConstant("cacheSize", cacheSize);
+        addMaxFileConstant("maxRows", MAX_ROWS);
 
         ManagerUtils.setDRAMFreq(this, ep, 800);
 
@@ -56,7 +63,18 @@ public class SpmvManager extends CustomManager{
         k.getInput("cycleCounter") <== readControlBlock.getOutput("cycleCounter");
         k.getInput("firstReadPosition") <== readControlBlock.getOutput("firstReadPosition");
         k.getInput("loadEnabled") <== readControlBlock.getOutput("vectorLoad");
-        addStreamToCPU("output") <== k.getOutput("output");
+
+        KernelBlock r = addKernel(new SpmvReductionKernel(
+              makeKernelParameters(s_reductionKernel),
+              FLOATING_POINT_LATENCY,
+              MAX_ROWS));
+        r.getInput("reductionIn") <== k.getOutput("output");
+
+        KernelBlock p = addKernel(new PaddingKernel(
+              makeKernelParameters(s_paddingKernel)));
+
+        p.getInput("paddingIn") <== r.getOutput("reductionOut");
+        addStreamToCPU("output") <== p.getOutput("paddingOut");
     }
 
     private static EngineInterface interfaceDefault() {
@@ -74,6 +92,13 @@ public class SpmvManager extends CustomManager{
       ei.setScalar(s_kernelName, "totalCycles", totalCycles);
       ei.setScalar(s_kernelName, "vectorLoadCycles", vectorLoadCycles);
 
+      ei.setTicks(s_reductionKernel, (n * nPartitions));
+      ei.setScalar(s_reductionKernel, "nRows", n);
+      ei.setScalar(s_reductionKernel, "totalCycles", n * nPartitions);
+
+      ei.setTicks(s_paddingKernel, (n + paddingCycles));
+      ei.setScalar(s_paddingKernel, "nInputs", n);
+
       ei.setScalar("csrDecoder", "nrows", n);
 
       ei.setScalar("readControl", "nrows", n);
@@ -81,7 +106,7 @@ public class SpmvManager extends CustomManager{
       ei.setScalar("readControl", "paddingCycles", paddingCycles);
       ei.setScalar("readControl", "nPartitions", nPartitions);
 
-      ei.setStream("output", CPUTypes.DOUBLE, (n * nPartitions + paddingCycles) * CPUTypes.DOUBLE.sizeInBytes());
+      ei.setStream("output", CPUTypes.DOUBLE, (n + paddingCycles) * CPUTypes.DOUBLE.sizeInBytes());
       ei.setStream("vromLoad", CPUTypes.DOUBLE, vectorSize * CPUTypes.DOUBLE.sizeInBytes());
 
       ei.ignoreLMem("cpu2lmem");

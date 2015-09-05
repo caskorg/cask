@@ -55,6 +55,9 @@ Eigen::VectorXd spark::spmv::dfespmv(
   // and that v.size() === result.rows() === result.total_columns()
   int n = x.size();
 
+  if (n > Spmv_maxRows)
+    throw std::invalid_argument("Matrix has too many rows - maximum supported: 30000");
+
   vector<double> v = spark::converters::eigenVectorToStdVector(x);
   std::vector<double> total(v.size(), 0);
   vector<double> m_values;
@@ -74,8 +77,8 @@ Eigen::VectorXd spark::spmv::dfespmv(
   }
 
   int nPartitions = result.size();
-  int outSize = n * nPartitions;
-  int paddingCycles = outSize % 2;
+  int outSize = n;
+  int paddingCycles = n % 2;
   outSize += paddingCycles;
 
   vector<double> out(outSize , 0);
@@ -124,10 +127,7 @@ Eigen::VectorXd spark::spmv::dfespmv(
       );//size_t outstream_size_output);
   std::cout << "Done on DFE" << std::endl;
 
-  for (int j = 0; j < nPartitions; j++)
-    for (int i = 0; i < n; i++)
-      total[i] += out[n * j + i];
-
+  total = out;
   return spark::converters::stdvectorToEigen(total);
 }
 

@@ -159,3 +159,42 @@ class SpmvKernel extends Kernel {
   }
 
 }
+
+
+// XXX for now we assume the matrix is smaller then max rows
+// will have to implement an lmem design above this threshold
+// using lmem wrapped above this thresholed may be feasilbe,
+// see the DramAccumulator snippet in dfe-snippets
+class SpmvReductionKernel extends Kernel {
+
+  protected SpmvReductionKernel(KernelParameters parameters, int fpl, int maxRows) {
+    super(parameters);
+
+    DFEVar in = io.input("reductionIn", dfeFloat(11, 53));
+    DFEVar n = io.scalarInput("nRows", dfeUInt(32));
+    DFEVar totalCycles = io.scalarInput("totalCycles", dfeUInt(32));
+
+    DFEVar cycles = control.count.simpleCounter(32);
+
+    DFEVar sumCarried = dfeFloat(11, 53).newInstance(this);
+    DFEVar sum = in + (cycles < n ? 0 : sumCarried);
+    sumCarried <== stream.offset(sum, -(n.cast(dfeInt(32))), -maxRows, -(fpl + 2));
+
+    // output on the last n cycles
+    DFEVar outputEnable = totalCycles - cycles <= n;
+    io.output("reductionOut", sum, dfeFloat(11, 53), outputEnable);
+  }
+}
+
+
+class PaddingKernel extends Kernel {
+  protected PaddingKernel(KernelParameters parameters) {
+    super(parameters);
+    DFEVar nInputs = io.scalarInput("nInputs", dfeUInt(32));
+    DFEVar cycles = control.count.simpleCounter(32);
+    DFEVar paddingCycles = cycles >= nInputs;
+    DFEVar input = io.input("paddingIn", dfeFloat(11, 53), ~paddingCycles);
+    DFEVar out = paddingCycles ? 0 : input;
+    io.output("paddingOut", out, dfeFloat(11, 53));
+  }
+}
