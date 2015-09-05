@@ -41,7 +41,7 @@ class SpmvKernel extends Kernel {
       boolean dbg) {
     super(parameters);
 
-    optimization.pushPipeliningFactor(0);
+    optimization.pushPipeliningFactor(0.5);
     optimization.pushDSPFactor(1);
 
 
