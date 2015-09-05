@@ -114,8 +114,8 @@ public class SpmvManager extends CustomManager{
     public static void main(String[] args) {
         SpmvManager manager = new SpmvManager(new EngineParameters(args));
         manager.createSLiCinterface(interfaceDefault());
-        ManagerUtils.debug(manager);
-        //ManagerUtils.setFullBuild(manager, 2, 2);
+        // ManagerUtils.debug(manager);
+        ManagerUtils.setFullBuild(manager, 2, 2);
         manager.createSLiCinterface(ManagerUtils.interfaceWrite(
               "write", "fromcpu", "cpu2lmem"));
         manager.build();
