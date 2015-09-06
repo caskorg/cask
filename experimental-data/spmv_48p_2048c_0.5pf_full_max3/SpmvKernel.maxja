@@ -1,0 +1,201 @@
+    LUTs     FFs   BRAMs    DSPs : SpmvKernel.maxj
+   50999   47338   249.0     684 : resources used by this file
+  17.14%   7.95%  23.40%  33.93% : % of available
+  58.25%  46.85%  61.03% 100.00% : % of total used
+  93.62%  91.38%  99.80% 100.00% : % of user resources
+
+                                 : import java.util.*;
+                                 : 
+                                 : import com.maxeler.maxcompiler.v2.kernelcompiler.Kernel;
+                                 : import com.maxeler.maxcompiler.v2.kernelcompiler.KernelParameters;
+                                 : import com.maxeler.maxcompiler.v2.kernelcompiler.types.base.*;
+                                 : import com.maxeler.maxcompiler.v2.kernelcompiler.stdlib.core.Count.*;
+                                 : import com.maxeler.maxcompiler.v2.kernelcompiler.types.composite.DFEVectorType;
+                                 : import com.maxeler.maxcompiler.v2.kernelcompiler.types.composite.DFEVector;
+                                 : import com.maxeler.maxcompiler.v2.kernelcompiler.stdlib.memory.*;
+                                 : import com.maxeler.maxcompiler.v2.kernelcompiler.stdlib.KernelMath;
+                                 : import com.maxeler.maxcompiler.v2.utils.MathUtils;
+                                 : 
+                                 : import com.custom_computing_ic.dfe_snippets.utils.Reductions;
+                                 : import com.custom_computing_ic.dfe_snippets.reductions.LogAddReduce;
+                                 : 
+                                 : class SpmvKernel extends Kernel {
+                                 : 
+                                 :   // N x N matrix, nnzs nonzeros
+                                 :   //
+                                 :   // load data for N cycles into cache
+                                 :   // compute for N cycles
+                                 :   // -- in the mean time load data for N cycles in double buffer
+                                 :   // repeat
+                                 :   //
+                                 :   // Sources of inefficiency:
+                                 :   // -- empty rows
+                                 :   // -- port sharing cannot be used
+                                 : 
+                                 :   private final  DFEVectorType<DFEVar> vtype, ivtype;
+                                 :   private final List<Memory<DFEVar>> vroms;
+                                 :   private final int inputWidth;
+                                 :   private final DFEType addressT;
+                                 :   private final boolean dbg;
+                                 : 
+                                 :   private static final int fpL = 16;
+                                 : 
+                                 :   protected SpmvKernel(
+                                 :       KernelParameters parameters,
+                                 :       int inputWidth,
+                                 :       int cacheSize,
+                                 :       boolean dbg) {
+                                 :     super(parameters);
+                                 : 
+                                 :     optimization.pushPipeliningFactor(0.5);
+                                 :     optimization.pushDSPFactor(1);
+                                 : 
+                                 : 
+                                 :     this.inputWidth = inputWidth;
+                                 :     this.addressT = dfeUInt(MathUtils.bitsToAddress(cacheSize));
+                                 :     this.dbg = dbg;
+                                 : 
+                                 :     // load entire vector or until cache is full
+                                 :     int sizeBits = 32; // XXX may need to run for more cycles
+                                 :     DFEVar currentCycle = control.count.simpleCounter(sizeBits);
+       1       1     0.0       0 :     DFEVar vRomLoadEnable = io.input("loadEnabled", dfeBool());
+                                 : 
+                                 :     DFEVar vectorLoadCycles = io.scalarInput("vectorLoadCycles", dfeUInt(32));
+                                 :     Params loadAddressParams = control.count.makeParams(sizeBits )
+                                 :       .withMax(vectorLoadCycles)
+                                 :       .withEnable(vRomLoadEnable);
+      77      78     0.0       0 :     DFEVar loadAddress = control.count.makeCounter(loadAddressParams).getCount();
+                                 : 
+                                 :     vtype = new DFEVectorType<DFEVar> (dfeFloat(11, 53), inputWidth);
+                                 :     ivtype = new DFEVectorType<DFEVar> (dfeUInt(32), inputWidth);
+       3      64     0.0       0 :     DFEVar vectorValue = io.input("vromLoad", dfeFloat(11, 53), vRomLoadEnable);
+                                 :      //--- Cache allocation and control
+                                 :     vroms = new ArrayList<Memory<DFEVar>>();
+                                 :     for (int i = 0; i < inputWidth; i++) {
+       1       0   192.0       0 :       Memory<DFEVar> vrom = mem.alloc(dfeFloat(11, 53), cacheSize);
+                                 :       vroms.add(vrom);
+                                 :       vrom.write(
+                                 :           loadAddress.cast(addressT),
+                                 :           vectorValue,
+                                 :           vRomLoadEnable);
+                                 :     }
+                                 : 
+                                 :     // --- I/O
+       1       1     0.0       0 :     DFEVar readEnable = io.input("readenable", dfeBool()) & ~vRomLoadEnable;
+       1      48     0.0       0 :     DFEVar readMask = io.input("readmask", dfeUInt(inputWidth));
+    1882    3120     0.0       0 :     DFEVector<DFEVar> values = selectValues(
+      35    3072     0.0       0 :         io.input("values", vtype, readEnable),
+                                 :         readMask);
+     291     576     0.0       0 :     DFEVector<DFEVar> colptr = selectValues(
+       2     528     0.0       0 :         io.input("indptr", ivtype, readEnable),
+                                 :          readMask);
+                                 :     DFEVector<DFEVar> vectorValues = resolveVectorReads(colptr);
+   42006   34438     0.0     669 :     DFEVar result = Reductions.reduce(values * vectorValues);
+                                 : 
+                                 :     // --- Accumulation
+       1       1     0.0       0 :     DFEVar rowFinished = io.input("rowFinished", dfeBool());
+       2      32     0.0       0 :     DFEVar rowLength = io.input("rowLength", dfeUInt(32));
+       5      32     0.0       0 :     DFEVar cycleCounter = io.input("cycleCounter", dfeUInt(32));
+       9      32     0.0       0 :     DFEVar firstReadPosition = io.input("firstReadPosition", dfeUInt(32));
+                                 : 
+      32      32     0.0       0 :     DFEVar runLength = firstReadPosition + rowLength;
+      75      89     0.0       0 :     DFEVar modulo = KernelMath.modulo(runLength, inputWidth);
+    1174     510     0.0       0 :     DFEVar quot = (runLength - modulo.cast(dfeUInt(32))) / inputWidth;
+                                 : 
+       5      33     0.0       0 :     DFEVar totalCycles = quot + (modulo === 0 ? constant.var(dfeUInt(32), 0) : 1);
+                                 : 
+                                 :     DFEVar carriedSum = dfeFloat(11, 53).newInstance(this);
+     697     523     0.0       3 :     DFEVar newSum = result + (cycleCounter < fpL ? 0 : carriedSum);
+                                 :     carriedSum <== stream.offset(newSum, -fpL);
+                                 : 
+      52      65     0.0       0 :     DFEVar firstValidPartialSum = (totalCycles > fpL)? (totalCycles - fpL) : 0;
+      17       1     0.0       0 :     DFEVar validPartialSums = (cycleCounter >= firstValidPartialSum);
+    3334    2492     0.0      12 :     LogAddReduce r = new LogAddReduce(this,
+                                 :         validPartialSums,
+                                 :         rowFinished,
+                                 :         newSum,
+                                 :         dfeFloat(11, 53),
+                                 :         fpL);
+                                 : 
+                                 :     // TODO still need reduction step
+       1       0     0.0       0 :     DFEVar outputEnable = ~vRomLoadEnable & rowFinished;
+       1       0     0.0       0 :     io.output("output", r.getOutput(), dfeFloat(11, 53), outputEnable);
+                                 : 
+                                 :     // --- Debug
+                                 :     if (dbg) {
+                                 :         Params rowCounterParams = control.count.makeParams(32)
+                                 :           .withEnable(rowFinished);
+                                 :         DFEVar rowCounter = control.count.makeCounter(rowCounterParams).getCount();
+                                 :       debug.simPrintf(
+                                 :           rowLength !== 0,
+                                 :           "Kernel -- row %d totalCycles %d, readenable %d, readmask %d rowFinished %d rowLength %d output: %f cycleCounter %d validPartialSums %d newSum %f firstRead %d",
+                                 :           rowCounter, totalCycles, readEnable, readMask, rowFinished, rowLength, r.getOutput(), cycleCounter, validPartialSums, newSum, firstReadPosition);
+                                 :       debug.simPrintf(rowLength !== 0 , " loadEnable %d loadAddress %d\n", vRomLoadEnable, loadAddress);
+                                 :       //debug.simPrintf("\n");
+                                 :       //debug.simPrintf("Values: ");
+                                 :       //for (int i = 0; i < inputWidth; i++)
+                                 :         //debug.simPrintf("%f ", values[i]);
+                                 :       //debug.simPrintf("Indices: ");
+                                 :       //for (int i = 0; i < inputWidth; i++)
+                                 :         //debug.simPrintf("%d ", colptr[i]);
+                                 :       //debug.simPrintf("\n");
+                                 :     }
+                                 :   }
+                                 : 
+                                 :   DFEVector<DFEVar> selectValues(
+                                 :       DFEVector<DFEVar> in,
+                                 :       DFEVar readMask) {
+                                 :     DFEVector<DFEVar> out = in.getType().newInstance(this);
+                                 :     for (int i = 0; i < in.getSize(); i++)
+    2173    3696     0.0       0 :       out[i] <== readMask.slice(i) === 0 ?  0 : in[i];
+                                 :     return out;
+                                 :   }
+                                 : 
+                                 : 
+                                 :   DFEVector<DFEVar> resolveVectorReads(DFEVector<DFEVar> reads) {
+                                 :     DFEVector<DFEVar> out = vtype.newInstance(this);
+                                 :     for (int i = 0; i < vroms.size(); i++)
+                                 :       out[i] <== vroms.get(i).read(reads[i].cast(addressT));
+                                 :     return out;
+                                 :   }
+                                 : 
+                                 : }
+                                 : 
+                                 : 
+                                 : // XXX for now we assume the matrix is smaller then max rows
+                                 : // will have to implement an lmem design above this threshold
+                                 : // using lmem wrapped above this thresholed may be feasilbe,
+                                 : // see the DramAccumulator snippet in dfe-snippets
+                                 : class SpmvReductionKernel extends Kernel {
+                                 : 
+                                 :   protected SpmvReductionKernel(KernelParameters parameters, int fpl, int maxRows) {
+                                 :     super(parameters);
+                                 : 
+       8      64     0.0       0 :     DFEVar in = io.input("reductionIn", dfeFloat(11, 53));
+                                 :     DFEVar n = io.scalarInput("nRows", dfeUInt(32));
+                                 :     DFEVar totalCycles = io.scalarInput("totalCycles", dfeUInt(32));
+                                 : 
+      82      99     0.0       0 :     DFEVar cycles = control.count.simpleCounter(32);
+                                 : 
+                                 :     DFEVar sumCarried = dfeFloat(11, 53).newInstance(this);
+     818    1098     0.0       0 :     DFEVar sum = in + (cycles < n ? 0 : sumCarried);
+     197      48    57.0       0 :     sumCarried <== stream.offset(sum, -(n.cast(dfeInt(32))), -maxRows, -(fpl + 2));
+                                 : 
+                                 :     // output on the last n cycles
+      48      33     0.0       0 :     DFEVar outputEnable = totalCycles - cycles <= n;
+       1       0     0.0       0 :     io.output("reductionOut", sum, dfeFloat(11, 53), outputEnable);
+                                 :   }
+                                 : }
+                                 : 
+                                 : 
+                                 : class PaddingKernel extends Kernel {
+                                 :   protected PaddingKernel(KernelParameters parameters) {
+                                 :     super(parameters);
+                                 :     DFEVar nInputs = io.scalarInput("nInputs", dfeUInt(32));
+      82      99     0.0       0 :     DFEVar cycles = control.count.simpleCounter(32);
+      17       1     0.0       0 :     DFEVar paddingCycles = cycles >= nInputs;
+       1      64     0.0       0 :     DFEVar input = io.input("paddingIn", dfeFloat(11, 53), ~paddingCycles);
+      40      64     0.0       0 :     DFEVar out = paddingCycles ? 0 : input;
+                                 :     io.output("paddingOut", out, dfeFloat(11, 53));
+                                 :   }
+                                 : }
