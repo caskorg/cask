@@ -32,7 +32,7 @@ public class SpmvManager extends CustomManager{
         addMaxFileConstant("cacheSize", cacheSize);
         addMaxFileConstant("maxRows", MAX_ROWS);
 
-        ManagerUtils.setDRAMFreq(this, ep, 800);
+        ManagerUtils.setDRAMMaxDeviceFrequency(this, ep);
 
         ManagerStateMachine csrDecoder = new CsrDecoder(this, DBG_CSR_DECODER);
         StateMachineBlock csrDecoderBlock = addStateMachine("csrDecoder", csrDecoder);
