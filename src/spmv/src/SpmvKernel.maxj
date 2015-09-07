@@ -26,7 +26,7 @@ class SpmvKernel extends Kernel {
   // -- empty rows
   // -- port sharing cannot be used
 
-  private final  DFEVectorType<DFEVar> vtype, ivtype;
+  private final DFEVectorType<DFEVar> vtype, ivtype;
   private final List<Memory<DFEVar>> vroms;
   private final int inputWidth;
   private final DFEType addressT;
@@ -38,6 +38,8 @@ class SpmvKernel extends Kernel {
       KernelParameters parameters,
       int inputWidth,
       int cacheSize,
+      int indexWidth,
+      int mantissaWidth,
       boolean dbg) {
     super(parameters);
 
@@ -60,13 +62,13 @@ class SpmvKernel extends Kernel {
       .withEnable(vRomLoadEnable);
     DFEVar loadAddress = control.count.makeCounter(loadAddressParams).getCount();
 
-    vtype = new DFEVectorType<DFEVar> (dfeFloat(11, 53), inputWidth);
-    ivtype = new DFEVectorType<DFEVar> (dfeUInt(32), inputWidth);
-    DFEVar vectorValue = io.input("vromLoad", dfeFloat(11, 53), vRomLoadEnable);
+    vtype = new DFEVectorType<DFEVar> (dfeFloat(11, mantissaWidth), inputWidth);
+    ivtype = new DFEVectorType<DFEVar> (dfeUInt(indexWidth), inputWidth);
+    DFEVar vectorValue = io.input("vromLoad", dfeFloat(11, mantissaWidth), vRomLoadEnable);
      //--- Cache allocation and control
     vroms = new ArrayList<Memory<DFEVar>>();
     for (int i = 0; i < inputWidth; i++) {
-      Memory<DFEVar> vrom = mem.alloc(dfeFloat(11, 53), cacheSize);
+      Memory<DFEVar> vrom = mem.alloc(dfeFloat(11, mantissaWidth), cacheSize);
       vroms.add(vrom);
       vrom.write(
           loadAddress.cast(addressT),
@@ -98,7 +100,7 @@ class SpmvKernel extends Kernel {
 
     DFEVar totalCycles = quot + (modulo === 0 ? constant.var(dfeUInt(32), 0) : 1);
 
-    DFEVar carriedSum = dfeFloat(11, 53).newInstance(this);
+    DFEVar carriedSum = dfeFloat(11, mantissaWidth).newInstance(this);
     DFEVar newSum = result + (cycleCounter < fpL ? 0 : carriedSum);
     carriedSum <== stream.offset(newSum, -fpL);
 
@@ -108,12 +110,12 @@ class SpmvKernel extends Kernel {
         validPartialSums,
         rowFinished,
         newSum,
-        dfeFloat(11, 53),
+        dfeFloat(11, mantissaWidth),
         fpL);
 
     // TODO still need reduction step
     DFEVar outputEnable = ~vRomLoadEnable & rowFinished;
-    io.output("output", r.getOutput(), dfeFloat(11, 53), outputEnable);
+    io.output("output", r.getOutput(), dfeFloat(11, mantissaWidth), outputEnable);
 
     // --- Debug
     if (dbg) {
@@ -154,6 +156,8 @@ class SpmvKernel extends Kernel {
   }
 
 }
+
+
 
 
 // XXX for now we assume the matrix is smaller then max rows
