@@ -15,6 +15,7 @@ public class SpmvManager extends CustomManager{
     private static final String s_kernelName  = "SpmvKernel";
     private static final String s_reductionKernel = "SpmvReductionKernel";
     private static final String s_paddingKernel = "SpmvPaddingKernel";
+    private static final String s_cacheKernel = "SpmvCacheKernel";
 
     private static final int cacheSize = 1024 * 2;
     private static final int inputWidth = 48;
@@ -46,6 +47,14 @@ public class SpmvManager extends CustomManager{
         StateMachineBlock readControlBlock = addStateMachine("readControl", readControl);
         readControlBlock.getInput("length") <== csrDecoderBlock.getOutput("rowLength_out");
 
+        KernelBlock cache = addKernel(new SpmvCacheKernel(
+              makeKernelParameters(s_cacheKernel),
+              inputWidth,
+              cacheSize,
+              indexWidth,
+              mantissaWidth
+              ));
+
         KernelBlock k = addKernel(new SpmvKernel(
               makeKernelParameters(s_kernelName),
               inputWidth,
@@ -57,18 +66,25 @@ public class SpmvManager extends CustomManager{
 
         addStreamToOnCardMemory("cpu2lmem", MemoryControlGroup.MemoryAccessPattern.LINEAR_1D) <== addStreamFromCPU("fromcpu");
 
-        ManagerUtils.addLinearStreamFromLmemToKernel(this, k, "indptr");
-        ManagerUtils.addLinearStreamFromLmemToKernel(this, k, "values");
 
-        k.getInput("vromLoad") <== addStreamFromCPU("vromLoad");
 
-        k.getInput("readenable") <== readControlBlock.getOutput("readenable");
-        k.getInput("readmask") <== readControlBlock.getOutput("readmask");
+        ManagerUtils.addLinearStreamFromLmemToKernel(this, cache, "indptr");
+        ManagerUtils.addLinearStreamFromLmemToKernel(this, cache, "values");
+
+        cache.getInput("vromLoad") <== addStreamFromCPU("vromLoad");
+
+        cache.getInput("readenable") <== readControlBlock.getOutput("readenable");
+        cache.getInput("readmask") <== readControlBlock.getOutput("readmask");
+        cache.getInput("loadEnabled_in") <== readControlBlock.getOutput("vectorLoad");
+
+        k.getInput("loadEnabled") <== cache.getOutput("loadEnabled_out");
+        k.getInput("vectorValues") <== cache.getOutput("vectorValues");
+        k.getInput("matrixValues") <== cache.getOutput("matrixValues");
+
         k.getInput("rowLength") <== readControlBlock.getOutput("rowLength");
         k.getInput("rowFinished") <== readControlBlock.getOutput("rowFinished");
         k.getInput("cycleCounter") <== readControlBlock.getOutput("cycleCounter");
         k.getInput("firstReadPosition") <== readControlBlock.getOutput("firstReadPosition");
-        k.getInput("loadEnabled") <== readControlBlock.getOutput("vectorLoad");
 
         KernelBlock r = addKernel(new SpmvReductionKernel(
               makeKernelParameters(s_reductionKernel),
@@ -94,7 +110,9 @@ public class SpmvManager extends CustomManager{
       InterfaceParam nPartitions = ei.addParam("nPartitions", CPUTypes.INT);
 
       ei.setTicks(s_kernelName, totalCycles);
-      ei.setScalar(s_kernelName, "vectorLoadCycles", vectorLoadCycles);
+
+      ei.setTicks(s_cacheKernel, totalCycles);
+      ei.setScalar(s_cacheKernel, "vectorLoadCycles", vectorLoadCycles);
 
       ei.setTicks(s_reductionKernel, (n * nPartitions));
       ei.setScalar(s_reductionKernel, "nRows", n);
