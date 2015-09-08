@@ -12,6 +12,8 @@ import com.maxeler.maxcompiler.v2.utils.MathUtils;
 
 import com.custom_computing_ic.dfe_snippets.utils.Reductions;
 import com.custom_computing_ic.dfe_snippets.reductions.LogAddReduce;
+import com.custom_computing_ic.dfe_snippets.utils.FetchSubTuple;
+
 
 class SpmvKernel extends Kernel {
 
@@ -115,8 +117,9 @@ class SpmvKernel extends Kernel {
 
 }
 
-// This implements cache
-//
+// This implements cache as
+//   - row of BRAMs
+//   - SM, which helps to select BRAM values
 class SpmvCacheKernel extends Kernel {
 
   private final DFEVectorType<DFEVar> vtype, ivtype;
@@ -184,6 +187,107 @@ class SpmvCacheKernel extends Kernel {
     return out;
   }
 
+
+  DFEVector<DFEVar> resolveVectorReads(DFEVector<DFEVar> reads) {
+    DFEVector<DFEVar> out = vtype.newInstance(this);
+    for (int i = 0; i < vroms.size(); i++)
+      out[i] <== vroms.get(i).read(reads[i].cast(addressT));
+    return out;
+  }
+
+}
+
+// This implements cache as
+//   - row of BRAMs
+//   - FetchSubTuple
+// First, rough and pointless implementation.
+class SpmvCacheFSTKernel extends Kernel {
+
+  private final DFEVectorType<DFEVar> vtype, ivtype;
+  private final List<Memory<DFEVar>> vroms;
+  private final int inputWidth;
+  private final DFEType addressT;
+
+  protected SpmvCacheFSTKernel(KernelParameters parameters,
+      int inputWidth,
+      int cacheSize,
+      int indexWidth,
+      int mantissaWidth) {
+    super(parameters);
+
+    this.inputWidth = inputWidth;
+    this.addressT = dfeUInt(MathUtils.bitsToAddress(cacheSize));
+
+    // load entire vector or until cache is full
+    int sizeBits = 32; // XXX may need to run for more cycles
+    DFEVar vRomLoadEnable = io.input("loadEnabled_in", dfeBool());
+
+    DFEVar vectorLoadCycles = io.scalarInput("vectorLoadCycles", dfeUInt(32));
+    Params loadAddressParams = control.count.makeParams(sizeBits )
+      .withMax(vectorLoadCycles)
+      .withEnable(vRomLoadEnable);
+    DFEVar loadAddress = control.count.makeCounter(loadAddressParams).getCount();
+
+
+    vtype = new DFEVectorType<DFEVar> (dfeFloat(11, mantissaWidth), inputWidth);
+    ivtype = new DFEVectorType<DFEVar> (dfeUInt(indexWidth), inputWidth);
+    DFEVar vectorValue = io.input("vromLoad", dfeFloat(11, mantissaWidth), vRomLoadEnable);
+     //--- Cache allocation and control
+    vroms = new ArrayList<Memory<DFEVar>>();
+    for (int i = 0; i < inputWidth; i++) {
+      Memory<DFEVar> vrom = mem.alloc(dfeFloat(11, mantissaWidth), cacheSize);
+      vroms.add(vrom);
+      vrom.write(
+          loadAddress.cast(addressT),
+          vectorValue,
+          vRomLoadEnable);
+    }
+
+    // --- I/O
+    // --- buffering matrix and colptr data in FST
+
+    // assuming readEnable guards internal storage of FST from overflow:
+    // 
+    //    DFEVar dataRequestEnableLoop = dfeBool().newInstance(this);
+    //    DFEVar dataRequestEnable = control.count.pulse(1)? 0
+    //                               : stream.offset(dataRequestEnableLoop,-1);
+    //    DFEVar enable = readEnable & dataRequestEnable;
+
+    DFEVar readEnable = io.input("readenable", dfeBool()) & ~vRomLoadEnable;
+    DFEVar readMask = io.input("readmask", dfeUInt(inputWidth));
+
+    DFEVector<DFEVar> matrix_in = io.input("values", vtype, readEnable);
+    DFEVector<DFEVar> index_in = io.input("indptr", ivtype, readEnable);
+
+    // big hack around: counting the number of 1s in readmask
+    List<DFEVar> readmask_bits = new ArrayList<DFEVar>();
+    for (int i = 0; i < inputWidth; i++)
+    {
+        readmask_bits.add(readMask[i].cast(dfeBool()).cast(dfeUInt(6))); // 2^6 = 64 > 48 = inputWidth
+    }
+    DFEVar numEntriesToRead = Reductions.reduce(readmask_bits);
+
+    // we don't care which PE receives each entry (assume matrices are
+    // numerically nice enough to change the order of accumulation)
+    boolean alignOutput = false;
+    int matrixTypeWidth = 11 + mantissaWidth;
+    FetchSubTuple matrixBuffer = new FetchSubTuple(this, "matrix", inputWidth,
+                                 matrixTypeWidth, dfeFloat(11, mantissaWidth),
+                                 alignOutput);
+    FetchSubTuple indexBuffer  = new FetchSubTuple(this, "index", inputWidth,
+                                 indexWidth, dfeUInt(indexWidth), alignOutput);
+
+    DFEVector<DFEVar> matrixValues = matrixBuffer.popPush(numEntriesToRead, readEnable, matrix_in);
+    DFEVector<DFEVar> colptr = indexBuffer.popPush(numEntriesToRead, readEnable, index_in);
+
+    //dataRequestEnableLoop <== matrixBuffer.nextPushEnable();
+    
+    DFEVector<DFEVar> vectorValues = resolveVectorReads(colptr);
+
+    io.output("loadEnabled_out", vRomLoadEnable, dfeBool());
+    io.output("matrixValues", matrixValues, vtype, ~vRomLoadEnable);
+    io.output("vectorValues", vectorValues, vtype, ~vRomLoadEnable);
+  }
 
   DFEVector<DFEVar> resolveVectorReads(DFEVector<DFEVar> reads) {
     DFEVector<DFEVar> out = vtype.newInstance(this);

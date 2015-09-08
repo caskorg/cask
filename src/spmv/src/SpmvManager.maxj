@@ -47,7 +47,7 @@ public class SpmvManager extends CustomManager{
         StateMachineBlock readControlBlock = addStateMachine("readControl", readControl);
         readControlBlock.getInput("length") <== csrDecoderBlock.getOutput("rowLength_out");
 
-        KernelBlock cache = addKernel(new SpmvCacheKernel(
+        KernelBlock cache = addKernel(new SpmvCacheFSTKernel(
               makeKernelParameters(s_cacheKernel),
               inputWidth,
               cacheSize,
