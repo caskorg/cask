@@ -18,7 +18,7 @@ public class SpmvManager extends CustomManager{
 
     private static final int cacheSize = 1024 * 2;
     private static final int inputWidth = 48;
-    private static final int MAX_ROWS = 30000;
+    private static final int MAX_ROWS = 100000;
 
     private static final int FLOATING_POINT_LATENCY = 16;
 

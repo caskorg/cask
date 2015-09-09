@@ -19,7 +19,7 @@ Eigen::VectorXd spark::spmv::dfespmv(
   // 2. best parameters
   // 3. corresponding partitioning strategy
 
-  return spark::spmv::dfespmv(spark::spmv::partition(mat), x);
+  return spark::spmv::dfespmv(spark::spmv::partition(mat, getPartitionSize()), x);
 }
 
 Eigen::VectorXd spark::spmv::dfespmv(
@@ -45,7 +45,7 @@ Eigen::VectorXd spark::spmv::dfespmv(
     auto p_colptr = std::get<0>(p);
     auto p_indptr = std::get<1>(p);
     auto p_values = std::get<2>(p);
-    cycles += cycleCount(&p_colptr[0], n);
+    cycles += cycleCount(&p_colptr[0], n, getInputWidth());
     align(p_indptr, sizeof(int) * Spmv_inputWidth);
     align(p_values, sizeof(double) * Spmv_inputWidth);
     std::copy(p_values.begin(), p_values.end(), back_inserter(m_values));

@@ -7,8 +7,11 @@
 #include <sstream>
 #include <stdexcept>
 #include <fstream>
+#include <chrono>
 
 #include <Spark/SparseMatrix.hpp>
+
+#include <dfesnippets/Timing.hpp>
 
 namespace spark {
   namespace io {
@@ -152,12 +155,14 @@ namespace spark {
                     std::get<2>(tpl)));
           }
 
+          auto start = std::chrono::high_resolution_clock::now();
           std::sort(values.begin(), values.end(),
               [](CoordType x, CoordType y) {
               return
               std::get<0>(x) < std::get<0>(y) ||
               (std::get<0>(x) == std::get<0>(y) && std::get<1>(x) < std::get<1>(y));
               });
+          dfesnippets::timing::print_clock_diff("Sorting took: ", start);
 
           spark::sparse::SparkCooMatrix<value_type> m(nrows, ncols);
           m.data = values;

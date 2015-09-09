@@ -30,10 +30,10 @@ namespace spark {
 
 
     // how many cycles does it take to resolve the accesses
-    int cycleCount(int32_t* v, int size) {
+    int cycleCount(int32_t* v, int size, int inputWidth) {
       int cycles = 0;
       int crtPos = 0;
-      int bufferWidth = getInputWidth();
+      int bufferWidth = inputWidth;
       for (int i = 0; i < size; i++) {
         int toread = v[i] - (i > 0 ? v[i - 1] : 0);
         do {
@@ -48,10 +48,9 @@ namespace spark {
     }
 
     spark::sparse::PartitionedCsrMatrix partition(
-        const Eigen::SparseMatrix<double, Eigen::RowMajor, int32_t> mat)
+        const Eigen::SparseMatrix<double, Eigen::RowMajor, int32_t> mat, int partitionSize)
     {
 
-      int partitionSize = getPartitionSize();
       const int* indptr = mat.innerIndexPtr();
       const double* values = mat.valuePtr();
       const int* colptr = mat.outerIndexPtr();
@@ -62,7 +61,6 @@ namespace spark {
       //std::cout << "Npartitions: " << nPartitions << std::endl;
 
       std::vector<spark::sparse::CsrMatrix> partitions(nPartitions);
-      std::cout << "Partition"  << std::endl;
 
       for (int i = 0; i < rows; i++) {
         for (int j = 0; j < nPartitions; j++) {
@@ -82,7 +80,6 @@ namespace spark {
           std::get<0>(p).back()++;
         }
       }
-      std::cout << "Done Partition" << std::endl;
       return partitions;
     }
 
@@ -104,9 +101,10 @@ namespace spark {
         //getResourceUsage();
 
         double getEstimatedGFlops() {
-          return getEstimatedClockCycles() / getFrequency();
+          return  getGFlopsCount() /(getEstimatedClockCycles() / getFrequency());
         }
 
+        virtual double getGFlopsCount() = 0;
         virtual double getEstimatedClockCycles() = 0;
         virtual double getFrequency() = 0;
         virtual void preprocessMatrix(const Eigen::SparseMatrix<double, Eigen::RowMajor> mat) = 0;
@@ -114,31 +112,44 @@ namespace spark {
     };
 
     class SimpleSpmvArchitecture : public SpmvArchitecture {
-      int cacheSize, numPipes;
+      // architecture specific properties
+      int cacheSize, inputWidth;
+
+      // matrix specific properties, only available after process()
+      int totalCycles = -1;
+      double gflopsCount = -1;
+
       public:
         SimpleSpmvArchitecture(int _cacheSize,int  _numPipes) :
-          cacheSize(_cacheSize), numPipes(_numPipes) {}
-
-        double getEstimatedClockCycles() override {
-          return 100;
-        }
+          cacheSize(_cacheSize), inputWidth(_numPipes) {}
 
         double getFrequency() override {
           return 100 * 1E6;
         }
 
+        double getGFlopsCount() override {
+          return gflopsCount;
+        }
+
+        // NOTE: only call this after a call to preprocessMatrix
+        double getEstimatedClockCycles() override {
+          return totalCycles;
+        }
+
         virtual std::string to_string() {
-          return "SpmvArchitecture(cacheSize = " + std::to_string(cacheSize) +
-            ", numPipes = " + std::to_string(numPipes) + ")";
+          std::stringstream s;
+          s << "SpmvArchitecture:";
+          s << " cacheSize = " << cacheSize;
+          s << " inputWidth = " << inputWidth;
+          s << " est. cycles = " << getEstimatedClockCycles();
+          s << " est. gflops = " << getEstimatedGFlops();
+          return s.str();
         }
 
         virtual void preprocessMatrix(const Eigen::SparseMatrix<double, Eigen::RowMajor> mat) {
-          //mat.makeCompressed();
-
           int n = mat.cols();
-          auto result = spark::spmv::partition(mat);
+          auto result = spark::spmv::partition(mat, cacheSize);
           std::vector<double> v(n, 0);
-          //std::vector<double> total(v.size(), 0);
           std::vector<double> m_values;
           std::vector<int> m_colptr, m_indptr;
 
@@ -147,14 +158,13 @@ namespace spark {
             auto p_colptr = std::get<0>(p);
             auto p_indptr = std::get<1>(p);
             auto p_values = std::get<2>(p);
-            cycles += cycleCount(&p_colptr[0], n);
-            align(p_indptr, sizeof(int) * getInputWidth());
-            align(p_values, sizeof(double) * getInputWidth());
+            cycles += cycleCount(&p_colptr[0], n, inputWidth);
+            align(p_indptr, sizeof(int) * inputWidth);
+            align(p_values, sizeof(double) * inputWidth);
             std::copy(p_values.begin(), p_values.end(), back_inserter(m_values));
             std::copy(p_indptr.begin(), p_indptr.end(), back_inserter(m_indptr));
             std::copy(p_colptr.begin(), p_colptr.end(), back_inserter(m_colptr));
           }
-
 
           int nPartitions = result.size();
           int outSize = n;
@@ -167,17 +177,9 @@ namespace spark {
           align(m_values, 384);
           align(m_indptr, 384);
           align(v, sizeof(double) * getPartitionSize());
-          //std::cout << "Running on DFE" << std::endl;
-          //int vector_load_cycles = v.size() / nPartitions;
-          //std::cout << "Running on DFE" << std::endl;
-          //int totalCycles = cycles + vector_load_cycles * nPartitions;
-          //std::cout << "Vector load cycles " << vector_load_cycles << std::endl;
-          //std::cout << "Padding cycles = " << paddingCycles << std::endl;
-          //std::cout << "Total cycles = " << totalCycles << std::endl;
-          //std::cout << "Nrows = " << n << std::endl;
-          //std::cout << "Compute cycles = " << cycles << std::endl;
-          //std::cout << "Partitions = " << nPartitions << std::endl;
-          //std::cout << "Expected out size = " << out.size() << std::endl;
+          totalCycles = cycles + v.size();
+
+          gflopsCount = 2.0 * (double)mat.nonZeros() / 1E9;
         }
     };
 
@@ -191,12 +193,12 @@ namespace spark {
 
 
     class SimpleSpmvArchitectureSpace : public SpmvArchitectureSpace {
-      int minCacheSize = 128;
-      int minNumPipes = 1;
-      int maxCacheSize = 1024;
-      int maxNumPipes = 6;
+      int minCacheSize = 1024;
+      int minInputWidth = 8;
+      int maxCacheSize = 4096;
+      int maxInputWidth = 100;
 
-      int numPipes = minNumPipes;
+      int inputWidth = minInputWidth;
       int cacheSize = minCacheSize;
 
       SimpleSpmvArchitecture* firstArchitecture, *lastArchitecture, *currentArchitecture;
@@ -204,16 +206,16 @@ namespace spark {
       public:
 
       SimpleSpmvArchitectureSpace() {
-        firstArchitecture = new SimpleSpmvArchitecture(minCacheSize, minNumPipes);
+        firstArchitecture = new SimpleSpmvArchitecture(minCacheSize, minInputWidth);
         currentArchitecture = firstArchitecture;
-        lastArchitecture = new SimpleSpmvArchitecture(maxCacheSize, maxNumPipes);
+        lastArchitecture = new SimpleSpmvArchitecture(maxCacheSize, maxInputWidth);
 
       }
 
       virtual ~SimpleSpmvArchitectureSpace() {
         free(lastArchitecture);
         free(firstArchitecture);
-        if (currentArchitecture != firstArchitecture &
+        if (currentArchitecture != firstArchitecture &&
             currentArchitecture != lastArchitecture)
           free(currentArchitecture);
       }
@@ -223,17 +225,14 @@ namespace spark {
       }
 
       SimpleSpmvArchitecture* end() {
-        std::cout << "end(): Here" << std::endl;
         return lastArchitecture;
       }
 
       SimpleSpmvArchitecture* operator++(){
-        std::cout << "operator++: Here" << std::endl;
-        std::cout << cacheSize << " " << numPipes << std::endl;
-        cacheSize = (cacheSize + 128) % maxCacheSize;
+        cacheSize = (cacheSize + 512) % maxCacheSize;
         if (cacheSize == 0) {
           cacheSize = minCacheSize;
-          numPipes = std::max((numPipes + 1) % maxNumPipes, minNumPipes);
+          inputWidth = std::max((inputWidth + 8) % maxInputWidth, minInputWidth);
         }
 
         if (currentArchitecture != firstArchitecture &&
@@ -241,12 +240,10 @@ namespace spark {
           free(currentArchitecture);
 
         if (cacheSize == minCacheSize &&
-            numPipes == minNumPipes)
+            inputWidth == minInputWidth)
           return lastArchitecture;
 
-        std::cout << "Making a new architecture" << std::endl;
-        std::cout << cacheSize << " " << numPipes << std::endl;
-        currentArchitecture = new SimpleSpmvArchitecture(cacheSize, numPipes);
+        currentArchitecture = new SimpleSpmvArchitecture(cacheSize, inputWidth);
         return currentArchitecture;
     }
   };
