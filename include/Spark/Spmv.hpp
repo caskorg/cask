@@ -83,57 +83,64 @@ namespace spark {
       return partitions;
     }
 
-    //class ResourceUsageModel {
-      //int luts, ffs, dsps, brams;
-      //int mluts, mffs, mdsps, mbrams;
-      //std::string to_string() {
-        //stringstream s;
-        //s << luts << " " << ffs << " " << dsps << " " << brams;
-        //return s.str();
-      //}
-    //};
+    class ResourceUsage {
+      public:
+      int luts, ffs, dsps, brams;
+      int mluts, mffs, mdsps, mbrams;
+      ResourceUsage(int _luts, int _ffs, int _dsps, int _brams) :
+        luts(_luts), ffs(_ffs), dsps(_dsps), brams(_brams) {}
+      std::string to_string() {
+        std::stringstream s;
+        s << "LUTs: " << luts << " FFs: " << ffs << " DSPs: " << dsps << " BRAMs: " << brams;
+        return s.str();
+      }
+    };
 
     class SpmvArchitecture {
 
+      // matrix specific properties, only available after process()
+      protected:
+      double gflopsCount = -1;
+      int totalCycles = -1;
+
       public:
-        //void preprocessMatrix();
         //doSpmv(iterations, x);
-        //getResourceUsage();
 
         double getEstimatedGFlops() {
           return  getGFlopsCount() /(getEstimatedClockCycles() / getFrequency());
         }
 
-        virtual double getGFlopsCount() = 0;
-        virtual double getEstimatedClockCycles() = 0;
-        virtual double getFrequency() = 0;
+        double getEstimatedClockCycles() {
+          return totalCycles;
+        }
+
+        double getFrequency() {
+          return 100 * 1E6;
+        }
+
+        double getGFlopsCount() {
+          return gflopsCount;
+        }
+
         virtual void preprocessMatrix(const Eigen::SparseMatrix<double, Eigen::RowMajor> mat) = 0;
         virtual std::string to_string() = 0;
+        virtual ResourceUsage getResourceUsage() = 0;
     };
 
     class SimpleSpmvArchitecture : public SpmvArchitecture {
       // architecture specific properties
       int cacheSize, inputWidth;
 
-      // matrix specific properties, only available after process()
-      int totalCycles = -1;
-      double gflopsCount = -1;
-
       public:
-        SimpleSpmvArchitecture(int _cacheSize,int  _numPipes) :
-          cacheSize(_cacheSize), inputWidth(_numPipes) {}
-
-        double getFrequency() override {
-          return 100 * 1E6;
-        }
-
-        double getGFlopsCount() override {
-          return gflopsCount;
-        }
+        SimpleSpmvArchitecture(int _cacheSize,int  _inputWidth) :
+          cacheSize(_cacheSize), inputWidth(_inputWidth) {}
 
         // NOTE: only call this after a call to preprocessMatrix
-        double getEstimatedClockCycles() override {
-          return totalCycles;
+
+        virtual ResourceUsage getResourceUsage() {
+          // XXX bram usage for altera in double precision only (512 deep, 40 bits wide, so need 2 BRAMs)
+          int brams = (double)cacheSize * (double)inputWidth / 512.0 * 2.0;
+          return ResourceUsage{-1, -1, -1, brams};
         }
 
         virtual std::string to_string() {
@@ -209,7 +216,6 @@ namespace spark {
         firstArchitecture = new SimpleSpmvArchitecture(minCacheSize, minInputWidth);
         currentArchitecture = firstArchitecture;
         lastArchitecture = new SimpleSpmvArchitecture(maxCacheSize, maxInputWidth);
-
       }
 
       virtual ~SimpleSpmvArchitectureSpace() {
