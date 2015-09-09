@@ -13,6 +13,8 @@ int test(string path) {
   auto eigenMatrix = spark::converters::tripletToEigen(m.mmreadMatrix(path));
   int cols = eigenMatrix->cols();
 
+  std::cout << "Nonzeros: " << eigenMatrix->nonZeros() << std::endl;
+
   Eigen::VectorXd x(cols);
   for (int i = 0; i < cols; i++)
     x[i] = (double)i * 0.25;

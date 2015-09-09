@@ -2,46 +2,23 @@
 #include <Spark/converters.hpp>
 #include <iostream>
 #include <tuple>
-#include <boost/numeric/ublas/io.hpp>
-#include <boost/numeric/ublas/vector.hpp>
 
 #include <dfesnippets/VectorUtils.hpp>
 #include <Maxfiles.h>
 
 using EigenSparseMatrix = Eigen::SparseMatrix<double, Eigen::RowMajor, int32_t>;
 
-// how many cycles does it take to resolve the accesses
-int cycleCount(int32_t* v, int size) {
-  int cycles = 0;
-  int crtPos = 0;
-  int bufferWidth = Spmv_inputWidth;
-  for (int i = 0; i < size; i++) {
-    int toread = v[i] - (i > 0 ? v[i - 1] : 0);
-    do {
-      int canread = std::min(bufferWidth - crtPos, toread);
-      crtPos += canread;
-      crtPos %= bufferWidth;
-      cycles++;
-      toread -= canread;
-    } while (toread > 0);
-  }
-  return cycles;
-}
-
-template<typename T>
-void align(std::vector<T>& v, int widthInBytes) {
-  int limit = widthInBytes / sizeof(T);
-  while ((v.size() * sizeof(T)) % widthInBytes != 0 && limit != 0) {
-    v.push_back(0);
-    limit--;
-  }
-}
 
 Eigen::VectorXd spark::spmv::dfespmv(
     EigenSparseMatrix mat,
     Eigen::VectorXd x)
 {
   mat.makeCompressed();
+  // TODO use model to find:
+  // 1. best architecture
+  // 2. best parameters
+  // 3. corresponding partitioning strategy
+
   return spark::spmv::dfespmv(spark::spmv::partition(mat), x);
 }
 
@@ -56,7 +33,7 @@ Eigen::VectorXd spark::spmv::dfespmv(
   int n = x.size();
 
   if (n > Spmv_maxRows)
-    throw std::invalid_argument("Matrix has too many rows - maximum supported: 30000");
+    throw std::invalid_argument("Matrix has too many rows - maximum supported: " + to_string(Spmv_maxRows));
 
   vector<double> v = spark::converters::eigenVectorToStdVector(x);
   std::vector<double> total(v.size(), 0);
@@ -75,6 +52,7 @@ Eigen::VectorXd spark::spmv::dfespmv(
     std::copy(p_indptr.begin(), p_indptr.end(), back_inserter(m_indptr));
     std::copy(p_colptr.begin(), p_colptr.end(), back_inserter(m_colptr));
   }
+
 
   int nPartitions = result.size();
   int outSize = n;
@@ -133,4 +111,8 @@ Eigen::VectorXd spark::spmv::dfespmv(
 
 int spark::spmv::getPartitionSize() {
   return Spmv_cacheSize;
+}
+
+int spark::spmv::getInputWidth() {
+  return Spmv_inputWidth;
 }
