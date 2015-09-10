@@ -10,6 +10,19 @@
 
 using EigenSparseMatrix = Eigen::SparseMatrix<double, Eigen::RowMajor, int32_t>;
 
+// how many cycles does it take to resolve the accesses with FST
+int cycleCountFST(int32_t* v, int size) {
+  int bufferWidth = Spmv_inputWidth;
+  for (int i = 0; i < size; i++) {
+    int toread = v[i] - (i > 0 ? v[i - 1] : 0);
+    do {
+      toread -= std::min(toread, bufferWidth);
+      cycles++;
+    } while (toread > 0);
+  }
+  return cycles;
+}
+
 // how many cycles does it take to resolve the accesses
 int cycleCount(int32_t* v, int size) {
   int cycles = 0;
