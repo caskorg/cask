@@ -8,7 +8,9 @@
 namespace spark {
   namespace spmv {
 
-    struct PartitionResult {
+    using EigenSparseMatrix = Eigen::SparseMatrix<double, Eigen::RowMajor, int32_t>;
+
+    struct BlockingResult {
       int nPartitions, n, paddingCycles, totalCycles, vector_load_cycles;
       std::vector<int> m_colptr, m_indptr;
       std::vector<double> m_values;
@@ -24,6 +26,7 @@ namespace spark {
         return s.str();
       }
     };
+
     // A parameterised, generic architecture for SpMV. Supported parameters are:
     // - input width
     // - number of pipes
@@ -33,8 +36,8 @@ namespace spark {
       // architecture specific properties
       protected:
       int cacheSize, inputWidth;
-      Eigen::SparseMatrix<double, Eigen::RowMajor> mat;
-      PartitionResult pr;
+      EigenSparseMatrix mat;
+      BlockingResult br;
       std::string name;
 
       virtual int cycleCount(int32_t* v, int size, int inputWidth);
@@ -66,14 +69,16 @@ namespace spark {
           return s.str();
         }
 
-        virtual void preprocess(const Eigen::SparseMatrix<double, Eigen::RowMajor> mat) override;
+        virtual void preprocess(const EigenSparseMatrix mat) override;
 
         virtual Eigen::VectorXd dfespmv(Eigen::VectorXd x) override;
 
       private:
-        PartitionResult partition(
+        std::vector<EigenSparseMatrix> do_partition(const EigenSparseMatrix mat);
+
+        BlockingResult do_blocking(
             const Eigen::SparseMatrix<double, Eigen::RowMajor, int32_t> mat,
-            int partitionSize);
+            int blockSize);
     };
 
     template<typename T>

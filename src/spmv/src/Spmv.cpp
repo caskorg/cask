@@ -8,10 +8,12 @@
 #include <dfesnippets/VectorUtils.hpp>
 #include <Maxfiles.h>
 
-using EigenSparseMatrix = Eigen::SparseMatrix<double, Eigen::RowMajor, int32_t>;
+using namespace spark::spmv;
+using ssarch = spark::spmv::SimpleSpmvArchitecture;
 
 // how many cycles does it take to resolve the accesses
-int spark::spmv::SimpleSpmvArchitecture::cycleCount(int32_t* v, int size, int inputWidth) {
+int ssarch::cycleCount(int32_t* v, int size, int inputWidth)
+{
   int cycles = 0;
   int crtPos = 0;
   for (int i = 0; i < size; i++) {
@@ -27,9 +29,10 @@ int spark::spmv::SimpleSpmvArchitecture::cycleCount(int32_t* v, int size, int in
   return cycles;
 }
 
-spark::spmv::PartitionResult spark::spmv::SimpleSpmvArchitecture::partition(
-    const Eigen::SparseMatrix<double, Eigen::RowMajor, int32_t> mat,
-    int partitionSize)
+// transform a given matrix with n rows in blocks of size n X blockSize
+spark::spmv::BlockingResult ssarch::do_blocking(
+    const EigenSparseMatrix mat,
+    int blockSize)
 {
 
   const int* indptr = mat.innerIndexPtr();
@@ -39,7 +42,7 @@ spark::spmv::PartitionResult spark::spmv::SimpleSpmvArchitecture::partition(
   int cols = mat.cols();
   int n = rows;
 
-  int nPartitions = cols / partitionSize + (cols % partitionSize == 0 ? 0 : 1);
+  int nPartitions = cols / blockSize + (cols % blockSize == 0 ? 0 : 1);
   //std::cout << "Npartitions: " << nPartitions << std::endl;
 
   std::vector<spark::sparse::CsrMatrix> partitions(nPartitions);
@@ -55,8 +58,8 @@ spark::spmv::PartitionResult spark::spmv::SimpleSpmvArchitecture::partition(
     //std::cout << "i = " << i << std::endl;
     //std::cout << "colptr" << colptr[i] << std::endl;
     for (int j = colptr[i]; j < colptr[i+1]; j++) {
-      auto& p = partitions[indptr[j] / partitionSize];
-      int idxInPartition = indptr[j] - (indptr[j] / partitionSize ) * partitionSize;
+      auto& p = partitions[indptr[j] / blockSize];
+      int idxInPartition = indptr[j] - (indptr[j] / blockSize ) * blockSize;
       std::get<1>(p).push_back(idxInPartition);
       std::get<2>(p).push_back(values[j]);
       std::get<0>(p).back()++;
@@ -96,62 +99,58 @@ spark::spmv::PartitionResult spark::spmv::SimpleSpmvArchitecture::partition(
   this->gflopsCount = 2.0 * (double)mat.nonZeros() / 1E9;
   this->totalCycles = cycles + v.size();
 
-  PartitionResult pr;
-  pr.nPartitions = nPartitions;
-  pr.n = mat.cols();
-  pr.paddingCycles = n % 2;
-  pr.totalCycles = totalCycles;
-  pr.vector_load_cycles = v.size() / nPartitions; // per partition
-  pr.m_colptr = m_colptr;
-  pr.m_values = m_values;
-  pr.m_indptr = m_indptr;
+  BlockingResult br;
+  br.nPartitions = nPartitions;
+  br.n = mat.cols();
+  br.paddingCycles = n % 2;
+  br.totalCycles = totalCycles;
+  br.vector_load_cycles = v.size() / nPartitions; // per partition
+  br.m_colptr = m_colptr;
+  br.m_values = m_values;
+  br.m_indptr = m_indptr;
 
-  return pr;
+  return br;
 }
 
 
-Eigen::VectorXd spark::spmv::SimpleSpmvArchitecture::dfespmv(Eigen::VectorXd x)
+Eigen::VectorXd ssarch::dfespmv(Eigen::VectorXd x)
 {
   using namespace std;
 
-   //Assume that the system has been correctly defined
-   //and that v.size() === result.rows() === result.total_columns()
   int n = x.size();
   vector<double> v = spark::converters::eigenVectorToStdVector(x);
   spark::spmv::align(v, sizeof(double) * Spmv_cacheSize);
 
-  vector<double> out(n + pr.paddingCycles , 0);
-
-  //spark::spmv::align(v, sizeof(double) * Spmv_cacheSize);
+  vector<double> out(n + br.paddingCycles , 0);
 
   Spmv_write(
-      pr.m_values.size() * sizeof(double),
+      br.m_values.size() * sizeof(double),
       0,
-      (uint8_t *)&pr.m_values[0]
+      (uint8_t *)&br.m_values[0]
       );
 
   Spmv_write(
-      pr.m_indptr.size() * sizeof(int),
-      pr.m_values.size() * sizeof(double),
-      (uint8_t *)&pr.m_indptr[0]);
+      br.m_indptr.size() * sizeof(int),
+      br.m_values.size() * sizeof(double),
+      (uint8_t *)&br.m_indptr[0]);
 
-  std::cout << pr.to_string() << std::endl;
+  std::cout << br.to_string() << std::endl;
   std::cout << "Running on DFE" << std::endl;
   Spmv(
-      pr.nPartitions,
-      pr.n,
-      pr.paddingCycles,
-      pr.totalCycles,
-      pr.vector_load_cycles,
+      br.nPartitions,
+      br.n,
+      br.paddingCycles,
+      br.totalCycles,
+      br.vector_load_cycles,
       v.size(),
-      &pr.m_colptr[0], //const void *instream_colptr,
-      pr.m_colptr.size() * sizeof(int), //size_t instream_size_colptr,
+      &br.m_colptr[0], //const void *instream_colptr,
+      br.m_colptr.size() * sizeof(int), //size_t instream_size_colptr,
       &v[0],
       &out[0],//void *outstream_output,
-      pr.m_values.size() * sizeof(double), // lmlem_address_indptr
-      pr.m_indptr.size() * sizeof(int),
+      br.m_values.size() * sizeof(double), // lmlem_address_indptr
+      br.m_indptr.size() * sizeof(int),
       0,
-      pr.m_values.size() * sizeof(double) // lmlem_address_indptr
+      br.m_values.size() * sizeof(double) // lmlem_address_indptr
       );//size_t outstream_size_output);
   std::cout << "Done on DFE" << std::endl;
 
@@ -166,8 +165,20 @@ int spark::spmv::getInputWidth() {
   return Spmv_inputWidth;
 }
 
-void spark::spmv::SimpleSpmvArchitecture::preprocess(
-    const Eigen::SparseMatrix<double, Eigen::RowMajor> mat) {
+void ssarch::preprocess(
+    const EigenSparseMatrix mat) {
   this->mat = mat;
-  this->pr = partition(mat, this->cacheSize);
+
+  std::vector<EigenSparseMatrix> partitions = do_partition(mat);
+
+  for (const auto& m : partitions) {
+    this->br = this->do_blocking(m, this->cacheSize);
+  }
+
+  //this->pr =
+}
+
+std::vector<EigenSparseMatrix> ssarch::do_partition(const EigenSparseMatrix mat)
+{
+  return std::vector<EigenSparseMatrix>{mat};
 }
