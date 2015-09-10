@@ -1,5 +1,7 @@
 #include <string>
 #include <Spark/Spmv.hpp>
+#include <Spark/SimpleSpmv.hpp>
+
 #include <Eigen/Sparse>
 #include <Spark/io.hpp>
 #include <dfesnippets/Timing.hpp>
@@ -12,7 +14,7 @@ void dse (std::string basename, SpmvArchitectureSpace* af, Eigen::SparseMatrix<d
   int it = 0;
   for (SpmvArchitecture* a = af->begin(); a != af->end(); ) {
     auto start = std::chrono::high_resolution_clock::now();
-    a->preprocessMatrix(mat); // do spmv?
+    a->preprocess(mat); // do spmv?
     std::cout << "Matrix: " << basename << " " << a->to_string();
     std::cout << " ResourceUsage: " << a->getResourceUsage().to_string() << std::endl;
     dfesnippets::timing::print_clock_diff("Took: ", start);
