@@ -11,7 +11,7 @@
 using EigenSparseMatrix = Eigen::SparseMatrix<double, Eigen::RowMajor, int32_t>;
 
 // how many cycles does it take to resolve the accesses
-int cycleCount(int32_t* v, int size, int inputWidth) {
+int spark::spmv::SimpleSpmvArchitecture::cycleCount(int32_t* v, int size, int inputWidth) {
   int cycles = 0;
   int crtPos = 0;
   for (int i = 0; i < size; i++) {
@@ -78,7 +78,7 @@ spark::spmv::PartitionResult spark::spmv::SimpleSpmvArchitecture::partition(
     auto p_colptr = std::get<0>(p);
     auto p_indptr = std::get<1>(p);
     auto p_values = std::get<2>(p);
-    cycles += cycleCount(&p_colptr[0], n, spark::spmv::getInputWidth());
+    cycles += this->cycleCount(&p_colptr[0], n, spark::spmv::getInputWidth());
     spark::spmv::align(p_indptr, sizeof(int) * Spmv_inputWidth);
     spark::spmv::align(p_values, sizeof(double) * Spmv_inputWidth);
     std::copy(p_values.begin(), p_values.end(), back_inserter(m_values));
@@ -93,14 +93,14 @@ spark::spmv::PartitionResult spark::spmv::SimpleSpmvArchitecture::partition(
   std::cout << "Cycles ==== " << cycles << std::endl;
   std::cout << "v.size() ==== " << v.size() << std::endl;
 
-  gflopsCount = 2.0 * (double)mat.nonZeros() / 1E9;
-  std::cout << "Here" << std::endl;
+  this->gflopsCount = 2.0 * (double)mat.nonZeros() / 1E9;
+  this->totalCycles = cycles + v.size();
 
   PartitionResult pr;
   pr.nPartitions = nPartitions;
   pr.n = mat.cols();
   pr.paddingCycles = n % 2;
-  pr.totalCycles = cycles + v.size();
+  pr.totalCycles = totalCycles;
   pr.vector_load_cycles = v.size() / nPartitions; // per partition
   pr.m_colptr = m_colptr;
   pr.m_values = m_values;

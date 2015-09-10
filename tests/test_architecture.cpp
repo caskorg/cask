@@ -15,7 +15,7 @@ void dse (std::string basename, SpmvArchitectureSpace* af, Eigen::SparseMatrix<d
   for (SpmvArchitecture* a = af->begin(); a != af->end(); ) {
     auto start = std::chrono::high_resolution_clock::now();
     a->preprocess(mat); // do spmv?
-    std::cout << "Matrix: " << basename << " " << a->to_string();
+    std::cout << "Matrix: " << basename << " " << a->to_string() << std::endl;
     std::cout << " ResourceUsage: " << a->getResourceUsage().to_string() << std::endl;
     dfesnippets::timing::print_clock_diff("Took: ", start);
     a = af->operator++();
@@ -36,7 +36,8 @@ int run (std::string path) {
 
   // XXX memory leak
   std::vector<SpmvArchitectureSpace*> factories{
-    new SimpleSpmvArchitectureSpace()
+    new SimpleSpmvArchitectureSpace<SimpleSpmvArchitecture>(),
+    new FstSpmvArchitectureSpace()
   };
 
   for (auto sas : factories) {
