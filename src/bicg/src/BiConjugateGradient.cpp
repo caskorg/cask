@@ -1,5 +1,7 @@
 #include <Spark/SparseLinearSolvers.hpp>
+#include <Spark/SparseLinearSolvers.hpp>
 #include <Spark/Spmv.hpp>
+#include <Spark/SimpleSpmv.hpp>
 #include <iostream>
 #include <stdexcept>
 
@@ -127,8 +129,8 @@ Eigen::VectorXd dfeImplUnprecon(
   double normErr = 1E-32;
 
   // partition once
-  spark::sparse::PartitionedCsrMatrix partA = spark::spmv::partition(A);
-
+  auto a = new spark::spmv::SimpleSpmvArchitecture();
+  a->preprocess(A);
   for (int i = 0; i < maxIter; i++) {
 
     std::cout << "Iteration " << i << std::endl;
@@ -137,20 +139,22 @@ Eigen::VectorXd dfeImplUnprecon(
     p = r + beta * (p - omega_prev * v);
 
     //v = A * p;
-    v = spark::spmv::dfespmv(partA, p); // spmv
+    v = a->dfespmv(p); // spmv
 
     alpha = rho / rhat.dot(v);
     Vd s = r - alpha * v;
     if (s.norm() < normErr) {
       return x + alpha * p;
     }
-    Vd t = spark::spmv::dfespmv(partA, s);  // spmv
+    Vd t = a->dfespmv(s);  // spmv
     omega = t.dot(s) / t.dot(t);
     x = x + alpha * p + omega * s;
     r = s - omega * t;
     omega_prev = omega;
     rho_prev = rho;
   }
+
+  free(a);
 
   return x;
 }

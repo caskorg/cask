@@ -148,11 +148,13 @@ if (DEFINED ENV{MAXCOMPILERDIR} AND DEFINED ENV{MAXELEROSDIR})
     AddMaxelerImplTestRun("test_spmv" "spmv_test_cage6" "../test-matrices/test_cage6.mtx")
     AddMaxelerImplTestRun("test_spmv" "spmv_TSOPF_RS_b39_c7" "../test-matrices/TSOPF_RS_b39_c7.mtx")
 
-
     AddMaxelerImplTest("bicg" simbicglib "BiConjugateGradient_sim" "")
     AddMaxelerImplTestRun("test_bicg" "bicg" "")
     add_dependencies(test_bicg smpvlib)
     target_link_libraries(test_bicg -lSpmv_sim)
+
+    AddMaxelerImplTest("architecture" spmvlib "Spmv_sim" "")
+    AddMaxelerImplTestRun("test_architecture" "spmv_architecture_test_small" "../test-matrices/TSOPF_RS_b39_c7.mtx")
 
   endif()
 

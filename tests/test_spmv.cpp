@@ -1,4 +1,5 @@
 #include <Spark/Spmv.hpp>
+#include <Spark/SimpleSpmv.hpp>
 #include <Spark/io.hpp>
 #include <Spark/converters.hpp>
 #include <string>
@@ -13,12 +14,17 @@ int test(string path) {
   auto eigenMatrix = spark::converters::tripletToEigen(m.mmreadMatrix(path));
   int cols = eigenMatrix->cols();
 
+  std::cout << "Nonzeros: " << eigenMatrix->nonZeros() << std::endl;
+
   Eigen::VectorXd x(cols);
   for (int i = 0; i < cols; i++)
     x[i] = (double)i * 0.25;
 
-  Eigen::VectorXd got = spark::spmv::dfespmv(*eigenMatrix, x);
+  auto a = new spark::spmv::SimpleSpmvArchitecture();
+  a->preprocess(*eigenMatrix);
+  Eigen::VectorXd got = a->dfespmv(x);
   Eigen::VectorXd exp = *eigenMatrix * x;
+  free(a);
 
   auto mismatches = spark::test::check(
       spark::converters::eigenVectorToStdVector(got),

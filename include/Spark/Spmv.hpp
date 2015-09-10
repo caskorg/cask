@@ -2,60 +2,82 @@
 #define SPMV_H
 
 #include <Spark/SparseMatrix.hpp>
+#include <Spark/converters.hpp>
 #include <Eigen/Sparse>
 
 namespace spark {
   namespace spmv {
 
-    Eigen::VectorXd dfespmv(
-        Eigen::SparseMatrix<double, Eigen::RowMajor> mat,
-        Eigen::VectorXd x);
+    class ResourceUsage {
+      public:
+      int luts, ffs, dsps, brams;
+      int mluts, mffs, mdsps, mbrams;
+      ResourceUsage(int _luts, int _ffs, int _dsps, int _brams) :
+        luts(_luts), ffs(_ffs), dsps(_dsps), brams(_brams) {}
+      std::string to_string() {
+        std::stringstream s;
+        s << "LUTs: " << luts << " FFs: " << ffs << " DSPs: " << dsps << " BRAMs: " << brams;
+        return s.str();
+      }
+    };
 
-    Eigen::VectorXd dfespmv(
-        const spark::sparse::PartitionedCsrMatrix& result,
-        const Eigen::VectorXd& x);
+    // A generic architecture for SpMV
+    class SpmvArchitecture {
+
+      // matrix specific properties, only available after process()
+      protected:
+      double gflopsCount = -1;
+      int totalCycles = -1;
+
+      public:
+        //doSpmv(iterations, x);
+
+        double getEstimatedGFlops() {
+          return  getGFlopsCount() /(getEstimatedClockCycles() / getFrequency());
+        }
+
+        double getEstimatedClockCycles() {
+          return totalCycles;
+        }
+
+        double getFrequency() {
+          return 100 * 1E6;
+        }
+
+        double getGFlopsCount() {
+          return gflopsCount;
+        }
+
+        virtual std::string to_string() = 0;
+        virtual ResourceUsage getResourceUsage() = 0;
+
+        virtual void preprocess(const Eigen::SparseMatrix<double, Eigen::RowMajor> mat) = 0;
+        virtual Eigen::VectorXd dfespmv(Eigen::VectorXd x) = 0;
+    };
+
+    // An ArchitectureSpace provides a simple way to iterate over the design space
+    // of an architecture, abstracting the details of the architecture's parameters
+    // XXX actually implemnt the STL iterator (if it makes sense?)
+    class SpmvArchitectureSpace {
+      public:
+        virtual SpmvArchitecture* begin() = 0;
+        virtual SpmvArchitecture* end() = 0;
+        virtual SpmvArchitecture* operator++() = 0;
+    };
 
     int getPartitionSize();
+    int getInputWidth();
 
-    spark::sparse::PartitionedCsrMatrix partition(
-        const Eigen::SparseMatrix<double, Eigen::RowMajor, int32_t> mat)
-    {
-
-      int partitionSize = getPartitionSize();
-      const int* indptr = mat.innerIndexPtr();
-      const double* values = mat.valuePtr();
-      const int* colptr = mat.outerIndexPtr();
-      int rows = mat.rows();
-      int cols = mat.cols();
-
-      int nPartitions = cols / partitionSize + (cols % partitionSize == 0 ? 0 : 1);
-      //std::cout << "Npartitions: " << nPartitions << std::endl;
-
-      std::vector<spark::sparse::CsrMatrix> partitions(nPartitions);
-      std::cout << "Partition"  << std::endl;
-
-      for (int i = 0; i < rows; i++) {
-        for (int j = 0; j < nPartitions; j++) {
-          auto& p = std::get<0>(partitions[j]);
-          if (p.size() == 0)
-            p.push_back(0);
-          else
-            p.push_back(p.back());
-        }
-        //std::cout << "i = " << i << std::endl;
-        //std::cout << "colptr" << colptr[i] << std::endl;
-        for (int j = colptr[i]; j < colptr[i+1]; j++) {
-          auto& p = partitions[indptr[j] / partitionSize];
-          int idxInPartition = indptr[j] - (indptr[j] / partitionSize ) * partitionSize;
-          std::get<1>(p).push_back(idxInPartition);
-          std::get<2>(p).push_back(values[j]);
-          std::get<0>(p).back()++;
+    template<typename T>
+      void align(std::vector<T>& v, int widthInBytes) {
+        int limit = widthInBytes / sizeof(T);
+        while ((v.size() * sizeof(T)) % widthInBytes != 0 && limit != 0) {
+          v.push_back(0);
+          limit--;
         }
       }
-      std::cout << "Done Partition" << std::endl;
-      return partitions;
-    }
-  }
+
+}
 }
 
 
