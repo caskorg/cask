@@ -89,7 +89,7 @@ spark::spmv::BlockingResult ssarch::do_blocking(
     std::copy(p_colptr.begin(), p_colptr.end(), back_inserter(m_colptr));
   }
 
-  spark::spmv::align(m_colptr, 16);
+  spark::spmv::align(m_colptr, 384);
   spark::spmv::align(m_values, 384);
   spark::spmv::align(m_indptr, 384);
   std::vector<double> out(n, 0);
@@ -137,16 +137,29 @@ Eigen::VectorXd ssarch::dfespmv(Eigen::VectorXd x)
       br.m_values.size() * sizeof(double),
       (uint8_t *)&br.m_indptr[0]);
 
+  int colptrStartAddress =
+    br.m_values.size() * sizeof(double) +
+    br.m_indptr.size() * sizeof(int);
+  std::cout << "Size of colptr = " << br.m_colptr.size() << std::endl;
+  int colptrSize = br.m_colptr.size() * sizeof(int);
+  Spmv_dramWrite(
+      colptrSize,
+      colptrStartAddress,
+      (uint8_t *)&br.m_colptr[0]);
+
   std::cout << br.to_string() << std::endl;
   std::cout << "Running on DFE" << std::endl;
   int outputStartAddress =
     br.m_values.size() * sizeof(double) +
-    br.m_indptr.size() * sizeof(int);
+    br.m_indptr.size() * sizeof(int) +
+    colptrStartAddress + br.m_colptr.size() * sizeof(int);
 
   std::vector<int> nrows{br.n};
   std::vector<int> paddingCycles{br.paddingCycles};
   std::vector<int> totalCycles{br.totalCycles};
   std::vector<long> outputStartAddresses{outputStartAddress};
+  std::vector<long> colptrStartAddresses{colptrStartAddress};
+  std::vector<int> colptrSizes{colptrSize};
 
   //int64_t param_nPartitions,
           //int64_t param_vectorLoadCycles,
@@ -163,16 +176,17 @@ Eigen::VectorXd ssarch::dfespmv(Eigen::VectorXd x)
           //size_t lmem_address_values,
           //size_t lmem_arr_size_values);
 
+  std::cout << "Clptr size before dfe call " << colptrSize << std::endl;
   Spmv(
       br.nPartitions,
       br.vector_load_cycles,
       v.size(),
+      &colptrStartAddresses[0],
+      &colptrSizes[0],
       &nrows[0],
       &outputStartAddresses[0],
       &paddingCycles[0],
       &totalCycles[0],
-      &br.m_colptr[0], //const void *instream_colptr,
-      br.m_colptr.size() * sizeof(int), //size_t instream_size_colptr,
       &v[0],
       br.m_values.size() * sizeof(double), // lmlem_address_indptr
       br.m_indptr.size() * sizeof(int),

@@ -32,7 +32,9 @@ public class SpmvManager extends CustomManager{
     void addComputePipe(int id, int inputWidth) {
         ManagerStateMachine csrDecoder = new CsrDecoder(this, DBG_CSR_DECODER);
         StateMachineBlock csrDecoderBlock = addStateMachine(getCsrDecoder(id), csrDecoder);
-        csrDecoderBlock.getInput("colptr") <== addStreamFromCPU("colptr");
+        //csrDecoderBlock.getInput("colptr") <== addStreamFromCPU("colptr");
+        csrDecoderBlock.getInput("colptr") <== addStreamFromOnCardMemory("colptr" + id,
+            MemoryControlGroup.MemoryAccessPattern.LINEAR_1D);
 
         ManagerStateMachine readControl = new ParallelCsrReadControl(this, inputWidth, DBG_PAR_CSR_CTL);
         StateMachineBlock readControlBlock = addStateMachine(getReadControl(id), readControl);
@@ -127,6 +129,8 @@ public class SpmvManager extends CustomManager{
         InterfaceParam nPartitions,
         InterfaceParam n,
         InterfaceParam outResultStartAddress,
+        InterfaceParam colPtrStartAddress,
+        InterfaceParam colptrSize,
         InterfaceParam totalCycles,
         InterfaceParam paddingCycles) {
 
@@ -151,6 +155,10 @@ public class SpmvManager extends CustomManager{
 
       ei.setScalar(csrDecoder, "nrows", n);
 
+      ei.setLMemLinear("colptr" + id,
+          colPtrStartAddress,
+          colptrSize );
+
       ei.setScalar(readControl, "nrows", n);
       ei.setScalar(readControl, "vectorLoadCycles", vectorLoadCycles);
       ei.setScalar(readControl, "nPartitions", nPartitions);
@@ -174,6 +182,9 @@ public class SpmvManager extends CustomManager{
       InterfaceParamArray totalCycles = ei.addParamArray("totalCycles", CPUTypes.INT32);
       InterfaceParamArray paddingCycles = ei.addParamArray("paddingCycles", CPUTypes.INT32);
 
+      InterfaceParamArray colptrStartAddresses = ei.addParamArray("colPtrStartAddresses", CPUTypes.INT64);
+      InterfaceParamArray colptrSizes = ei.addParamArray("colptrSizes", CPUTypes.INT32);
+
       for (int i = 0; i < NUM_PIPES; i++)
         setUpComputePipe(ei, i,
             vectorSize,
@@ -181,6 +192,8 @@ public class SpmvManager extends CustomManager{
             nPartitions,
             nrows.get(i),
             outStartAddresses.get(i),
+            colptrStartAddresses.get(i),
+            colptrSizes.get(i),
             totalCycles.get(i),
             paddingCycles.get(i));
 
@@ -193,11 +206,11 @@ public class SpmvManager extends CustomManager{
 
     public static void main(String[] args) {
         SpmvManager manager = new SpmvManager(new EngineParameters(args));
-        // ManagerUtils.debug(manager);
+        ManagerUtils.debug(manager);
         manager.createSLiCinterface(ManagerUtils.dramWrite(manager));
         manager.createSLiCinterface(ManagerUtils.dramRead(manager));
         manager.createSLiCinterface(manager.interfaceDefault());
-        ManagerUtils.setFullBuild(manager, 2, 2);
+        //ManagerUtils.setFullBuild(manager, 2, 2);
         manager.build();
     }
 }
