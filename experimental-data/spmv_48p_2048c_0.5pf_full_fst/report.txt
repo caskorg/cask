@@ -1,0 +1,155 @@
+
+Total resource usage
+-----------------------------------------------------------------
+    LUTs     FFs   BRAMs    DSPs                            
+  524800 1049600    2567    1963  total available resources for FPGA
+  178215  256726    1298     192  total resources used      
+  33.96%  24.46%  50.56%   9.78%  % of available
+  106398  142250     616     192  used by kernels           
+  20.27%  13.55%  24.00%   9.78%  % of available
+   70847  112634     671       0  used by manager           
+  13.50%  10.73%  26.14%   0.00%  % of available
+  127363  198534    1100     192  stray resources           
+  24.27%  18.92%  42.85%   9.78%  % of available
+
+High level manager breakdown aggregated by type
+-----------------------------------------------------------------
+    LUTs     FFs   BRAMs    DSPs  Type                      Occurrences
+     538    1227       0       0  AddrGen                   3
+      39      37       1       0  ChecksumMappedDRP         1
+     641     636       0       0  DualAspectMux             3
+      19    3138       0       0  DualAspectReg             2
+    1025    1028     199       0  Fifo                      20
+  106398  142250     616     192  Kernel                    4
+     140     215       0       0  MAX4CPLD                  1
+     733    1020       2       0  MAX4PCIeSlaveInterface    1
+      21      51       0       0  MAXEvents                 1
+      82     171       0       0  ManagerStateMachine_csrD  1
+    1655     536       0       0  ManagerStateMachine_read  1
+     469      84       0       0  MappedElementSwitch       1
+     443     997       5       0  MappedMemoriesController  1
+     160     130       0       0  MappedRegistersControlle  1
+   16013   48002     281       0  MemoryControllerPro       1
+    1630     847       4       0  PCIeBase                  1
+    1497    1608      34       0  PCIeSlaveStreaming        1
+     269     393       0       0  PerfMonitor               1
+      16      23       0       0  ResetControl              2
+      88     186       0       0  SanityBlock               1
+      98      90       1       0  SignalForwardingAdapter   1
+   45269   52214     144       0  StratixVDDR3              6
+       2       1       0       0  StreamPullPushAdapter     1
+       0       0       0       0  Memory Controller         --
+       0       0       0       0  Other InterFPGA           --
+    1050    1297       8       0  Other MappedElements      --
+    2903    3834      42       0  Other PCIe                --
+
+Kernel breakdown
+-----------------------------------------------------------------
+    LUTs     FFs   BRAMs    DSPs  category
+  106398  142250     616     192  total for all kernels
+  20.27%  13.55%  24.00%   9.78%  % of total available
+
+Totals for each kernel
+    LUTs     FFs   BRAMs    DSPs  Kernel name
+   30747   40877     337       0  SpmvCacheKernel (total)
+   5.86%   3.89%  13.13%   0.00%  % of total available
+   30630    4741     336       0  SpmvCacheKernel (user)
+   5.84%   0.45%  13.09%   0.00%  % of total available
+       0   29542       0       0  SpmvCacheKernel (scheduling)
+   0.00%   2.81%   0.00%   0.00%  % of total available
+     117    6594       1       0  SpmvCacheKernel (other Kernel resources)
+   0.02%   0.63%   0.04%   0.00%  % of total available
+   73645   97694     149     192  SpmvKernel (total)
+  14.03%   9.31%   5.80%   9.78%  % of total available
+   73442   96704     142     192  SpmvKernel (user)
+  13.99%   9.21%   5.53%   9.78%  % of total available
+      60     517       6       0  SpmvKernel (scheduling)
+   0.01%   0.05%   0.23%   0.00%  % of total available
+     143     473       1       0  SpmvKernel (other Kernel resources)
+   0.03%   0.05%   0.04%   0.00%  % of total available
+     363     944       0       0  SpmvPaddingKernel (total)
+   0.07%   0.09%   0.00%   0.00%  % of total available
+     316     534       0       0  SpmvPaddingKernel (user)
+   0.06%   0.05%   0.00%   0.00%  % of total available
+       0       5       0       0  SpmvPaddingKernel (scheduling)
+   0.00%   0.00%   0.00%   0.00%  % of total available
+      47     405       0       0  SpmvPaddingKernel (other Kernel resources)
+   0.01%   0.04%   0.00%   0.00%  % of total available
+    1643    2735     130       0  SpmvReductionKernel (total)
+   0.31%   0.26%   5.06%   0.00%  % of total available
+    1513    2132     130       0  SpmvReductionKernel (user)
+   0.29%   0.20%   5.06%   0.00%  % of total available
+       0      14       0       0  SpmvReductionKernel (scheduling)
+   0.00%   0.00%   0.00%   0.00%  % of total available
+     130     589       0       0  SpmvReductionKernel (other Kernel resources)
+   0.02%   0.06%   0.00%   0.00%  % of total available
+
+
+Manager breakdown
+-----------------------------------------------------------------
+    LUTs     FFs   BRAMs    DSPs  Type                      Instance
+   30747   40877     337       0  Kernel                    SpmvCacheKernel
+   73645   97694     149     192  Kernel                    SpmvKernel
+     363     944       0       0  Kernel                    SpmvPaddingKernel
+    1643    2735     130       0  Kernel                    SpmvReductionKernel
+      17    3072       0       0  DualAspectReg             Stream_14
+     533     531       0       0  DualAspectMux             Stream_17
+      39      37       0       0  DualAspectMux             Stream_1
+      69      68       0       0  DualAspectMux             Stream_31
+      43      32       1       0  Fifo                      Stream_34
+      43      33       2       0  Fifo                      Stream_36
+      43      33       1       0  Fifo                      Stream_38
+      44      32       1       0  Fifo                      Stream_40
+      44      34      77       0  Fifo                      Stream_42
+      44      33      77       0  Fifo                      Stream_44
+      43      34       1       0  Fifo                      Stream_46
+      43      33       1       0  Fifo                      Stream_48
+      43      33       1       0  Fifo                      Stream_50
+      43      33       1       0  Fifo                      Stream_52
+      45      33       2       0  Fifo                      Stream_55
+      45      36       2       0  Fifo                      Stream_58
+      39      31       1       0  Fifo                      Stream_5
+       2      66       0       0  DualAspectReg             Stream_61
+      43      31       4       0  Fifo                      Stream_64
+      77     119       1       0  Fifo                      Stream_66
+      75     125       4       0  Fifo                      Stream_68
+       2       1       0       0  StreamPullPushAdapter     Stream_70
+      43      31       4       0  Fifo                      Stream_72
+     107     138       2       0  Fifo                      Stream_74
+      44      34      14       0  Fifo                      Stream_78
+      74     120       2       0  Fifo                      Stream_80
+     179     409       0       0  AddrGen                   addrgen_cmd_cpu2lmem
+     180     412       0       0  AddrGen                   addrgen_cmd_indptr
+     179     406       0       0  AddrGen                   addrgen_cmd_values
+      82     171       0       0  ManagerStateMachine_csrD  csrDecoder
+    1655     536       0       0  ManagerStateMachine_read  readControl
+     733    1020       2       0  MAX4PCIeSlaveInterface    MAX4PCIeSlaveInterface_i
+       8      11       0       0  ResetControl              control_streams_rst_ctl
+     469      84       0       0  MappedElementSwitch       MappedElementSwitch_i
+     443     997       5       0  MappedMemoriesController  MappedMemoriesController_i
+     160     130       0       0  MappedRegistersControlle  MappedRegistersController_i
+     269     393       0       0  PerfMonitor               perfm
+      88     186       0       0  SanityBlock               SanityBlock_i
+      98      90       1       0  SignalForwardingAdapter   SignalForwardingAdapter_i
+      39      37       1       0  ChecksumMappedDRP         checksum_mem_drp
+    1497    1608      34       0  PCIeSlaveStreaming        dynpcie
+       8      12       0       0  ResetControl              reset_controller
+   16013   48002     281       0  MemoryControllerPro       memctrlpro_maia_sodimms
+    1630     847       4       0  PCIeBase                  PCIeBase_i
+     140     215       0       0  MAX4CPLD                  cpld_io_ext_inst
+      21      51       0       0  MAXEvents                 max_events
+    7581    8726      24       0  StratixVDDR3              ddr3_core
+    7474    8623      24       0  StratixVDDR3              ddr3_core
+    7582    8738      24       0  StratixVDDR3              ddr3_core
+    7472    8570      24       0  StratixVDDR3              ddr3_core
+    7579    8787      24       0  StratixVDDR3              ddr3_core
+    7581    8770      24       0  StratixVDDR3              ddr3_core
+
+Source files annotation report
+-----------------------------------------------------------------
+
+% of total used for each file (note: multiple files may share the same resources)
+    LUTs     FFs   BRAMs    DSPs  filename
+  58.95%  51.70%  47.30% 100.00%  SpmvKernel.maxj
+  59.46%  52.27%  47.30% 100.00%  SpmvManager.maxj
+ 100.00%  87.96%  51.54% 100.00%  [ missing source files ]
