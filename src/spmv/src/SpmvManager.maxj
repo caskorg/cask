@@ -64,13 +64,9 @@ public class SpmvManager extends CustomManager{
               DBG_SPMV_KERNEL
               ));
 
-        addStreamToOnCardMemory("cpu2lmem", MemoryControlGroup.MemoryAccessPattern.LINEAR_1D) <== addStreamFromCPU("fromcpu");
-
-
 
         ManagerUtils.addLinearStreamFromLmemToKernel(this, cache, "indptr");
         ManagerUtils.addLinearStreamFromLmemToKernel(this, cache, "values");
-
         cache.getInput("vromLoad") <== addStreamFromCPU("vromLoad");
 
         cache.getInput("readenable") <== readControlBlock.getOutput("readenable");
@@ -96,7 +92,8 @@ public class SpmvManager extends CustomManager{
               makeKernelParameters(s_paddingKernel)));
 
         p.getInput("paddingIn") <== r.getOutput("reductionOut");
-        addStreamToCPU("output") <== p.getOutput("paddingOut");
+        ManagerUtils.addLinearStreamFromKernelToLmem(this, p, "paddingOut");
+
     }
 
     private static EngineInterface interfaceDefault() {
@@ -108,6 +105,7 @@ public class SpmvManager extends CustomManager{
       InterfaceParam totalCycles = ei.addParam("totalCycles", CPUTypes.INT);
       InterfaceParam paddingCycles = ei.addParam("paddingCycles", CPUTypes.INT);
       InterfaceParam nPartitions = ei.addParam("nPartitions", CPUTypes.INT);
+      InterfaceParam outResultStartAddress = ei.addParam("outResultStartAddress", CPUTypes.INT);
 
       ei.setTicks(s_kernelName, totalCycles);
 
@@ -127,21 +125,26 @@ public class SpmvManager extends CustomManager{
       ei.setScalar("readControl", "vectorLoadCycles", vectorLoadCycles);
       ei.setScalar("readControl", "nPartitions", nPartitions);
 
-      ei.setStream("output", CPUTypes.DOUBLE, (n + paddingCycles) * CPUTypes.DOUBLE.sizeInBytes());
       ei.setStream("vromLoad", CPUTypes.DOUBLE, vectorSize * CPUTypes.DOUBLE.sizeInBytes());
+      ei.setLMemLinear(
+          "paddingOut",
+          outResultStartAddress,
+          (n + paddingCycles) * CPUTypes.DOUBLE.sizeInBytes());
 
       ei.ignoreLMem("cpu2lmem");
       ei.ignoreStream("fromcpu");
+      ei.ignoreStream("tocpu");
+      ei.ignoreLMem("lmem2cpu");
       return ei;
     }
 
     public static void main(String[] args) {
         SpmvManager manager = new SpmvManager(new EngineParameters(args));
-        manager.createSLiCinterface(interfaceDefault());
         // ManagerUtils.debug(manager);
+        manager.createSLiCinterface(ManagerUtils.dramWrite(manager));
+        manager.createSLiCinterface(ManagerUtils.dramRead(manager));
+        manager.createSLiCinterface(interfaceDefault());
         ManagerUtils.setFullBuild(manager, 2, 2);
-        manager.createSLiCinterface(ManagerUtils.interfaceWrite(
-              "write", "fromcpu", "cpu2lmem"));
         manager.build();
     }
 }

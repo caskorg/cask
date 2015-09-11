@@ -92,6 +92,8 @@ spark::spmv::BlockingResult ssarch::do_blocking(
   spark::spmv::align(m_colptr, 16);
   spark::spmv::align(m_values, 384);
   spark::spmv::align(m_indptr, 384);
+  std::vector<double> out(n, 0);
+  align(out, 384);
   spark::spmv::align(v, sizeof(double) * Spmv_cacheSize);
   std::cout << "Cycles ==== " << cycles << std::endl;
   std::cout << "v.size() ==== " << v.size() << std::endl;
@@ -102,7 +104,7 @@ spark::spmv::BlockingResult ssarch::do_blocking(
   BlockingResult br;
   br.nPartitions = nPartitions;
   br.n = mat.cols();
-  br.paddingCycles = n % 2;
+  br.paddingCycles = out.size() - n; // number of cycles required to align to the burst size
   br.totalCycles = totalCycles;
   br.vector_load_cycles = v.size() / nPartitions; // per partition
   br.m_colptr = m_colptr;
@@ -123,22 +125,44 @@ Eigen::VectorXd ssarch::dfespmv(Eigen::VectorXd x)
 
   vector<double> out(n + br.paddingCycles , 0);
 
-  Spmv_write(
+  // for each partition write this down
+  Spmv_dramWrite(
       br.m_values.size() * sizeof(double),
       0,
       (uint8_t *)&br.m_values[0]
       );
 
-  Spmv_write(
+  Spmv_dramWrite(
       br.m_indptr.size() * sizeof(int),
       br.m_values.size() * sizeof(double),
       (uint8_t *)&br.m_indptr[0]);
 
+  //void Spmv(
+      //int64_t param_nPartitions,
+      //int64_t param_nrows,
+      //int64_t param_outResultStartAddress,
+      //int64_t param_paddingCycles,
+      //int64_t param_totalCycles,
+      //int64_t param_vectorLoadCycles,
+      //int64_t param_vectorSize,
+      //const void *instream_colptr,
+      //size_t instream_size_colptr,
+      //const double *instream_vromLoad,
+      //size_t lmem_address_indptr,
+      //size_t lmem_arr_size_indptr,
+      //size_t lmem_address_values,
+      //size_t lmem_arr_size_values);
+
   std::cout << br.to_string() << std::endl;
   std::cout << "Running on DFE" << std::endl;
+  int outputStartAddress =
+    br.m_values.size() * sizeof(double) +
+    br.m_indptr.size() * sizeof(int);
+
   Spmv(
       br.nPartitions,
       br.n,
+      outputStartAddress,
       br.paddingCycles,
       br.totalCycles,
       br.vector_load_cycles,
@@ -146,7 +170,6 @@ Eigen::VectorXd ssarch::dfespmv(Eigen::VectorXd x)
       &br.m_colptr[0], //const void *instream_colptr,
       br.m_colptr.size() * sizeof(int), //size_t instream_size_colptr,
       &v[0],
-      &out[0],//void *outstream_output,
       br.m_values.size() * sizeof(double), // lmlem_address_indptr
       br.m_indptr.size() * sizeof(int),
       0,
@@ -154,7 +177,16 @@ Eigen::VectorXd ssarch::dfespmv(Eigen::VectorXd x)
       );//size_t outstream_size_output);
   std::cout << "Done on DFE" << std::endl;
 
-  return spark::converters::stdvectorToEigen(out);
+  Spmv_dramRead(
+      out.size() * sizeof(double),
+      outputStartAddress,
+      (uint8_t*)&out[0]);
+
+  // remove the elements which were only for padding
+
+  std::vector<double> f{out.begin(), out.begin() + n};
+
+  return spark::converters::stdvectorToEigen(f);
 }
 
 int spark::spmv::getPartitionSize() {
