@@ -59,7 +59,8 @@ public class SpmvManager extends CustomManager{
 
         ManagerUtils.addLinearStreamFromLmemToKernel(this, cache, "indptr");
         ManagerUtils.addLinearStreamFromLmemToKernel(this, cache, "values");
-        cache.getInput("vromLoad") <== addStreamFromCPU("vromLoad");
+        cache.getInput("vromLoad") <== addStreamFromOnCardMemory("vromLoad" + id,
+            MemoryControlGroup.MemoryAccessPattern.LINEAR_1D);
 
         cache.getInput("readenable") <== readControlBlock.getOutput("readenable");
         cache.getInput("readmask") <== readControlBlock.getOutput("readmask");
@@ -129,6 +130,7 @@ public class SpmvManager extends CustomManager{
         InterfaceParam nPartitions,
         InterfaceParam n,
         InterfaceParam outResultStartAddress,
+        InterfaceParam vStartAddress,
         InterfaceParam colPtrStartAddress,
         InterfaceParam colptrSize,
         InterfaceParam totalCycles,
@@ -159,6 +161,10 @@ public class SpmvManager extends CustomManager{
           colPtrStartAddress,
           colptrSize );
 
+      ei.setLMemLinear("vromLoad" + id,
+          vStartAddress,
+          vectorSize * CPUTypes.DOUBLE.sizeInBytes());
+
       ei.setScalar(readControl, "nrows", n);
       ei.setScalar(readControl, "vectorLoadCycles", vectorLoadCycles);
       ei.setScalar(readControl, "nPartitions", nPartitions);
@@ -182,6 +188,8 @@ public class SpmvManager extends CustomManager{
       InterfaceParamArray totalCycles = ei.addParamArray("totalCycles", CPUTypes.INT32);
       InterfaceParamArray paddingCycles = ei.addParamArray("paddingCycles", CPUTypes.INT32);
 
+      InterfaceParamArray vStartAddresses = ei.addParamArray("vStartAddresses", CPUTypes.INT64);
+
       InterfaceParamArray colptrStartAddresses = ei.addParamArray("colPtrStartAddresses", CPUTypes.INT64);
       InterfaceParamArray colptrSizes = ei.addParamArray("colptrSizes", CPUTypes.INT32);
 
@@ -192,6 +200,7 @@ public class SpmvManager extends CustomManager{
             nPartitions,
             nrows.get(i),
             outStartAddresses.get(i),
+            vStartAddresses.get(i),
             colptrStartAddresses.get(i),
             colptrSizes.get(i),
             totalCycles.get(i),

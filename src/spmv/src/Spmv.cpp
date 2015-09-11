@@ -122,6 +122,7 @@ Eigen::VectorXd ssarch::dfespmv(Eigen::VectorXd x)
   int n = x.size();
   vector<double> v = spark::converters::eigenVectorToStdVector(x);
   spark::spmv::align(v, sizeof(double) * Spmv_cacheSize);
+  spark::spmv::align(v, 384);
 
   vector<double> out(n + br.paddingCycles , 0);
 
@@ -137,9 +138,14 @@ Eigen::VectorXd ssarch::dfespmv(Eigen::VectorXd x)
       br.m_values.size() * sizeof(double),
       (uint8_t *)&br.m_indptr[0]);
 
+  int vStartAddress = br.m_values.size() * sizeof(double) + br.m_indptr.size() * sizeof(int);
+  Spmv_dramWrite(
+      v.size() * sizeof(double),
+      vStartAddress,
+      (uint8_t *)&v[0]);
+
   int colptrStartAddress =
-    br.m_values.size() * sizeof(double) +
-    br.m_indptr.size() * sizeof(int);
+    vStartAddress + v.size() * sizeof(double);
   std::cout << "Size of colptr = " << br.m_colptr.size() << std::endl;
   int colptrSize = br.m_colptr.size() * sizeof(int);
   Spmv_dramWrite(
@@ -150,8 +156,6 @@ Eigen::VectorXd ssarch::dfespmv(Eigen::VectorXd x)
   std::cout << br.to_string() << std::endl;
   std::cout << "Running on DFE" << std::endl;
   int outputStartAddress =
-    br.m_values.size() * sizeof(double) +
-    br.m_indptr.size() * sizeof(int) +
     colptrStartAddress + br.m_colptr.size() * sizeof(int);
 
   std::vector<int> nrows{br.n};
@@ -160,6 +164,7 @@ Eigen::VectorXd ssarch::dfespmv(Eigen::VectorXd x)
   std::vector<long> outputStartAddresses{outputStartAddress};
   std::vector<long> colptrStartAddresses{colptrStartAddress};
   std::vector<int> colptrSizes{colptrSize};
+  std::vector<long> vStartAddresses{vStartAddress};
 
   //int64_t param_nPartitions,
           //int64_t param_vectorLoadCycles,
@@ -187,7 +192,7 @@ Eigen::VectorXd ssarch::dfespmv(Eigen::VectorXd x)
       &outputStartAddresses[0],
       &paddingCycles[0],
       &totalCycles[0],
-      &v[0],
+      &vStartAddresses[0],
       br.m_values.size() * sizeof(double), // lmlem_address_indptr
       br.m_indptr.size() * sizeof(int),
       0,
