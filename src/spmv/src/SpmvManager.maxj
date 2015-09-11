@@ -87,7 +87,8 @@ public class SpmvManager extends CustomManager{
               makeKernelParameters(getPaddingKernel(id))));
 
         p.getInput("paddingIn") <== r.getOutput("reductionOut");
-        ManagerUtils.addLinearStreamFromKernelToLmem(this, p, "paddingOut");
+        addStreamToOnCardMemory("paddingOut" + id,
+            MemoryControlGroup.MemoryAccessPattern.LINEAR_1D) <== p.getOutput("paddingOut");
     }
 
     SpmvManager(EngineParameters ep) {
@@ -98,7 +99,8 @@ public class SpmvManager extends CustomManager{
 
         ManagerUtils.setDRAMMaxDeviceFrequency(this, ep);
 
-        addComputePipe(0, INPUT_WIDTH);
+        for (int i = 0; i < NUM_PIPES; i++)
+          addComputePipe(i, INPUT_WIDTH);
     }
 
     String getComputeKernel(int id) {
@@ -186,7 +188,7 @@ public class SpmvManager extends CustomManager{
           valuesSize);
 
       ei.setLMemLinear(
-          "paddingOut",
+          "paddingOut" + id,
           outResultStartAddress,
           (n + paddingCycles) * CPUTypes.DOUBLE.sizeInBytes());
 
