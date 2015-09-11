@@ -172,6 +172,7 @@ void ssarch::preprocess(
   std::vector<EigenSparseMatrix> partitions = do_partition(mat);
 
   for (const auto& m : partitions) {
+    // TODO aggreagate partition results in PreprocessingResult
     this->br = this->do_blocking(m, this->cacheSize);
   }
 
@@ -180,5 +181,6 @@ void ssarch::preprocess(
 
 std::vector<EigenSparseMatrix> ssarch::do_partition(const EigenSparseMatrix mat)
 {
+  // TODO implement partition
   return std::vector<EigenSparseMatrix>{mat};
 }
