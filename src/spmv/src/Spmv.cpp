@@ -137,36 +137,40 @@ Eigen::VectorXd ssarch::dfespmv(Eigen::VectorXd x)
       br.m_values.size() * sizeof(double),
       (uint8_t *)&br.m_indptr[0]);
 
-  //void Spmv(
-      //int64_t param_nPartitions,
-      //int64_t param_nrows,
-      //int64_t param_outResultStartAddress,
-      //int64_t param_paddingCycles,
-      //int64_t param_totalCycles,
-      //int64_t param_vectorLoadCycles,
-      //int64_t param_vectorSize,
-      //const void *instream_colptr,
-      //size_t instream_size_colptr,
-      //const double *instream_vromLoad,
-      //size_t lmem_address_indptr,
-      //size_t lmem_arr_size_indptr,
-      //size_t lmem_address_values,
-      //size_t lmem_arr_size_values);
-
   std::cout << br.to_string() << std::endl;
   std::cout << "Running on DFE" << std::endl;
   int outputStartAddress =
     br.m_values.size() * sizeof(double) +
     br.m_indptr.size() * sizeof(int);
 
+  std::vector<int> nrows{br.n};
+  std::vector<int> paddingCycles{br.paddingCycles};
+  std::vector<int> totalCycles{br.totalCycles};
+  std::vector<long> outputStartAddresses{outputStartAddress};
+
+  //int64_t param_nPartitions,
+          //int64_t param_vectorLoadCycles,
+          //int64_t param_vectorSize,
+          //const int32_t *param_nrows,
+          //const int64_t *param_outStartAddresses,
+          //const int32_t *param_paddingCycles,
+          //const int32_t *param_totalCycles,
+          //const void *instream_colptr,
+          //size_t instream_size_colptr,
+          //const double *instream_vromLoad,
+          //size_t lmem_address_indptr,
+          //size_t lmem_arr_size_indptr,
+          //size_t lmem_address_values,
+          //size_t lmem_arr_size_values);
+
   Spmv(
       br.nPartitions,
-      br.n,
-      outputStartAddress,
-      br.paddingCycles,
-      br.totalCycles,
       br.vector_load_cycles,
       v.size(),
+      &nrows[0],
+      &outputStartAddresses[0],
+      &paddingCycles[0],
+      &totalCycles[0],
       &br.m_colptr[0], //const void *instream_colptr,
       br.m_colptr.size() * sizeof(int), //size_t instream_size_colptr,
       &v[0],
