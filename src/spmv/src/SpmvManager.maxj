@@ -59,7 +59,8 @@ public class SpmvManager extends CustomManager{
 
         cache.getInput("indptr") <== addStreamFromOnCardMemory("indptr" + id,
             MemoryControlGroup.MemoryAccessPattern.LINEAR_1D);
-        ManagerUtils.addLinearStreamFromLmemToKernel(this, cache, "values");
+        cache.getInput("values") <== addStreamFromOnCardMemory("values" + id,
+            MemoryControlGroup.MemoryAccessPattern.LINEAR_1D);
         cache.getInput("vromLoad") <== addStreamFromOnCardMemory("vromLoad" + id,
             MemoryControlGroup.MemoryAccessPattern.LINEAR_1D);
 
@@ -136,6 +137,8 @@ public class SpmvManager extends CustomManager{
         InterfaceParam colptrSize,
         InterfaceParam indptrStartAddress,
         InterfaceParam indptrSize,
+        InterfaceParam valuesStartAddress,
+        InterfaceParam valuesSize,
         InterfaceParam totalCycles,
         InterfaceParam paddingCycles) {
 
@@ -178,6 +181,11 @@ public class SpmvManager extends CustomManager{
           indptrSize);
 
       ei.setLMemLinear(
+          "values" + id,
+          valuesStartAddress,
+          valuesSize);
+
+      ei.setLMemLinear(
           "paddingOut",
           outResultStartAddress,
           (n + paddingCycles) * CPUTypes.DOUBLE.sizeInBytes());
@@ -203,6 +211,9 @@ public class SpmvManager extends CustomManager{
       InterfaceParamArray colptrStartAddresses = ei.addParamArray("colPtrStartAddresses", CPUTypes.INT64);
       InterfaceParamArray colptrSizes = ei.addParamArray("colptrSizes", CPUTypes.INT32);
 
+      InterfaceParamArray valuesStartAddresses = ei.addParamArray("valuesStartAddresses", CPUTypes.INT64);
+      InterfaceParamArray valuesSizes = ei.addParamArray("valuesSizes", CPUTypes.INT32);
+
       for (int i = 0; i < NUM_PIPES; i++)
         setUpComputePipe(ei, i,
             vectorSize,
@@ -215,6 +226,8 @@ public class SpmvManager extends CustomManager{
             colptrSizes.get(i),
             indptrAddresses.get(i),
             indptrSizes.get(i),
+            valuesStartAddresses.get(i),
+            valuesSizes.get(i),
             totalCycles.get(i),
             paddingCycles.get(i));
 

@@ -127,8 +127,10 @@ Eigen::VectorXd ssarch::dfespmv(Eigen::VectorXd x)
   vector<double> out(n + br.paddingCycles , 0);
 
   // for each partition write this down
+  int valuesStartAddress = 0;
+  int valuesSize = br.m_values.size() * sizeof(double);
   Spmv_dramWrite(
-      br.m_values.size() * sizeof(double),
+      valuesSize,
       0,
       (uint8_t *)&br.m_values[0]
       );
@@ -169,6 +171,8 @@ Eigen::VectorXd ssarch::dfespmv(Eigen::VectorXd x)
   std::vector<long> vStartAddresses{vStartAddress};
   std::vector<long> indptrStartAddresses{indptrStartAddress};
   std::vector<int> indptrSizes{indptrSize};
+  std::vector<long> valuesStartAddresses{valuesStartAddress};
+  std::vector<int> valuesSizes{valuesSize};
 
   //int64_t param_nPartitions,
           //int64_t param_vectorLoadCycles,
@@ -199,9 +203,9 @@ Eigen::VectorXd ssarch::dfespmv(Eigen::VectorXd x)
       &paddingCycles[0],
       &totalCycles[0],
       &vStartAddresses[0],
-      0,
-      br.m_values.size() * sizeof(double) // lmlem_address_indptr
-      );//size_t outstream_size_output);
+      &valuesSizes[0],
+      &valuesStartAddresses[0]
+      );
   std::cout << "Done on DFE" << std::endl;
 
   Spmv_dramRead(
