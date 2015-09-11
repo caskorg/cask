@@ -133,9 +133,11 @@ Eigen::VectorXd ssarch::dfespmv(Eigen::VectorXd x)
       (uint8_t *)&br.m_values[0]
       );
 
+  int indptrStartAddress = br.m_values.size() * sizeof(double);
+  int indptrSize = br.m_indptr.size() * sizeof(int);
   Spmv_dramWrite(
-      br.m_indptr.size() * sizeof(int),
-      br.m_values.size() * sizeof(double),
+      indptrSize,
+      indptrStartAddress,
       (uint8_t *)&br.m_indptr[0]);
 
   int vStartAddress = br.m_values.size() * sizeof(double) + br.m_indptr.size() * sizeof(int);
@@ -165,6 +167,8 @@ Eigen::VectorXd ssarch::dfespmv(Eigen::VectorXd x)
   std::vector<long> colptrStartAddresses{colptrStartAddress};
   std::vector<int> colptrSizes{colptrSize};
   std::vector<long> vStartAddresses{vStartAddress};
+  std::vector<long> indptrStartAddresses{indptrStartAddress};
+  std::vector<int> indptrSizes{indptrSize};
 
   //int64_t param_nPartitions,
           //int64_t param_vectorLoadCycles,
@@ -188,13 +192,13 @@ Eigen::VectorXd ssarch::dfespmv(Eigen::VectorXd x)
       v.size(),
       &colptrStartAddresses[0],
       &colptrSizes[0],
+      &indptrStartAddresses[0],
+      &indptrSizes[0],
       &nrows[0],
       &outputStartAddresses[0],
       &paddingCycles[0],
       &totalCycles[0],
       &vStartAddresses[0],
-      br.m_values.size() * sizeof(double), // lmlem_address_indptr
-      br.m_indptr.size() * sizeof(int),
       0,
       br.m_values.size() * sizeof(double) // lmlem_address_indptr
       );//size_t outstream_size_output);

@@ -57,7 +57,8 @@ public class SpmvManager extends CustomManager{
               DBG_SPMV_KERNEL
               ));
 
-        ManagerUtils.addLinearStreamFromLmemToKernel(this, cache, "indptr");
+        cache.getInput("indptr") <== addStreamFromOnCardMemory("indptr" + id,
+            MemoryControlGroup.MemoryAccessPattern.LINEAR_1D);
         ManagerUtils.addLinearStreamFromLmemToKernel(this, cache, "values");
         cache.getInput("vromLoad") <== addStreamFromOnCardMemory("vromLoad" + id,
             MemoryControlGroup.MemoryAccessPattern.LINEAR_1D);
@@ -133,6 +134,8 @@ public class SpmvManager extends CustomManager{
         InterfaceParam vStartAddress,
         InterfaceParam colPtrStartAddress,
         InterfaceParam colptrSize,
+        InterfaceParam indptrStartAddress,
+        InterfaceParam indptrSize,
         InterfaceParam totalCycles,
         InterfaceParam paddingCycles) {
 
@@ -159,7 +162,7 @@ public class SpmvManager extends CustomManager{
 
       ei.setLMemLinear("colptr" + id,
           colPtrStartAddress,
-          colptrSize );
+          colptrSize);
 
       ei.setLMemLinear("vromLoad" + id,
           vStartAddress,
@@ -169,7 +172,11 @@ public class SpmvManager extends CustomManager{
       ei.setScalar(readControl, "vectorLoadCycles", vectorLoadCycles);
       ei.setScalar(readControl, "nPartitions", nPartitions);
 
-      ei.setStream("vromLoad", CPUTypes.DOUBLE, vectorSize * CPUTypes.DOUBLE.sizeInBytes());
+      ei.setLMemLinear(
+          "indptr" + id,
+          indptrStartAddress,
+          indptrSize);
+
       ei.setLMemLinear(
           "paddingOut",
           outResultStartAddress,
@@ -190,6 +197,9 @@ public class SpmvManager extends CustomManager{
 
       InterfaceParamArray vStartAddresses = ei.addParamArray("vStartAddresses", CPUTypes.INT64);
 
+      InterfaceParamArray indptrAddresses = ei.addParamArray("indptrAddresses", CPUTypes.INT64);
+      InterfaceParamArray indptrSizes = ei.addParamArray("indptrSizes", CPUTypes.INT32);
+
       InterfaceParamArray colptrStartAddresses = ei.addParamArray("colPtrStartAddresses", CPUTypes.INT64);
       InterfaceParamArray colptrSizes = ei.addParamArray("colptrSizes", CPUTypes.INT32);
 
@@ -203,6 +213,8 @@ public class SpmvManager extends CustomManager{
             vStartAddresses.get(i),
             colptrStartAddresses.get(i),
             colptrSizes.get(i),
+            indptrAddresses.get(i),
+            indptrSizes.get(i),
             totalCycles.get(i),
             paddingCycles.get(i));
 
