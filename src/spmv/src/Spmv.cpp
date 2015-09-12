@@ -31,16 +31,17 @@ int ssarch::cycleCount(int32_t* v, int size, int inputWidth)
 
 // transform a given matrix with n rows in blocks of size n X blockSize
 spark::spmv::BlockingResult ssarch::do_blocking(
-    const EigenSparseMatrix mat,
+    const EigenSparseMatrix m,
     int blockSize)
 {
 
-  const int* indptr = mat.innerIndexPtr();
-  const double* values = mat.valuePtr();
-  const int* colptr = mat.outerIndexPtr();
-  int rows = mat.rows();
-  int cols = mat.cols();
+  const int* indptr = m.innerIndexPtr();
+  const double* values = m.valuePtr();
+  const int* colptr = m.outerIndexPtr();
+  int rows = m.rows();
+  int cols = m.cols();
   int n = rows;
+  std::cout << "Mat rows " << n << std::endl;
 
   int nPartitions = cols / blockSize + (cols % blockSize == 0 ? 0 : 1);
   //std::cout << "Npartitions: " << nPartitions << std::endl;
@@ -71,7 +72,7 @@ spark::spmv::BlockingResult ssarch::do_blocking(
         "Matrix has too many rows - maximum supported: "
         + std::to_string(Spmv_maxRows));
 
-  std::vector<double> v(n, 0);
+  std::vector<double> v(cols, 0);
   std::vector<double> m_values;
   std::vector<int> m_colptr, m_indptr;
 
@@ -98,20 +99,83 @@ spark::spmv::BlockingResult ssarch::do_blocking(
   std::cout << "Cycles ==== " << cycles << std::endl;
   std::cout << "v.size() ==== " << v.size() << std::endl;
 
-  this->gflopsCount = 2.0 * (double)mat.nonZeros() / 1E9;
+  this->gflopsCount = 2.0 * (double)m.nonZeros() / 1E9;
   this->totalCycles = cycles + v.size();
 
   BlockingResult br;
   br.nPartitions = nPartitions;
-  br.n = mat.cols();
+  br.n = n;
   br.paddingCycles = out.size() - n; // number of cycles required to align to the burst size
   br.totalCycles = totalCycles;
   br.vector_load_cycles = v.size() / nPartitions; // per partition
   br.m_colptr = m_colptr;
   br.m_values = m_values;
   br.m_indptr = m_indptr;
+  br.outSize = out.size() * sizeof(double);
 
   return br;
+}
+
+template<typename T>
+long size_bytes(const std::vector<T>& v) {
+  return sizeof(T) * v.size();
+}
+
+struct PartitionWriteResult {
+  int outStartAddr, outSize, colptrStartAddress, colptrSize;
+  int vStartAddress, indptrStartAddress, indptrSize;
+  int valuesStartAddress, valuesSize;
+};
+
+int align(int bytes, int to) {
+  int quot = bytes / to;
+  if (bytes % to != 0)
+    return (quot + 1) * to;
+  return bytes;
+}
+
+// write the data for a partition, starting at the given offset
+PartitionWriteResult writeDataForPartition(
+    int offset,
+    const BlockingResult& br,
+    const std::vector<double>& v) {
+  // for each partition write this down
+  PartitionWriteResult pwr;
+  pwr.valuesStartAddress = align(offset, 384);
+  pwr.valuesSize = size_bytes(br.m_values);
+  //std::cout << "Writing values" << std::endl;
+  //std::cout << "Values bytes " << pwr.valuesSize << std::endl;
+  Spmv_dramWrite(
+      pwr.valuesSize,
+      pwr.valuesStartAddress,
+      (uint8_t *)&br.m_values[0]);
+
+  //std::cout << "Wrote value" << std::endl;
+  pwr.indptrStartAddress = pwr.valuesStartAddress + size_bytes(br.m_values);
+  pwr.indptrSize = size_bytes(br.m_indptr);
+  Spmv_dramWrite(
+      pwr.indptrSize,
+      pwr.indptrStartAddress,
+      (uint8_t *)&br.m_indptr[0]);
+
+  //std::cout << "Wrote indptr" << std::endl;
+  pwr.vStartAddress = pwr.indptrStartAddress + pwr.indptrSize;
+  Spmv_dramWrite(
+      size_bytes(v),
+      pwr.vStartAddress,
+      (uint8_t *)&v[0]);
+
+  //std::cout << "Wrote v" << std::endl;
+  pwr.colptrStartAddress = pwr.vStartAddress + size_bytes(v);
+  pwr.colptrSize = size_bytes(br.m_colptr);
+  Spmv_dramWrite(
+      pwr.colptrSize,
+      pwr.colptrStartAddress,
+      (uint8_t *)&br.m_colptr[0]);
+
+  pwr.outStartAddr = pwr.colptrStartAddress + pwr.colptrSize;
+  pwr.outSize = br.outSize;
+  return pwr;
 }
 
 
@@ -124,81 +188,54 @@ Eigen::VectorXd ssarch::dfespmv(Eigen::VectorXd x)
   spark::spmv::align(v, sizeof(double) * Spmv_cacheSize);
   spark::spmv::align(v, 384);
 
-  vector<double> out(n + br.paddingCycles , 0);
 
-  // for each partition write this down
-  int valuesStartAddress = 0;
-  int valuesSize = br.m_values.size() * sizeof(double);
-  Spmv_dramWrite(
-      valuesSize,
-      0,
-      (uint8_t *)&br.m_values[0]
-      );
+  std::vector<int> nrows, paddingCycles, totalCycles, colptrSizes, indptrSizes, valuesSizes, outputResultSizes;
+  std::vector<long> outputStartAddresses, colptrStartAddresses;
+  std::vector<long> vStartAddresses, indptrStartAddresses, valuesStartAddresses;
 
-  int indptrStartAddress = br.m_values.size() * sizeof(double);
-  int indptrSize = br.m_indptr.size() * sizeof(int);
-  Spmv_dramWrite(
-      indptrSize,
-      indptrStartAddress,
-      (uint8_t *)&br.m_indptr[0]);
 
-  int vStartAddress = br.m_values.size() * sizeof(double) + br.m_indptr.size() * sizeof(int);
-  Spmv_dramWrite(
-      v.size() * sizeof(double),
-      vStartAddress,
-      (uint8_t *)&v[0]);
+  int offset = 0;
+  int i = 0;
+  for (auto& p : this->partitions) {
+    std::cout << "Doing partition " << i++ << std::endl;
+    std::cout << p.to_string() << std::endl;
 
-  int colptrStartAddress =
-    vStartAddress + v.size() * sizeof(double);
-  std::cout << "Size of colptr = " << br.m_colptr.size() << std::endl;
-  int colptrSize = br.m_colptr.size() * sizeof(int);
-  Spmv_dramWrite(
-      colptrSize,
-      colptrStartAddress,
-      (uint8_t *)&br.m_colptr[0]);
+    nrows.push_back(p.n);
+    paddingCycles.push_back(p.paddingCycles);
+    totalCycles.push_back(p.totalCycles);
 
-  std::cout << br.to_string() << std::endl;
+    PartitionWriteResult pr = writeDataForPartition(offset, p, v);
+    outputStartAddresses.push_back(pr.outStartAddr);
+    outputResultSizes.push_back(pr.outSize);
+    colptrStartAddresses.push_back(pr.colptrStartAddress);
+    colptrSizes.push_back(pr.colptrSize);
+    vStartAddresses.push_back(pr.vStartAddress);
+    indptrStartAddresses.push_back(pr.indptrStartAddress);
+    indptrSizes.push_back(pr.indptrSize);
+    valuesSizes.push_back(pr.valuesSize);
+    valuesStartAddresses.push_back(pr.valuesStartAddress);
+
+    offset = pr.outStartAddr + p.outSize;
+  }
+
+  // npartitions and vector load cycles should be the same for all partitions
+  int nPartitions = this->partitions[0].nPartitions;
+  int vector_load_cycles = this->partitions[0].vector_load_cycles;
   std::cout << "Running on DFE" << std::endl;
-  int outputStartAddress =
-    colptrStartAddress + br.m_colptr.size() * sizeof(int);
+  dfesnippets::vectorutils::print_vector(paddingCycles);
+  dfesnippets::vectorutils::print_vector(nrows);
+  dfesnippets::vectorutils::print_vector(totalCycles);
 
-  std::vector<int> nrows{br.n};
-  std::vector<int> paddingCycles{br.paddingCycles};
-  std::vector<int> totalCycles{br.totalCycles};
-  std::vector<long> outputStartAddresses{outputStartAddress};
-  std::vector<long> colptrStartAddresses{colptrStartAddress};
-  std::vector<int> colptrSizes{colptrSize};
-  std::vector<long> vStartAddresses{vStartAddress};
-  std::vector<long> indptrStartAddresses{indptrStartAddress};
-  std::vector<int> indptrSizes{indptrSize};
-  std::vector<long> valuesStartAddresses{valuesStartAddress};
-  std::vector<int> valuesSizes{valuesSize};
-
-  //int64_t param_nPartitions,
-          //int64_t param_vectorLoadCycles,
-          //int64_t param_vectorSize,
-          //const int32_t *param_nrows,
-          //const int64_t *param_outStartAddresses,
-          //const int32_t *param_paddingCycles,
-          //const int32_t *param_totalCycles,
-          //const void *instream_colptr,
-          //size_t instream_size_colptr,
-          //const double *instream_vromLoad,
-          //size_t lmem_address_indptr,
-          //size_t lmem_arr_size_indptr,
-          //size_t lmem_address_values,
-          //size_t lmem_arr_size_values);
-
-  std::cout << "Clptr size before dfe call " << colptrSize << std::endl;
   Spmv(
-      br.nPartitions,
-      br.vector_load_cycles,
+      nPartitions,
+      vector_load_cycles,
       v.size(),
       &colptrStartAddresses[0],
       &colptrSizes[0],
       &indptrStartAddresses[0],
       &indptrSizes[0],
       &nrows[0],
+      &outputResultSizes[0],
       &outputStartAddresses[0],
       &paddingCycles[0],
       &totalCycles[0],
@@ -208,16 +245,20 @@ Eigen::VectorXd ssarch::dfespmv(Eigen::VectorXd x)
       );
   std::cout << "Done on DFE" << std::endl;
 
-  Spmv_dramRead(
-      out.size() * sizeof(double),
-      outputStartAddress,
-      (uint8_t*)&out[0]);
+  std::vector<double> total;
+  for (size_t i = 0; i < outputStartAddresses.size(); i++) {
+    std::vector<double> tmp(outputResultSizes[i] / sizeof(double), 0);
+    Spmv_dramRead(
+        size_bytes(tmp),
+        outputStartAddresses[i],
+        (uint8_t*)&tmp[0]);
+    dfesnippets::vectorutils::print_vector(tmp);
+    std::copy(tmp.begin(), tmp.begin() + nrows[i], std::back_inserter(total));
+  }
 
   // remove the elements which were only for padding
 
-  std::vector<double> f{out.begin(), out.begin() + n};
-
-  return spark::converters::stdvectorToEigen(f);
+  return spark::converters::stdvectorToEigen(total);
 }
 
 int spark::spmv::getPartitionSize() {
@@ -228,22 +269,32 @@ int spark::spmv::getInputWidth() {
   return Spmv_inputWidth;
 }
 
+std::vector<EigenSparseMatrix> ssarch::do_partition(EigenSparseMatrix mat) {
+    std::vector<EigenSparseMatrix> res;
+  if (Spmv_numPipes == 2) {
+    int nrows = mat.rows();
+    EigenSparseMatrix m1 = mat.topRows(nrows / 2);
+    m1.makeCompressed();
+    res.push_back(m1);
+    EigenSparseMatrix m2 = mat.bottomRows(nrows / 2 + nrows % 2);
+    m2.makeCompressed();
+    res.push_back(m2);
+  } else if (Spmv_numPipes == 1) {
+    res.push_back(mat);
+  } else
+    throw std::invalid_argument("Number of pipes not support in CPU code!");
+  return res;
+}
+
 void ssarch::preprocess(
     const EigenSparseMatrix mat) {
   this->mat = mat;
 
+  // XXX should be based on the number of pipes constant
   std::vector<EigenSparseMatrix> partitions = do_partition(mat);
 
   for (const auto& m : partitions) {
-    // TODO aggreagate partition results in PreprocessingResult
-    this->br = this->do_blocking(m, this->cacheSize);
+    this->partitions.push_back(do_blocking(m, this->cacheSize));
   }
-
-  //this->pr =
 }
 
-std::vector<EigenSparseMatrix> ssarch::do_partition(const EigenSparseMatrix mat)
-{
-  // TODO implement partition
-  return std::vector<EigenSparseMatrix>{mat};
-}

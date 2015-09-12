@@ -11,13 +11,12 @@ namespace spark {
     using EigenSparseMatrix = Eigen::SparseMatrix<double, Eigen::RowMajor, int32_t>;
 
     struct BlockingResult {
-      int nPartitions, n, paddingCycles, totalCycles, vector_load_cycles;
+      int nPartitions, n, paddingCycles, totalCycles, vector_load_cycles, outSize;
       std::vector<int> m_colptr, m_indptr;
       std::vector<double> m_values;
 
       std::string to_string() {
         std::stringstream s;
-        s << "Running on DFE" << std::endl;
         s << "Vector load cycles " << vector_load_cycles << std::endl;
         s << "Padding cycles = " << paddingCycles << std::endl;
         s << "Total cycles = " << totalCycles << std::endl;
@@ -37,8 +36,8 @@ namespace spark {
       protected:
       int cacheSize, inputWidth;
       EigenSparseMatrix mat;
-      BlockingResult br;
       std::string name;
+      std::vector<BlockingResult> partitions;
 
       virtual int cycleCount(int32_t* v, int size, int inputWidth);
 
