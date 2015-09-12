@@ -1,0 +1,314 @@
+
+Total resource usage
+-----------------------------------------------------------------
+    LUTs     FFs   BRAMs    DSPs                            
+  524800 1049600    2567    1963  total available resources for FPGA
+  218043  404043    3080     384  total resources used      
+  41.55%  38.49% 100.00%  19.56%  % of available
+  152458  259984    1762     384  used by kernels           
+  29.05%  24.77%  68.64%  19.56%  % of available
+   64664  142621    1312       0  used by manager           
+  12.32%  13.59%  51.11%   0.00%  % of available
+  214626  399164    3044     384  stray resources           
+  40.90%  38.03% 100.00%  19.56%  % of available
+
+High level manager breakdown aggregated by type
+-----------------------------------------------------------------
+    LUTs     FFs   BRAMs    DSPs  Type                      Occurrences
+    2659    4773       0       0  AddrGen                   12
+      39      37       1       0  ChecksumMappedDRP         1
+    6188    6468       0       0  DualAspectMux             7
+      38    8980       0       0  DualAspectReg             3
+    1579    1348     382       0  Fifo                      36
+  152458  259984    1762     384  Kernel                    8
+     719    1003       1       0  MAX4PCIeSlaveInterface    1
+      84     162       0       0  ManagerStateMachine_csrD  1
+      85     162       0       0  ManagerStateMachine_csrD  1
+    1620     505       0       0  ManagerStateMachine_read  1
+    1621     505       0       0  ManagerStateMachine_read  1
+     468      77       0       0  MappedElementSwitch       1
+     427     968       5       0  MappedMemoriesController  1
+     143     132       0       0  MappedRegistersControlle  1
+   23732   82080     897       0  MemoryControllerPro       1
+     954    1442      25       0  PCIeSlaveStreaming        1
+     277     392       0       0  PerfMonitor               1
+      17      22       0       0  ResetControl              2
+     148     186       0       0  SanityBlock               1
+      93      78       1       0  SignalForwardingAdapter   1
+       6       3       0       0  StreamPullPushAdapter     3
+   23767   33298       0       0  StreamStatus              99
+       0       0       0       0  Memory Controller         --
+       0       0       0       0  Other InterFPGA           --
+    1029    1255       7       0  Other MappedElements      --
+    2388    3624      29       0  Other PCIe                --
+
+Kernel breakdown
+-----------------------------------------------------------------
+    LUTs     FFs   BRAMs    DSPs  category
+  152458  259984    1762     384  total for all kernels
+  29.05%  24.77%  68.64%  19.56%  % of total available
+
+Totals for each kernel
+    LUTs     FFs   BRAMs    DSPs  Kernel name
+     606   14386     337       0  cacheKernel0 (total)
+   0.12%   1.37%  13.13%   0.00%  % of total available
+     389    7792     336       0  cacheKernel0 (user)
+   0.07%   0.74%  13.09%   0.00%  % of total available
+       0       9       0       0  cacheKernel0 (scheduling)
+   0.00%   0.00%   0.00%   0.00%  % of total available
+     217    6585       1       0  cacheKernel0 (other Kernel resources)
+   0.04%   0.63%   0.04%   0.00%  % of total available
+     599   14380     337       0  cacheKernel1 (total)
+   0.11%   1.37%  13.13%   0.00%  % of total available
+     389    7792     336       0  cacheKernel1 (user)
+   0.07%   0.74%  13.09%   0.00%  % of total available
+       0       9       0       0  cacheKernel1 (scheduling)
+   0.00%   0.00%   0.00%   0.00%  % of total available
+     210    6579       1       0  cacheKernel1 (other Kernel resources)
+   0.04%   0.63%   0.04%   0.00%  % of total available
+   73344  111861     132     192  computeKernel0 (total)
+  13.98%  10.66%   5.14%   9.78%  % of total available
+   73018  110880     126     192  computeKernel0 (user)
+  13.91%  10.56%   4.91%   9.78%  % of total available
+      60     507       5       0  computeKernel0 (scheduling)
+   0.01%   0.05%   0.19%   0.00%  % of total available
+     266     474       1       0  computeKernel0 (other Kernel resources)
+   0.05%   0.05%   0.04%   0.00%  % of total available
+   73197  111861     132     192  computeKernel1 (total)
+  13.95%  10.66%   5.14%   9.78%  % of total available
+   72872  110880     126     192  computeKernel1 (user)
+  13.89%  10.56%   4.91%   9.78%  % of total available
+      60     507       5       0  computeKernel1 (scheduling)
+   0.01%   0.05%   0.19%   0.00%  % of total available
+     265     474       1       0  computeKernel1 (other Kernel resources)
+   0.05%   0.05%   0.04%   0.00%  % of total available
+     451     982       0       0  paddingKernel0 (total)
+   0.09%   0.09%   0.00%   0.00%  % of total available
+     327     576       0       0  paddingKernel0 (user)
+   0.06%   0.05%   0.00%   0.00%  % of total available
+       0       5       0       0  paddingKernel0 (scheduling)
+   0.00%   0.00%   0.00%   0.00%  % of total available
+     124     401       0       0  paddingKernel0 (other Kernel resources)
+   0.02%   0.04%   0.00%   0.00%  % of total available
+     445     982       0       0  paddingKernel1 (total)
+   0.08%   0.09%   0.00%   0.00%  % of total available
+     324     576       0       0  paddingKernel1 (user)
+   0.06%   0.05%   0.00%   0.00%  % of total available
+       0       5       0       0  paddingKernel1 (scheduling)
+   0.00%   0.00%   0.00%   0.00%  % of total available
+     121     401       0       0  paddingKernel1 (other Kernel resources)
+   0.02%   0.04%   0.00%   0.00%  % of total available
+    1905    2766     412       0  reductionKernel0 (total)
+   0.36%   0.26%  16.05%   0.00%  % of total available
+    1669    2133     412       0  reductionKernel0 (user)
+   0.32%   0.20%  16.05%   0.00%  % of total available
+       0      14       0       0  reductionKernel0 (scheduling)
+   0.00%   0.00%   0.00%   0.00%  % of total available
+     236     619       0       0  reductionKernel0 (other Kernel resources)
+   0.04%   0.06%   0.00%   0.00%  % of total available
+    1911    2766     412       0  reductionKernel1 (total)
+   0.36%   0.26%  16.05%   0.00%  % of total available
+    1675    2133     412       0  reductionKernel1 (user)
+   0.32%   0.20%  16.05%   0.00%  % of total available
+       0      14       0       0  reductionKernel1 (scheduling)
+   0.00%   0.00%   0.00%   0.00%  % of total available
+     236     619       0       0  reductionKernel1 (other Kernel resources)
+   0.04%   0.06%   0.00%   0.00%  % of total available
+
+
+Manager breakdown
+-----------------------------------------------------------------
+    LUTs     FFs   BRAMs    DSPs  Type                      Instance
+     291     395       0       0  StreamStatus              STREAMSTATUS_Stream_101_output
+     243     347       0       0  StreamStatus              STREAMSTATUS_Stream_103_output
+     243     347       0       0  StreamStatus              STREAMSTATUS_Stream_105_output
+     243     347       0       0  StreamStatus              STREAMSTATUS_Stream_107_output
+     243     347       0       0  StreamStatus              STREAMSTATUS_Stream_109_output
+     243     347       0       0  StreamStatus              STREAMSTATUS_Stream_111_output
+     243     347       0       0  StreamStatus              STREAMSTATUS_Stream_113_output
+     243     347       0       0  StreamStatus              STREAMSTATUS_Stream_115_output
+     243     347       0       0  StreamStatus              STREAMSTATUS_Stream_117_output
+     243     347       0       0  StreamStatus              STREAMSTATUS_Stream_119_output
+     244     347       0       0  StreamStatus              STREAMSTATUS_Stream_122_output
+     244     347       0       0  StreamStatus              STREAMSTATUS_Stream_125_output
+     243     345       0       0  StreamStatus              STREAMSTATUS_Stream_132_output
+     243     345       0       0  StreamStatus              STREAMSTATUS_Stream_139_output
+     250     349       0       0  StreamStatus              STREAMSTATUS_Stream_13_output
+     250     349       0       0  StreamStatus              STREAMSTATUS_Stream_143_output
+     243     345       0       0  StreamStatus              STREAMSTATUS_Stream_153_output
+     243     345       0       0  StreamStatus              STREAMSTATUS_Stream_157_output
+     243     345       0       0  StreamStatus              STREAMSTATUS_Stream_159_output
+     244     346       0       0  StreamStatus              STREAMSTATUS_Stream_161_output
+     289     394       0       0  StreamStatus              STREAMSTATUS_Stream_165_output
+     243     347       0       0  StreamStatus              STREAMSTATUS_Stream_169_output
+     243     347       0       0  StreamStatus              STREAMSTATUS_Stream_173_output
+     243     347       0       0  StreamStatus              STREAMSTATUS_Stream_177_output
+     243     347       0       0  StreamStatus              STREAMSTATUS_Stream_181_output
+     243     345       0       0  StreamStatus              STREAMSTATUS_Stream_183_output
+     244     347       0       0  StreamStatus              STREAMSTATUS_Stream_185_output
+     243     345       0       0  StreamStatus              STREAMSTATUS_Stream_187_output
+     244     347       0       0  StreamStatus              STREAMSTATUS_Stream_189_output
+     250     349       0       0  StreamStatus              STREAMSTATUS_Stream_1_output
+     250     349       0       0  StreamStatus              STREAMSTATUS_Stream_27_output
+     243     347       0       0  StreamStatus              STREAMSTATUS_Stream_34_output
+     243     347       0       0  StreamStatus              STREAMSTATUS_Stream_36_output
+     243     347       0       0  StreamStatus              STREAMSTATUS_Stream_38_output
+     243     347       0       0  StreamStatus              STREAMSTATUS_Stream_40_output
+     243     347       0       0  StreamStatus              STREAMSTATUS_Stream_42_output
+     243     347       0       0  StreamStatus              STREAMSTATUS_Stream_44_output
+     243     347       0       0  StreamStatus              STREAMSTATUS_Stream_46_output
+     243     347       0       0  StreamStatus              STREAMSTATUS_Stream_48_output
+     243     347       0       0  StreamStatus              STREAMSTATUS_Stream_50_output
+     243     347       0       0  StreamStatus              STREAMSTATUS_Stream_52_output
+     244     347       0       0  StreamStatus              STREAMSTATUS_Stream_55_output
+     244     347       0       0  StreamStatus              STREAMSTATUS_Stream_58_output
+     243     345       0       0  StreamStatus              STREAMSTATUS_Stream_65_output
+     250     349       0       0  StreamStatus              STREAMSTATUS_Stream_68_output
+     242     345       0       0  StreamStatus              STREAMSTATUS_Stream_76_output
+     250     349       0       0  StreamStatus              STREAMSTATUS_Stream_80_output
+     250     349       0       0  StreamStatus              STREAMSTATUS_Stream_94_output
+     242     345       0       0  StreamStatus              STREAMSTATUS_Stream_9_output
+     244     346       0       0  StreamStatus              STREAMSTATUS_addrgen_cmd_colptr0_addrgen_cmd_colptr0_0
+     244     346       0       0  StreamStatus              STREAMSTATUS_addrgen_cmd_colptr1_addrgen_cmd_colptr1_0
+     244     346       0       0  StreamStatus              STREAMSTATUS_addrgen_cmd_cpu2lmem_addrgen_cmd_cpu2lmem_0
+     244     346       0       0  StreamStatus              STREAMSTATUS_addrgen_cmd_indptr0_addrgen_cmd_indptr0_0
+     244     346       0       0  StreamStatus              STREAMSTATUS_addrgen_cmd_indptr1_addrgen_cmd_indptr1_0
+     244     346       0       0  StreamStatus              STREAMSTATUS_addrgen_cmd_lmem2cpu_addrgen_cmd_lmem2cpu_0
+     244     346       0       0  StreamStatus              STREAMSTATUS_addrgen_cmd_paddingOut0_addrgen_cmd_paddingOut0_0
+     244     346       0       0  StreamStatus              STREAMSTATUS_addrgen_cmd_paddingOut1_addrgen_cmd_paddingOut1_0
+     244     346       0       0  StreamStatus              STREAMSTATUS_addrgen_cmd_values0_addrgen_cmd_values0_0
+     244     346       0       0  StreamStatus              STREAMSTATUS_addrgen_cmd_values1_addrgen_cmd_values1_0
+     244     346       0       0  StreamStatus              STREAMSTATUS_addrgen_cmd_vromLoad0_addrgen_cmd_vromLoad0_0
+     244     346       0       0  StreamStatus              STREAMSTATUS_addrgen_cmd_vromLoad1_addrgen_cmd_vromLoad1_0
+     250     350       0       0  StreamStatus              STREAMSTATUS_cacheKernel0_loadEnabled_out
+     250     349       0       0  StreamStatus              STREAMSTATUS_cacheKernel0_matrixValues
+     251     349       0       0  StreamStatus              STREAMSTATUS_cacheKernel0_vectorValues
+     250     349       0       0  StreamStatus              STREAMSTATUS_cacheKernel1_loadEnabled_out
+     250     349       0       0  StreamStatus              STREAMSTATUS_cacheKernel1_matrixValues
+     251     350       0       0  StreamStatus              STREAMSTATUS_cacheKernel1_vectorValues
+     245     347       0       0  StreamStatus              STREAMSTATUS_colptr0_colptr0
+     245     347       0       0  StreamStatus              STREAMSTATUS_colptr1_colptr1
+     250     350       0       0  StreamStatus              STREAMSTATUS_computeKernel0_output
+     250     350       0       0  StreamStatus              STREAMSTATUS_computeKernel1_output
+     244     346       0       0  StreamStatus              STREAMSTATUS_csrDecoder0_rowLength_out
+     244     346       0       0  StreamStatus              STREAMSTATUS_csrDecoder1_rowLength_out
+     246     348       0       0  StreamStatus              STREAMSTATUS_fromcpu_fromcpu
+     245     347       0       0  StreamStatus              STREAMSTATUS_indptr0_indptr0
+     245     347       0       0  StreamStatus              STREAMSTATUS_indptr1_indptr1
+     245     347       0       0  StreamStatus              STREAMSTATUS_lmem2cpu_lmem2cpu
+     250     350       0       0  StreamStatus              STREAMSTATUS_paddingKernel0_paddingOut
+     250     350       0       0  StreamStatus              STREAMSTATUS_paddingKernel1_paddingOut
+     245     346       0       0  StreamStatus              STREAMSTATUS_readControl0_cycleCounter
+     196     250       0       0  StreamStatus              STREAMSTATUS_readControl0_firstReadPosition
+     196     250       0       0  StreamStatus              STREAMSTATUS_readControl0_readenable
+     196     250       0       0  StreamStatus              STREAMSTATUS_readControl0_readmask
+     196     250       0       0  StreamStatus              STREAMSTATUS_readControl0_rowFinished
+     196     250       0       0  StreamStatus              STREAMSTATUS_readControl0_rowLength
+     196     250       0       0  StreamStatus              STREAMSTATUS_readControl0_vectorLoad
+     244     346       0       0  StreamStatus              STREAMSTATUS_readControl1_cycleCounter
+     196     250       0       0  StreamStatus              STREAMSTATUS_readControl1_firstReadPosition
+     196     250       0       0  StreamStatus              STREAMSTATUS_readControl1_readenable
+     196     250       0       0  StreamStatus              STREAMSTATUS_readControl1_readmask
+     196     250       0       0  StreamStatus              STREAMSTATUS_readControl1_rowFinished
+     196     250       0       0  StreamStatus              STREAMSTATUS_readControl1_rowLength
+     196     250       0       0  StreamStatus              STREAMSTATUS_readControl1_vectorLoad
+     250     350       0       0  StreamStatus              STREAMSTATUS_reductionKernel0_reductionOut
+     250     350       0       0  StreamStatus              STREAMSTATUS_reductionKernel1_reductionOut
+     246     349       0       0  StreamStatus              STREAMSTATUS_values0_values0
+     246     349       0       0  StreamStatus              STREAMSTATUS_values1_values1
+     245     347       0       0  StreamStatus              STREAMSTATUS_vromLoad0_vromLoad0
+     245     347       0       0  StreamStatus              STREAMSTATUS_vromLoad1_vromLoad1
+      43      33       1       0  Fifo                      Stream_101
+      42      33       2       0  Fifo                      Stream_103
+      42      33       1       0  Fifo                      Stream_105
+      42      33       1       0  Fifo                      Stream_107
+      42      33      77       0  Fifo                      Stream_109
+      42      33      77       0  Fifo                      Stream_111
+      43      33       1       0  Fifo                      Stream_113
+      43      33       1       0  Fifo                      Stream_115
+      43      33       1       0  Fifo                      Stream_117
+      43      33       1       0  Fifo                      Stream_119
+      41      33       2       0  Fifo                      Stream_122
+      41      33       2       0  Fifo                      Stream_125
+      13    3015       0       0  DualAspectReg             Stream_132
+      12    2950       0       0  DualAspectReg             Stream_139
+     535     532       0       0  DualAspectMux             Stream_13
+     915    1166       0       0  DualAspectMux             Stream_143
+      39      32       1       0  Fifo                      Stream_153
+      39      32       1       0  Fifo                      Stream_157
+      79     116       4       0  Fifo                      Stream_159
+       2       1       0       0  StreamPullPushAdapter     Stream_161
+      73     116       4       0  Fifo                      Stream_165
+      42      33       2       0  Fifo                      Stream_169
+      43      33      14       0  Fifo                      Stream_173
+      42      33       2       0  Fifo                      Stream_177
+      42      33      14       0  Fifo                      Stream_181
+      43      32       2       0  Fifo                      Stream_183
+       2       1       0       0  StreamPullPushAdapter     Stream_185
+      43      32       2       0  Fifo                      Stream_187
+       2       1       0       0  StreamPullPushAdapter     Stream_189
+    1052    1078       0       0  DualAspectMux             Stream_1
+    1050    1041       0       0  DualAspectMux             Stream_27
+      43      33       1       0  Fifo                      Stream_34
+      43      33       2       0  Fifo                      Stream_36
+      43      33       1       0  Fifo                      Stream_38
+      42      33       1       0  Fifo                      Stream_40
+      42      33      77       0  Fifo                      Stream_42
+      42      33      77       0  Fifo                      Stream_44
+      43      33       1       0  Fifo                      Stream_46
+      43      33       1       0  Fifo                      Stream_48
+      43      33       1       0  Fifo                      Stream_50
+      43      33       1       0  Fifo                      Stream_52
+      41      33       2       0  Fifo                      Stream_55
+      41      33       2       0  Fifo                      Stream_58
+      13    3015       0       0  DualAspectReg             Stream_65
+    1052    1078       0       0  DualAspectMux             Stream_68
+      39      32       1       0  Fifo                      Stream_76
+     534     532       0       0  DualAspectMux             Stream_80
+    1050    1041       0       0  DualAspectMux             Stream_94
+      39      32       1       0  Fifo                      Stream_9
+     229     398       0       0  AddrGen                   addrgen_cmd_colptr0
+     228     398       0       0  AddrGen                   addrgen_cmd_colptr1
+     198     397       0       0  AddrGen                   addrgen_cmd_cpu2lmem
+     230     398       0       0  AddrGen                   addrgen_cmd_indptr0
+     231     398       0       0  AddrGen                   addrgen_cmd_indptr1
+     197     397       0       0  AddrGen                   addrgen_cmd_lmem2cpu
+     229     398       0       0  AddrGen                   addrgen_cmd_paddingOut0
+     197     397       0       0  AddrGen                   addrgen_cmd_paddingOut1
+     231     398       0       0  AddrGen                   addrgen_cmd_values0
+     228     398       0       0  AddrGen                   addrgen_cmd_values1
+     230     398       0       0  AddrGen                   addrgen_cmd_vromLoad0
+     231     398       0       0  AddrGen                   addrgen_cmd_vromLoad1
+     606   14386     337       0  Kernel                    cacheKernel0
+     599   14380     337       0  Kernel                    cacheKernel1
+   73344  111861     132     192  Kernel                    computeKernel0
+   73197  111861     132     192  Kernel                    computeKernel1
+      84     162       0       0  ManagerStateMachine_csrD  csrDecoder0
+      85     162       0       0  ManagerStateMachine_csrD  csrDecoder1
+     451     982       0       0  Kernel                    paddingKernel0
+     445     982       0       0  Kernel                    paddingKernel1
+    1620     505       0       0  ManagerStateMachine_read  readControl0
+    1621     505       0       0  ManagerStateMachine_read  readControl1
+    1905    2766     412       0  Kernel                    reductionKernel0
+    1911    2766     412       0  Kernel                    reductionKernel1
+     719    1003       1       0  MAX4PCIeSlaveInterface    MAX4PCIeSlaveInterface_i
+       9      11       0       0  ResetControl              control_streams_rst_ctl
+     468      77       0       0  MappedElementSwitch       MappedElementSwitch_i
+     427     968       5       0  MappedMemoriesController  MappedMemoriesController_i
+     143     132       0       0  MappedRegistersControlle  MappedRegistersController_i
+     277     392       0       0  PerfMonitor               perfm
+     148     186       0       0  SanityBlock               SanityBlock_i
+      93      78       1       0  SignalForwardingAdapter   SignalForwardingAdapter_i
+      39      37       1       0  ChecksumMappedDRP         checksum_mem_drp
+     954    1442      25       0  PCIeSlaveStreaming        dynpcie
+       8      11       0       0  ResetControl              reset_controller
+   23732   82080     897       0  MemoryControllerPro       memctrlpro_maia_sodimms
+
+Source files annotation report
+-----------------------------------------------------------------
+
+% of total used for each file (note: multiple files may share the same resources)
+    LUTs     FFs   BRAMs    DSPs  filename
+  68.25%  59.40%  56.75% 100.00%  SpmvKernel.maxj
+  69.15%  60.35%  57.08% 100.00%  SpmvManager.maxj
+ 100.00%  90.03%  60.65% 100.00%  [ missing source files ]

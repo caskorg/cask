@@ -270,7 +270,8 @@ int spark::spmv::getInputWidth() {
 }
 
 std::vector<EigenSparseMatrix> ssarch::do_partition(EigenSparseMatrix mat) {
-    std::vector<EigenSparseMatrix> res;
+  // TODO partition rows evenly among pipes
+  std::vector<EigenSparseMatrix> res;
   if (Spmv_numPipes == 2) {
     int nrows = mat.rows();
     EigenSparseMatrix m1 = mat.topRows(nrows / 2);

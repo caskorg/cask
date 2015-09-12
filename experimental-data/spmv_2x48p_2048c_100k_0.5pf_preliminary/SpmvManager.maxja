@@ -1,0 +1,262 @@
+    LUTs     FFs   BRAMs    DSPs : SpmvManager.maxj
+  150783  243832    1758     384 : resources used by this file
+  28.73%  23.23%  68.48%  19.56% : % of available
+  69.15%  60.35%  57.08% 100.00% : % of total used
+  98.90%  93.79%  99.77% 100.00% : % of user resources
+
+                                 : import com.maxeler.maxcompiler.v2.build.EngineParameters;
+                                 : import com.maxeler.maxcompiler.v2.managers.custom.CustomManager;
+                                 : import com.maxeler.maxcompiler.v2.managers.custom.blocks.*;
+                                 : import com.maxeler.maxcompiler.v2.managers.custom.stdlib.MemoryControlGroup;
+                                 : import com.maxeler.maxcompiler.v2.managers.engine_interfaces.*;
+                                 : import com.maxeler.maxcompiler.v2.statemachine.manager.ManagerStateMachine;
+                                 : 
+                                 : import com.custom_computing_ic.dfe_snippets.sparse.*;
+                                 : import com.custom_computing_ic.dfe_snippets.manager.*;
+                                 : 
+                                 : public class SpmvManager extends CustomManager{
+                                 :     private static final String s_kernelName  = "SpmvKernel";
+                                 :     private static final String s_reductionKernel = "SpmvReductionKernel";
+                                 :     private static final String s_paddingKernel = "SpmvPaddingKernel";
+                                 :     private static final String s_cacheKernel = "SpmvCacheKernel";
+                                 : 
+                                 :     private static final int cacheSize = 1024 * 2;
+                                 :     private static final int INPUT_WIDTH = 48;
+                                 :     private static final int MAX_ROWS = 100000;
+                                 :     private static final int NUM_PIPES = 2;
+                                 : 
+                                 :     // parameters of CSR format used: float64 values, int32 index.
+                                 :     private static final int mantissaWidth = 53;
+                                 :     private static final int indexWidth = 32;
+                                 : 
+                                 :     private static final int FLOATING_POINT_LATENCY = 16;
+                                 : 
+                                 :     private static final boolean DBG_CSR_DECODER = false;
+                                 :     private static final boolean DBG_PAR_CSR_CTL = false;
+                                 :     private static final boolean DBG_SPMV_KERNEL = false;
+                                 : 
+                                 :     void addComputePipe(int id, int inputWidth) {
+                                 :         ManagerStateMachine csrDecoder = new CsrDecoder(this, DBG_CSR_DECODER);
+                                 :         StateMachineBlock csrDecoderBlock = addStateMachine(getCsrDecoder(id), csrDecoder);
+                                 :         //csrDecoderBlock.getInput("colptr") <== addStreamFromCPU("colptr");
+                                 :         csrDecoderBlock.getInput("colptr") <== addStreamFromOnCardMemory("colptr" + id,
+                                 :             MemoryControlGroup.MemoryAccessPattern.LINEAR_1D);
+                                 : 
+                                 :         ManagerStateMachine readControl = new ParallelCsrReadControl(this, inputWidth, DBG_PAR_CSR_CTL);
+                                 :         StateMachineBlock readControlBlock = addStateMachine(getReadControl(id), readControl);
+                                 :         readControlBlock.getInput("length") <== csrDecoderBlock.getOutput("rowLength_out");
+                                 : 
+     458     692       0       0 :         KernelBlock cache = addKernel(new SpmvCacheKernel(
+                                 :               makeKernelParameters(getCacheKernel(id)),
+                                 :               inputWidth,
+                                 :               cacheSize,
+                                 :               indexWidth,
+     320   14892     672       0 :               mantissaWidth
+                                 :               ));
+                                 : 
+     460     692       0       0 :         KernelBlock k = addKernel(new SpmvKernel(
+                                 :               makeKernelParameters(getComputeKernel(id)),
+                                 :               inputWidth,
+                                 :               cacheSize,
+                                 :               indexWidth,
+                                 :               mantissaWidth,
+  145430  221068     252     384 :               DBG_SPMV_KERNEL
+                                 :               ));
+                                 : 
+                                 :         cache.getInput("indptr") <== addStreamFromOnCardMemory("indptr" + id,
+                                 :             MemoryControlGroup.MemoryAccessPattern.LINEAR_1D);
+                                 :         cache.getInput("values") <== addStreamFromOnCardMemory("values" + id,
+                                 :             MemoryControlGroup.MemoryAccessPattern.LINEAR_1D);
+                                 :         cache.getInput("vromLoad") <== addStreamFromOnCardMemory("vromLoad" + id,
+                                 :             MemoryControlGroup.MemoryAccessPattern.LINEAR_1D);
+                                 : 
+                                 :         cache.getInput("readenable") <== readControlBlock.getOutput("readenable");
+                                 :         cache.getInput("readmask") <== readControlBlock.getOutput("readmask");
+                                 :         cache.getInput("loadEnabled_in") <== readControlBlock.getOutput("vectorLoad");
+                                 : 
+                                 :         k.getInput("loadEnabled") <== cache.getOutput("loadEnabled_out");
+                                 :         k.getInput("vectorValues") <== cache.getOutput("vectorValues");
+                                 :         k.getInput("matrixValues") <== cache.getOutput("matrixValues");
+                                 : 
+                                 :         k.getInput("rowLength") <== readControlBlock.getOutput("rowLength");
+                                 :         k.getInput("rowFinished") <== readControlBlock.getOutput("rowFinished");
+                                 :         k.getInput("cycleCounter") <== readControlBlock.getOutput("cycleCounter");
+                                 :         k.getInput("firstReadPosition") <== readControlBlock.getOutput("firstReadPosition");
+                                 : 
+     462     694       0       0 :         KernelBlock r = addKernel(new SpmvReductionKernel(
+                                 :               makeKernelParameters(getReductionKernel(id)),
+                                 :               FLOATING_POINT_LATENCY,
+    2882    3572     824       0 :               MAX_ROWS));
+                                 :         r.getInput("reductionIn") <== k.getOutput("output");
+                                 : 
+     458     692       0       0 :         KernelBlock p = addKernel(new PaddingKernel(
+     193     460       0       0 :               makeKernelParameters(getPaddingKernel(id))));
+                                 : 
+                                 :         p.getInput("paddingIn") <== r.getOutput("reductionOut");
+                                 :         addStreamToOnCardMemory("paddingOut" + id,
+                                 :             MemoryControlGroup.MemoryAccessPattern.LINEAR_1D) <== p.getOutput("paddingOut");
+                                 :     }
+                                 : 
+                                 :     SpmvManager(EngineParameters ep) {
+                                 :         super(ep);
+                                 :         addMaxFileConstant("inputWidth", INPUT_WIDTH);
+                                 :         addMaxFileConstant("cacheSize", cacheSize);
+                                 :         addMaxFileConstant("maxRows", MAX_ROWS);
+                                 :         addMaxFileConstant("numPipes", NUM_PIPES);
+                                 : 
+                                 :         ManagerUtils.setDRAMMaxDeviceFrequency(this, ep);
+                                 : 
+                                 :         for (int i = 0; i < NUM_PIPES; i++)
+  150663  242762    1748     384 :           addComputePipe(i, INPUT_WIDTH);
+                                 :     }
+                                 : 
+                                 :     String getComputeKernel(int id) {
+                                 :       return "computeKernel" + id;
+                                 :     }
+                                 : 
+                                 :     String getCacheKernel(int id) {
+                                 :       return "cacheKernel" + id;
+                                 :     }
+                                 : 
+                                 :     String getReductionKernel(int id) {
+                                 :       return "reductionKernel" + id;
+                                 :     }
+                                 : 
+                                 :     String getPaddingKernel(int id) {
+                                 :       return "paddingKernel" + id;
+                                 :     }
+                                 : 
+                                 :     String getCsrDecoder(int id) {
+                                 :       return "csrDecoder" + id;
+                                 :     }
+                                 : 
+                                 :     String getReadControl(int id) {
+                                 :       return "readControl" + id;
+                                 :     }
+                                 : 
+                                 :     void setUpComputePipe(
+                                 :         EngineInterface ei, int id,
+                                 :         InterfaceParam vectorSize,
+                                 :         InterfaceParam vectorLoadCycles,
+                                 :         InterfaceParam nPartitions,
+                                 :         InterfaceParam n,
+                                 :         InterfaceParam outResultStartAddress,
+                                 :         InterfaceParam outResultSize,
+                                 :         InterfaceParam vStartAddress,
+                                 :         InterfaceParam colPtrStartAddress,
+                                 :         InterfaceParam colptrSize,
+                                 :         InterfaceParam indptrStartAddress,
+                                 :         InterfaceParam indptrSize,
+                                 :         InterfaceParam valuesStartAddress,
+                                 :         InterfaceParam valuesSize,
+                                 :         InterfaceParam totalCycles,
+                                 :         InterfaceParam paddingCycles) {
+                                 : 
+                                 :       String computeKernel = getComputeKernel(id);
+                                 :       String cacheKernel = getCacheKernel(id);
+                                 :       String reductionKernel = getReductionKernel(id);
+                                 :       String paddingKernel = getPaddingKernel(id);
+                                 :       String csrDecoder = getCsrDecoder(id);
+                                 :       String readControl = getReadControl(id);
+                                 : 
+                                 :       ei.setTicks(computeKernel, totalCycles);
+                                 : 
+                                 :       ei.setTicks(cacheKernel, totalCycles);
+                                 :       ei.setScalar(cacheKernel, "vectorLoadCycles", vectorLoadCycles);
+                                 : 
+                                 :       ei.setTicks(reductionKernel, (n * nPartitions));
+                                 :       ei.setScalar(reductionKernel, "nRows", n);
+                                 :       ei.setScalar(reductionKernel, "totalCycles", n * nPartitions);
+                                 : 
+                                 :       ei.setTicks(paddingKernel, (n + paddingCycles));
+                                 :       ei.setScalar(paddingKernel, "nInputs", n);
+                                 : 
+                                 :       ei.setScalar(csrDecoder, "nrows", n);
+                                 : 
+                                 :       ei.setLMemLinear("colptr" + id,
+                                 :           colPtrStartAddress,
+                                 :           colptrSize);
+                                 : 
+                                 :       ei.setLMemLinear("vromLoad" + id,
+                                 :           vStartAddress,
+                                 :           vectorSize * CPUTypes.DOUBLE.sizeInBytes());
+                                 : 
+                                 :       ei.setScalar(readControl, "nrows", n);
+                                 :       ei.setScalar(readControl, "vectorLoadCycles", vectorLoadCycles);
+                                 :       ei.setScalar(readControl, "nPartitions", nPartitions);
+                                 : 
+                                 :       ei.setLMemLinear(
+                                 :           "indptr" + id,
+                                 :           indptrStartAddress,
+                                 :           indptrSize);
+                                 : 
+                                 :       ei.setLMemLinear(
+                                 :           "values" + id,
+                                 :           valuesStartAddress,
+                                 :           valuesSize);
+                                 : 
+                                 :       ei.setLMemLinear(
+                                 :           "paddingOut" + id,
+                                 :           outResultStartAddress,
+                                 :           outResultSize);
+                                 :     }
+                                 : 
+                                 :     private EngineInterface interfaceDefault() {
+                                 :       EngineInterface ei = new EngineInterface();
+                                 : 
+                                 :       InterfaceParam vectorSize = ei.addParam("vectorSize", CPUTypes.INT);
+                                 :       InterfaceParam vectorLoadCycles = ei.addParam("vectorLoadCycles", CPUTypes.INT);
+                                 :       InterfaceParam nPartitions = ei.addParam("nPartitions", CPUTypes.INT);
+                                 :       InterfaceParamArray nrows = ei.addParamArray("nrows", CPUTypes.INT32);
+                                 :       InterfaceParamArray totalCycles = ei.addParamArray("totalCycles", CPUTypes.INT32);
+                                 :       InterfaceParamArray paddingCycles = ei.addParamArray("paddingCycles", CPUTypes.INT32);
+                                 : 
+                                 :       InterfaceParamArray outStartAddresses = ei.addParamArray("outStartAddresses", CPUTypes.INT64);
+                                 :       InterfaceParamArray outResultSizes = ei.addParamArray("outResultSizes", CPUTypes.INT32);
+                                 : 
+                                 :       InterfaceParamArray vStartAddresses = ei.addParamArray("vStartAddresses", CPUTypes.INT64);
+                                 : 
+                                 :       InterfaceParamArray indptrAddresses = ei.addParamArray("indptrAddresses", CPUTypes.INT64);
+                                 :       InterfaceParamArray indptrSizes = ei.addParamArray("indptrSizes", CPUTypes.INT32);
+                                 : 
+                                 :       InterfaceParamArray colptrStartAddresses = ei.addParamArray("colPtrStartAddresses", CPUTypes.INT64);
+                                 :       InterfaceParamArray colptrSizes = ei.addParamArray("colptrSizes", CPUTypes.INT32);
+                                 : 
+                                 :       InterfaceParamArray valuesStartAddresses = ei.addParamArray("valuesStartAddresses", CPUTypes.INT64);
+                                 :       InterfaceParamArray valuesSizes = ei.addParamArray("valuesSizes", CPUTypes.INT32);
+                                 : 
+                                 :       for (int i = 0; i < NUM_PIPES; i++)
+                                 :         setUpComputePipe(ei, i,
+                                 :             vectorSize,
+                                 :             vectorLoadCycles,
+                                 :             nPartitions,
+                                 :             nrows.get(i),
+                                 :             outStartAddresses.get(i),
+                                 :             outResultSizes.get(i),
+                                 :             vStartAddresses.get(i),
+                                 :             colptrStartAddresses.get(i),
+                                 :             colptrSizes.get(i),
+                                 :             indptrAddresses.get(i),
+                                 :             indptrSizes.get(i),
+                                 :             valuesStartAddresses.get(i),
+                                 :             valuesSizes.get(i),
+                                 :             totalCycles.get(i),
+                                 :             paddingCycles.get(i));
+                                 : 
+                                 :       ei.ignoreLMem("cpu2lmem");
+                                 :       ei.ignoreStream("fromcpu");
+                                 :       ei.ignoreStream("tocpu");
+                                 :       ei.ignoreLMem("lmem2cpu");
+                                 :       return ei;
+                                 :     }
+                                 : 
+                                 :     public static void main(String[] args) {
+  150663  242762    1748     384 :         SpmvManager manager = new SpmvManager(new EngineParameters(args));
+                                 :         ManagerUtils.debug(manager);
+                                 :         manager.createSLiCinterface(ManagerUtils.dramWrite(manager));
+                                 :         manager.createSLiCinterface(ManagerUtils.dramRead(manager));
+                                 :         manager.createSLiCinterface(manager.interfaceDefault());
+                                 :         //ManagerUtils.setFullBuild(manager, 2, 2);
+     120    1070      10       0 :         manager.build();
+                                 :     }
+                                 : }
