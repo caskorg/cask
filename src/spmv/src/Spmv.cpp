@@ -108,7 +108,7 @@ spark::spmv::BlockingResult ssarch::do_blocking(
   br.paddingCycles = out.size() - n; // number of cycles required to align to the burst size
   br.totalCycles = totalCycles;
   br.vector_load_cycles = v.size() / nPartitions; // per partition
-  br.m_colptr = m_colptr;
+  br.m_colptr_values = m_colptr;
   br.m_values = m_values;
   br.m_indptr = m_indptr;
   br.outSize = out.size() * sizeof(double);
@@ -132,6 +132,12 @@ int align(int bytes, int to) {
   if (bytes % to != 0)
     return (quot + 1) * to;
   return bytes;
+}
+
+// pack these to reduce number of streams
+struct colptr_value {
+  double value;
+  int colptr;
 }
 
 // write the data for a partition, starting at the given offset
@@ -183,16 +189,13 @@ Eigen::VectorXd ssarch::dfespmv(Eigen::VectorXd x)
 {
   using namespace std;
 
-  int n = x.size();
   vector<double> v = spark::converters::eigenVectorToStdVector(x);
   spark::spmv::align(v, sizeof(double) * Spmv_cacheSize);
   spark::spmv::align(v, 384);
 
-
   std::vector<int> nrows, paddingCycles, totalCycles, colptrSizes, indptrSizes, valuesSizes, outputResultSizes;
   std::vector<long> outputStartAddresses, colptrStartAddresses;
   std::vector<long> vStartAddresses, indptrStartAddresses, valuesStartAddresses;
-
 
   int offset = 0;
   int i = 0;
@@ -270,20 +273,15 @@ int spark::spmv::getInputWidth() {
 }
 
 std::vector<EigenSparseMatrix> ssarch::do_partition(EigenSparseMatrix mat) {
-  // TODO partition rows evenly among pipes
   std::vector<EigenSparseMatrix> res;
-  if (Spmv_numPipes == 2) {
-    int nrows = mat.rows();
-    EigenSparseMatrix m1 = mat.topRows(nrows / 2);
-    m1.makeCompressed();
-    res.push_back(m1);
-    EigenSparseMatrix m2 = mat.bottomRows(nrows / 2 + nrows % 2);
-    m2.makeCompressed();
-    res.push_back(m2);
-  } else if (Spmv_numPipes == 1) {
-    res.push_back(mat);
-  } else
-    throw std::invalid_argument("Number of pipes not support in CPU code!");
+  int rowsPerPartition = mat.rows() / Spmv_numPipes;
+  int start = 0;
+  for (int i = 0; i < Spmv_numPipes - 1; i++) {
+    res.push_back(mat.middleRows(start, start + rowsPerPartition));
+    start += rowsPerPartition;
+  }
+  // put all rows left in the last partition
+  res.push_back(mat.middleRows(start, mat.rows() - start));
   return res;
 }
 

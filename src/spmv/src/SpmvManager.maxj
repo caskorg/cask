@@ -15,9 +15,9 @@ public class SpmvManager extends CustomManager{
     private static final String s_cacheKernel = "SpmvCacheKernel";
 
     private static final int cacheSize = 1024 * 2;
-    private static final int INPUT_WIDTH = 48;
+    private static final int INPUT_WIDTH = 24;
     private static final int MAX_ROWS = 100000;
-    private static final int NUM_PIPES = 2;
+    private static final int NUM_PIPES = 3;
 
     // parameters of CSR format used: float64 values, int32 index.
     private static final int mantissaWidth = 53;
