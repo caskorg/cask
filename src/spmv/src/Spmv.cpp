@@ -73,8 +73,8 @@ spark::spmv::BlockingResult ssarch::do_blocking(
         + std::to_string(Spmv_maxRows));
 
   std::vector<double> v(cols, 0);
-  std::vector<double> m_values;
-  std::vector<int> m_colptr, m_indptr;
+  std::vector<int> m_colptr;
+  std::vector<indptr_value> m_indptr_value;
 
   // now we coalesce partitions
   int cycles = 0;
@@ -85,14 +85,17 @@ spark::spmv::BlockingResult ssarch::do_blocking(
     cycles += this->cycleCount(&p_colptr[0], n, spark::spmv::getInputWidth());
     spark::spmv::align(p_indptr, sizeof(int) * Spmv_inputWidth);
     spark::spmv::align(p_values, sizeof(double) * Spmv_inputWidth);
-    std::copy(p_values.begin(), p_values.end(), back_inserter(m_values));
-    std::copy(p_indptr.begin(), p_indptr.end(), back_inserter(m_indptr));
+
     std::copy(p_colptr.begin(), p_colptr.end(), back_inserter(m_colptr));
+    for (size_t i = 0; i < p_values.size(); i++)
+      m_indptr_value.push_back(indptr_value( p_values[i], p_indptr[i]));
   }
 
   spark::spmv::align(m_colptr, 384);
-  spark::spmv::align(m_values, 384);
-  spark::spmv::align(m_indptr, 384);
+  std::cout << "Before aliginig " << m_indptr_value.size() << std::endl;
+  spark::spmv::align(m_indptr_value, 384); // XXX ? will this actually work
+  std::cout << "After aliginig " << m_indptr_value.size() << std::endl;
+  std::cout << "Sizeof (struct colptr" << sizeof(indptr_value) << std::endl;
   std::vector<double> out(n, 0);
   align(out, 384);
   spark::spmv::align(v, sizeof(double) * Spmv_cacheSize);
@@ -108,9 +111,8 @@ spark::spmv::BlockingResult ssarch::do_blocking(
   br.paddingCycles = out.size() - n; // number of cycles required to align to the burst size
   br.totalCycles = totalCycles;
   br.vector_load_cycles = v.size() / nPartitions; // per partition
-  br.m_colptr_values = m_colptr;
-  br.m_values = m_values;
-  br.m_indptr = m_indptr;
+  br.m_indptr_values = m_indptr_value;
+  br.m_colptr = m_colptr;
   br.outSize = out.size() * sizeof(double);
 
   return br;
@@ -123,8 +125,7 @@ long size_bytes(const std::vector<T>& v) {
 
 struct PartitionWriteResult {
   int outStartAddr, outSize, colptrStartAddress, colptrSize;
-  int vStartAddress, indptrStartAddress, indptrSize;
-  int valuesStartAddress, valuesSize;
+  int vStartAddress, indptrValuesStartAddress, indptrValuesSize;
 };
 
 int align(int bytes, int to) {
@@ -134,11 +135,6 @@ int align(int bytes, int to) {
   return bytes;
 }
 
-// pack these to reduce number of streams
-struct colptr_value {
-  double value;
-  int colptr;
-}
 
 // write the data for a partition, starting at the given offset
 PartitionWriteResult writeDataForPartition(
@@ -147,25 +143,16 @@ PartitionWriteResult writeDataForPartition(
     const std::vector<double>& v) {
   // for each partition write this down
   PartitionWriteResult pwr;
-  pwr.valuesStartAddress = align(offset, 384);
-  pwr.valuesSize = size_bytes(br.m_values);
-  //std::cout << "Writing values" << std::endl;
-  //std::cout << "Values bytes " << pwr.valuesSize << std::endl;
+  pwr.indptrValuesStartAddress = align(offset, 384);
+  pwr.indptrValuesSize = size_bytes(br.m_indptr_values);
+  std::cout << "indptr values sizses" << pwr.indptrValuesSize << std::endl;
   Spmv_dramWrite(
-      pwr.valuesSize,
-      pwr.valuesStartAddress,
-      (uint8_t *)&br.m_values[0]);
-
-  //std::cout << "Wrote value" << std::endl;
-  pwr.indptrStartAddress = pwr.valuesStartAddress + size_bytes(br.m_values);
-  pwr.indptrSize = size_bytes(br.m_indptr);
-  Spmv_dramWrite(
-      pwr.indptrSize,
-      pwr.indptrStartAddress,
-      (uint8_t *)&br.m_indptr[0]);
+      pwr.indptrValuesSize,
+      pwr.indptrValuesStartAddress,
+      (uint8_t *)&br.m_indptr_values[0]);
 
   //std::cout << "Wrote indptr" << std::endl;
-  pwr.vStartAddress = pwr.indptrStartAddress + pwr.indptrSize;
+  pwr.vStartAddress = pwr.indptrValuesStartAddress + pwr.indptrValuesSize;
   Spmv_dramWrite(
       size_bytes(v),
       pwr.vStartAddress,
@@ -193,9 +180,9 @@ Eigen::VectorXd ssarch::dfespmv(Eigen::VectorXd x)
   spark::spmv::align(v, sizeof(double) * Spmv_cacheSize);
   spark::spmv::align(v, 384);
 
-  std::vector<int> nrows, paddingCycles, totalCycles, colptrSizes, indptrSizes, valuesSizes, outputResultSizes;
+  std::vector<int> nrows, paddingCycles, totalCycles, colptrSizes, indptrValuesSizes, outputResultSizes;
   std::vector<long> outputStartAddresses, colptrStartAddresses;
-  std::vector<long> vStartAddresses, indptrStartAddresses, valuesStartAddresses;
+  std::vector<long> vStartAddresses, indptrValuesStartAddresses;
 
   int offset = 0;
   int i = 0;
@@ -213,10 +200,8 @@ Eigen::VectorXd ssarch::dfespmv(Eigen::VectorXd x)
     colptrStartAddresses.push_back(pr.colptrStartAddress);
     colptrSizes.push_back(pr.colptrSize);
     vStartAddresses.push_back(pr.vStartAddress);
-    indptrStartAddresses.push_back(pr.indptrStartAddress);
-    indptrSizes.push_back(pr.indptrSize);
-    valuesSizes.push_back(pr.valuesSize);
-    valuesStartAddresses.push_back(pr.valuesStartAddress);
+    indptrValuesSizes.push_back(pr.indptrValuesSize);
+    indptrValuesStartAddresses.push_back(pr.indptrValuesStartAddress);
 
     offset = pr.outStartAddr + p.outSize;
   }
@@ -229,22 +214,21 @@ Eigen::VectorXd ssarch::dfespmv(Eigen::VectorXd x)
   dfesnippets::vectorutils::print_vector(nrows);
   dfesnippets::vectorutils::print_vector(totalCycles);
 
+
   Spmv(
       nPartitions,
       vector_load_cycles,
       v.size(),
       &colptrStartAddresses[0],
       &colptrSizes[0],
-      &indptrStartAddresses[0],
-      &indptrSizes[0],
+      &indptrValuesStartAddresses[0],
+      &indptrValuesSizes[0],
       &nrows[0],
       &outputResultSizes[0],
       &outputStartAddresses[0],
       &paddingCycles[0],
       &totalCycles[0],
-      &vStartAddresses[0],
-      &valuesSizes[0],
-      &valuesStartAddresses[0]
+      &vStartAddresses[0]
       );
   std::cout << "Done on DFE" << std::endl;
 
@@ -275,9 +259,11 @@ int spark::spmv::getInputWidth() {
 std::vector<EigenSparseMatrix> ssarch::do_partition(EigenSparseMatrix mat) {
   std::vector<EigenSparseMatrix> res;
   int rowsPerPartition = mat.rows() / Spmv_numPipes;
+  std::cout << "Rows per partition" << rowsPerPartition << std::endl;
   int start = 0;
   for (int i = 0; i < Spmv_numPipes - 1; i++) {
-    res.push_back(mat.middleRows(start, start + rowsPerPartition));
+    std::cout << "start finish"  << start << " " << start + rowsPerPartition << std::endl;
+    res.push_back(mat.middleRows(start, rowsPerPartition));
     start += rowsPerPartition;
   }
   // put all rows left in the last partition

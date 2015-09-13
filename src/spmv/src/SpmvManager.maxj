@@ -15,7 +15,7 @@ public class SpmvManager extends CustomManager{
     private static final String s_cacheKernel = "SpmvCacheKernel";
 
     private static final int cacheSize = 1024 * 2;
-    private static final int INPUT_WIDTH = 24;
+    private static final int INPUT_WIDTH = 32;
     private static final int MAX_ROWS = 100000;
     private static final int NUM_PIPES = 3;
 
@@ -57,9 +57,7 @@ public class SpmvManager extends CustomManager{
               DBG_SPMV_KERNEL
               ));
 
-        cache.getInput("indptr") <== addStreamFromOnCardMemory("indptr" + id,
-            MemoryControlGroup.MemoryAccessPattern.LINEAR_1D);
-        cache.getInput("values") <== addStreamFromOnCardMemory("values" + id,
+        cache.getInput("indptr_values") <== addStreamFromOnCardMemory("indptr_values" + id,
             MemoryControlGroup.MemoryAccessPattern.LINEAR_1D);
         cache.getInput("vromLoad") <== addStreamFromOnCardMemory("vromLoad" + id,
             MemoryControlGroup.MemoryAccessPattern.LINEAR_1D);
@@ -99,6 +97,7 @@ public class SpmvManager extends CustomManager{
         addMaxFileConstant("numPipes", NUM_PIPES);
 
         ManagerUtils.setDRAMMaxDeviceFrequency(this, ep);
+        //config.setAllowNonMultipleTransitions(true);
 
         for (int i = 0; i < NUM_PIPES; i++)
           addComputePipe(i, INPUT_WIDTH);
@@ -139,10 +138,8 @@ public class SpmvManager extends CustomManager{
         InterfaceParam vStartAddress,
         InterfaceParam colPtrStartAddress,
         InterfaceParam colptrSize,
-        InterfaceParam indptrStartAddress,
-        InterfaceParam indptrSize,
-        InterfaceParam valuesStartAddress,
-        InterfaceParam valuesSize,
+        InterfaceParam indptrValuesStartAddress,
+        InterfaceParam indptrValuesSize,
         InterfaceParam totalCycles,
         InterfaceParam paddingCycles) {
 
@@ -180,14 +177,9 @@ public class SpmvManager extends CustomManager{
       ei.setScalar(readControl, "nPartitions", nPartitions);
 
       ei.setLMemLinear(
-          "indptr" + id,
-          indptrStartAddress,
-          indptrSize);
-
-      ei.setLMemLinear(
-          "values" + id,
-          valuesStartAddress,
-          valuesSize);
+          "indptr_values" + id,
+          indptrValuesStartAddress,
+          indptrValuesSize);
 
       ei.setLMemLinear(
           "paddingOut" + id,
@@ -210,14 +202,11 @@ public class SpmvManager extends CustomManager{
 
       InterfaceParamArray vStartAddresses = ei.addParamArray("vStartAddresses", CPUTypes.INT64);
 
-      InterfaceParamArray indptrAddresses = ei.addParamArray("indptrAddresses", CPUTypes.INT64);
-      InterfaceParamArray indptrSizes = ei.addParamArray("indptrSizes", CPUTypes.INT32);
+      InterfaceParamArray indptrValuesAddresses = ei.addParamArray("indptrValuesAddresses", CPUTypes.INT64);
+      InterfaceParamArray indptrValuesSizes = ei.addParamArray("indptrValuesSizes", CPUTypes.INT32);
 
       InterfaceParamArray colptrStartAddresses = ei.addParamArray("colPtrStartAddresses", CPUTypes.INT64);
       InterfaceParamArray colptrSizes = ei.addParamArray("colptrSizes", CPUTypes.INT32);
-
-      InterfaceParamArray valuesStartAddresses = ei.addParamArray("valuesStartAddresses", CPUTypes.INT64);
-      InterfaceParamArray valuesSizes = ei.addParamArray("valuesSizes", CPUTypes.INT32);
 
       for (int i = 0; i < NUM_PIPES; i++)
         setUpComputePipe(ei, i,
@@ -230,10 +219,8 @@ public class SpmvManager extends CustomManager{
             vStartAddresses.get(i),
             colptrStartAddresses.get(i),
             colptrSizes.get(i),
-            indptrAddresses.get(i),
-            indptrSizes.get(i),
-            valuesStartAddresses.get(i),
-            valuesSizes.get(i),
+            indptrValuesAddresses.get(i),
+            indptrValuesSizes.get(i),
             totalCycles.get(i),
             paddingCycles.get(i));
 

@@ -72,7 +72,7 @@ namespace spark {
       void align(std::vector<T>& v, int widthInBytes) {
         int limit = widthInBytes / sizeof(T);
         while ((v.size() * sizeof(T)) % widthInBytes != 0 && limit != 0) {
-          v.push_back(0);
+          v.push_back(T{});
           limit--;
         }
       }

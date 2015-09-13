@@ -10,10 +10,20 @@ namespace spark {
 
     using EigenSparseMatrix = Eigen::SparseMatrix<double, Eigen::RowMajor, int32_t>;
 
+    // pack values and colptr to reduce number of streams
+#pragma pack(1)
+    struct indptr_value {
+      double value;
+      int indptr;
+      indptr_value(double _value, int _indptr) : value(_value), indptr(_indptr) {}
+      indptr_value() : value(0), indptr(0) {}
+    } __attribute__((packed));
+#pragma pack()
+
     struct BlockingResult {
       int nPartitions, n, paddingCycles, totalCycles, vector_load_cycles, outSize;
-      std::vector<int> m_colptr, m_indptr;
-      std::vector<double> m_values;
+      std::vector<int> m_colptr;
+      std::vector<indptr_value> m_indptr_values;
 
       std::string to_string() {
         std::stringstream s;
