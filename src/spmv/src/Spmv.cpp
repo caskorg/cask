@@ -32,7 +32,8 @@ int ssarch::cycleCount(int32_t* v, int size, int inputWidth)
 // transform a given matrix with n rows in blocks of size n X blockSize
 spark::spmv::BlockingResult ssarch::do_blocking(
     const EigenSparseMatrix m,
-    int blockSize)
+    int blockSize,
+    int inputWidth)
 {
 
   const int* indptr = m.innerIndexPtr();
@@ -82,9 +83,9 @@ spark::spmv::BlockingResult ssarch::do_blocking(
     auto p_colptr = std::get<0>(p);
     auto p_indptr = std::get<1>(p);
     auto p_values = std::get<2>(p);
-    cycles += this->cycleCount(&p_colptr[0], n, spark::spmv::getInputWidth());
-    spark::spmv::align(p_indptr, sizeof(int) * Spmv_inputWidth);
-    spark::spmv::align(p_values, sizeof(double) * Spmv_inputWidth);
+    cycles += this->cycleCount(&p_colptr[0], n, inputWidth);
+    spark::spmv::align(p_indptr, sizeof(int) * inputWidth);
+    spark::spmv::align(p_values, sizeof(double) * inputWidth);
 
     std::copy(p_colptr.begin(), p_colptr.end(), back_inserter(m_colptr));
     for (size_t i = 0; i < p_values.size(); i++)
@@ -98,7 +99,7 @@ spark::spmv::BlockingResult ssarch::do_blocking(
   std::cout << "Sizeof (struct colptr" << sizeof(indptr_value) << std::endl;
   std::vector<double> out(n, 0);
   align(out, 384);
-  spark::spmv::align(v, sizeof(double) * Spmv_cacheSize);
+  spark::spmv::align(v, sizeof(double) * blockSize);
   std::cout << "Cycles ==== " << cycles << std::endl;
   std::cout << "v.size() ==== " << v.size() << std::endl;
 
@@ -176,8 +177,10 @@ Eigen::VectorXd ssarch::dfespmv(Eigen::VectorXd x)
 {
   using namespace std;
 
+  int cacheSize = this->cacheSize;
+
   vector<double> v = spark::converters::eigenVectorToStdVector(x);
-  spark::spmv::align(v, sizeof(double) * Spmv_cacheSize);
+  spark::spmv::align(v, sizeof(double) * cacheSize);
   spark::spmv::align(v, 384);
 
   std::vector<int> nrows, paddingCycles, totalCycles, colptrSizes, indptrValuesSizes, outputResultSizes;
@@ -256,12 +259,16 @@ int spark::spmv::getInputWidth() {
   return Spmv_inputWidth;
 }
 
-std::vector<EigenSparseMatrix> ssarch::do_partition(EigenSparseMatrix mat) {
+int spark::spmv::getNumPipes() {
+  return Spmv_numPipes;
+}
+
+std::vector<EigenSparseMatrix> ssarch::do_partition(EigenSparseMatrix mat, int numPipes) {
   std::vector<EigenSparseMatrix> res;
-  int rowsPerPartition = mat.rows() / Spmv_numPipes;
+  int rowsPerPartition = mat.rows() / numPipes;
   std::cout << "Rows per partition" << rowsPerPartition << std::endl;
   int start = 0;
-  for (int i = 0; i < Spmv_numPipes - 1; i++) {
+  for (int i = 0; i < numPipes - 1; i++) {
     std::cout << "start finish"  << start << " " << start + rowsPerPartition << std::endl;
     res.push_back(mat.middleRows(start, rowsPerPartition));
     start += rowsPerPartition;
@@ -276,10 +283,10 @@ void ssarch::preprocess(
   this->mat = mat;
 
   // XXX should be based on the number of pipes constant
-  std::vector<EigenSparseMatrix> partitions = do_partition(mat);
+  std::vector<EigenSparseMatrix> partitions = do_partition(mat, this->numPipes);
 
   for (const auto& m : partitions) {
-    this->partitions.push_back(do_blocking(m, this->cacheSize));
+    this->partitions.push_back(do_blocking(m, this->cacheSize, this->inputWidth));
   }
 }
 

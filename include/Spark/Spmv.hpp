@@ -65,7 +65,9 @@ namespace spark {
         virtual SpmvArchitecture* operator++() = 0;
     };
 
+    // return the properties for the currently linked hardware design
     int getPartitionSize();
+    int getNumPipes();
     int getInputWidth();
 
     template<typename T>
