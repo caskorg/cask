@@ -36,21 +36,14 @@ namespace spark {
           return  getGFlopsCount() /(getEstimatedClockCycles() / getFrequency());
         }
 
-        double getEstimatedClockCycles() {
-          return totalCycles;
-        }
-
         double getFrequency() {
           return 100 * 1E6;
         }
 
-        double getGFlopsCount() {
-          return gflopsCount;
-        }
-
+        virtual double getEstimatedClockCycles() = 0;
+        virtual double getGFlopsCount() = 0;
         virtual std::string to_string() = 0;
         virtual ResourceUsage getResourceUsage() = 0;
-
         virtual void preprocess(const Eigen::SparseMatrix<double, Eigen::RowMajor> mat) = 0;
         virtual Eigen::VectorXd dfespmv(Eigen::VectorXd x) = 0;
     };

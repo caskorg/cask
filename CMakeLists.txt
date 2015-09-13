@@ -11,6 +11,9 @@ function(AddMaxelerImpl path stem target)
   set(DfeBuild "${CMAKE_CURRENT_LIST_DIR}/src/${path}/build")
   set(Src
     include/Spark/SparseLinearSolvers.hpp
+    include/Spark/Utils.hpp
+    include/Spark/Spmv.hpp
+    include/Spark/SimpleSpmv.hpp
     src/${path}/src/${stem}Kernel.maxj
     src/${path}/src/${stem}Manager.maxj
     src/${path}/src/${stem}.cpp)
@@ -37,7 +40,7 @@ function(AddMaxelerImplTest name libtarget lib args)
       test_${name}
       -L. -l${lib}
       SparkCpuLib
-      -lumfpack -lsuitesparseconfig -lopenblas -lcholmod
+      -lumfpack -lsuitesparseconfig -lopenblas -lcholmod -lboost_program_options
       -lcolamd -lrt -lklu -lbtf -lamd -lpthread)
 endfunction()
 

@@ -1,16 +1,22 @@
 #include <string>
 #include <Spark/Spmv.hpp>
 #include <Spark/SimpleSpmv.hpp>
+#include <Spark/Utils.hpp>
 
 #include <Eigen/Sparse>
 #include <Spark/io.hpp>
 #include <dfesnippets/Timing.hpp>
 
 #include <chrono>
+#include <boost/program_options.hpp>
 
 using namespace spark::spmv;
+using namespace spark::utils;
 
-void dse (std::string basename, SpmvArchitectureSpace* af, Eigen::SparseMatrix<double, Eigen::RowMajor> mat) {
+void dse(
+    std::string basename,
+    SpmvArchitectureSpace* af,
+    Eigen::SparseMatrix<double, Eigen::RowMajor> mat) {
   int it = 0;
   for (SpmvArchitecture* a = af->begin(); a != af->end(); ) {
     auto start = std::chrono::high_resolution_clock::now();
@@ -23,7 +29,7 @@ void dse (std::string basename, SpmvArchitectureSpace* af, Eigen::SparseMatrix<d
   }
 }
 
-int run (std::string path) {
+int run (std::string path, Range numPipesRange, Range inputWidthRange, Range cacheSizeRange) {
 
   std::size_t pos = path.find_last_of("/");
   std::string basename(path.substr(pos, path.size() - pos));
@@ -36,32 +42,72 @@ int run (std::string path) {
 
   // XXX memory leak
   std::vector<SpmvArchitectureSpace*> factories{
-    new SimpleSpmvArchitectureSpace<SimpleSpmvArchitecture>(),
-    new FstSpmvArchitectureSpace()
+    new SimpleSpmvArchitectureSpace<SimpleSpmvArchitecture>(numPipesRange, inputWidthRange, cacheSizeRange),
+    new FstSpmvArchitectureSpace(numPipesRange, inputWidthRange, cacheSizeRange)
   };
 
   for (auto sas : factories) {
     dse(basename, sas, *eigenMatrix);
   }
 
+  delete(factories[0]);
+  delete(factories[1]);
 }
 
-int main(int argc, char** argv) {
-  std::cout << "Program arguments:" << std::endl;
-  for (int i = 0; i < argc; i++)
-    std::cout << "   " << argv[i] << std::endl;
-  // XXX Reasonable argument parsing
 
-  if (argc > 1) {
-    auto start = std::chrono::high_resolution_clock::now();
-    int status = run(argv[1]);
-    dfesnippets::timing::print_clock_diff("Test took: ", start);
-    if (status == 0)
-      std::cout << "All tests passed!" << std::endl;
-    else
-      std::cout << "Tests failed!" << std::endl;
-    return status;
+int main(int argc, char** argv) {
+
+  namespace po = boost::program_options;
+
+  std::string numPipes = "numPipes";
+  std::string cacheSize = "cacheSize";
+  std::string inputWidth = "inputWidth";
+  po::options_description desc("Allowed options");
+  desc.add_options()
+    ("help", "produce help message")
+    (numPipes.c_str(), po::value<std::string>(), "range for number of pipes: start,end,step")
+    (cacheSize.c_str(), po::value<std::string>(), "range for cache size")
+    (inputWidth.c_str(), po::value<std::string>(), "range for input width")
+    ("filePath", po::value<std::string>(), "path to matrix")
+    ;
+
+  po::variables_map vm;
+  po::store(po::parse_command_line(argc, argv, desc), vm);
+  po::notify(vm);
+
+  if (vm.count("help")) {
+    std::cout << desc << "\n";
+    return 1;
   }
 
-  return 1;
+  std::string path;
+  if (vm.count("filePath")) {
+    path = vm["filePath"].as<std::string>();
+  } else {
+    std::cout << "Matrix path was not set.\n";
+    return 1;
+  }
+
+  Range numPipesRange{1, 6, 1}, inputWidthRange{8, 96, 8}, cacheSizeRange{1024, 4096, 1024};
+
+  if (vm.count(numPipes)) {
+    numPipesRange = Range(vm[numPipes].as<std::string>());
+  }
+  if (vm.count(inputWidth)) {
+    inputWidthRange = Range(vm[inputWidth].as<std::string>());
+  }
+  if (vm.count(cacheSize)) {
+     cacheSizeRange = Range(vm[cacheSize].as<std::string>());
+  }
+
+  auto start = std::chrono::high_resolution_clock::now();
+
+  int status = run(path, numPipesRange, inputWidthRange, cacheSizeRange);
+
+  dfesnippets::timing::print_clock_diff("Test took: ", start);
+  if (status == 0)
+    std::cout << "All tests passed!" << std::endl;
+  else
+    std::cout << "Tests failed!" << std::endl;
+  return status;
 }

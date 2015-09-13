@@ -4,6 +4,8 @@
 #include <sstream>
 
 #include <Spark/Spmv.hpp>
+#include <Spark/Utils.hpp>
+
 
 namespace spark {
   namespace spmv {
@@ -70,6 +72,20 @@ namespace spark {
           numPipes(_numPipes),
           name(_name) {}
 
+        virtual ~SimpleSpmvArchitecture() {}
+
+        virtual double getEstimatedClockCycles() {
+          auto res = std::max_element(partitions.begin(), partitions.end(),
+              [](const BlockingResult& a, const BlockingResult& b) {
+                return a.totalCycles < b.totalCycles;
+              });
+          return res->totalCycles;
+        }
+
+        virtual double getGFlopsCount() {
+          return 2 * this->mat.nonZeros() / 1E9;
+        }
+
         // NOTE: only call this after a call to preprocessMatrix
         virtual ResourceUsage getResourceUsage() {
           // XXX bram usage for altera in double precision only (512 deep, 40 bits wide, so need 2 BRAMs)
@@ -105,35 +121,39 @@ namespace spark {
 
     template<typename T>
     class SimpleSpmvArchitectureSpace : public SpmvArchitectureSpace {
-      int minCacheSize = 1024;
-      int maxCacheSize = 4096 + 512;
-
-      int minInputWidth = 8;
-      int maxInputWidth = 100;
-
-      int maxNumPipes = 6;
-      int minNumPipes = 1;
-      int currentPipes = 1;
-
-      int inputWidth = minInputWidth;
-      int cacheSize = minCacheSize;
+      spark::utils::Range cacheSizeR{1024, 4096, 512};
+      spark::utils::Range inputWidthR{8, 100, 8};
+      spark::utils::Range numPipesR{1, 6, 1};
 
       T* firstArchitecture, *lastArchitecture, *currentArchitecture;
 
       public:
 
-      SimpleSpmvArchitectureSpace() {
-        firstArchitecture = new T(minCacheSize, minInputWidth, minNumPipes);
+      SimpleSpmvArchitectureSpace(
+          spark::utils::Range numPipesRange,
+          spark::utils::Range inputWidthRange,
+          spark::utils::Range cacheSizeRange) {
+        cacheSizeR = cacheSizeRange;
+        inputWidthR = inputWidthRange;
+        numPipesR = numPipesRange;
+
+        firstArchitecture = new T(cacheSizeR.start, inputWidthR.start, numPipesR.start);
         currentArchitecture = firstArchitecture;
-        lastArchitecture = new T(maxCacheSize, maxInputWidth, maxNumPipes);
+        lastArchitecture = new T(cacheSizeR.end, inputWidthR.end, numPipesR.end);
+      }
+
+      SimpleSpmvArchitectureSpace() {
+        firstArchitecture = new T(cacheSizeR.start, inputWidthR.start, numPipesR.start);
+        currentArchitecture = firstArchitecture;
+        lastArchitecture = new T(cacheSizeR.end, inputWidthR.end, numPipesR.end);
       }
 
       virtual ~SimpleSpmvArchitectureSpace() {
-        free(lastArchitecture);
-        free(firstArchitecture);
+        delete(lastArchitecture);
+        delete(firstArchitecture);
         if (currentArchitecture != firstArchitecture &&
             currentArchitecture != lastArchitecture)
-          free(currentArchitecture);
+          delete(currentArchitecture);
       }
 
       T* begin() {
@@ -145,24 +165,25 @@ namespace spark {
       }
 
       T* operator++(){
-        cacheSize = (cacheSize + 512) % maxCacheSize;
-        if (cacheSize == 0) {
-          cacheSize = minCacheSize;
-          inputWidth = std::max((inputWidth + 8) % maxInputWidth, minInputWidth);
-          if (inputWidth == minInputWidth)
-            currentPipes = std::max((currentPipes + 1) % maxNumPipes, minNumPipes);
+        bool last = false;
+        ++cacheSizeR;
+        if (cacheSizeR.at_start()) {
+          ++inputWidthR;
+          if (inputWidthR.at_start()) {
+            ++numPipesR;
+            if (numPipesR.at_start())
+              last = true;
+          }
         }
 
         if (currentArchitecture != firstArchitecture &&
             currentArchitecture != lastArchitecture)
-          free(currentArchitecture);
+          delete(currentArchitecture);
 
-        if (cacheSize == minCacheSize &&
-            inputWidth == minInputWidth &&
-            currentPipes == minNumPipes)
+        if (last)
           return lastArchitecture;
 
-        currentArchitecture = new T(cacheSize, inputWidth, currentPipes);
+        currentArchitecture = new T(cacheSizeR.crt, inputWidthR.crt, numPipesR.crt);
         return currentArchitecture;
       }
     };
@@ -193,6 +214,12 @@ namespace spark {
     };
 
     class FstSpmvArchitectureSpace : public SimpleSpmvArchitectureSpace<FstSpmvArchitecture> {
+      public:
+      FstSpmvArchitectureSpace(
+          spark::utils::Range _numPipesRange,
+          spark::utils::Range _inputWidthRange,
+          spark::utils::Range _cacheSizeRange) :
+        SimpleSpmvArchitectureSpace(_numPipesRange, _inputWidthRange, _cacheSizeRange) {}
     };
   }
 }
