@@ -1,13 +1,12 @@
 import java.util.*;
 
-import com.maxeler.maxcompiler.v2.kernelcompiler.Kernel;
-import com.maxeler.maxcompiler.v2.kernelcompiler.KernelParameters;
-import com.maxeler.maxcompiler.v2.kernelcompiler.types.base.*;
-import com.maxeler.maxcompiler.v2.kernelcompiler.stdlib.core.Count.*;
-import com.maxeler.maxcompiler.v2.kernelcompiler.types.composite.DFEVectorType;
-import com.maxeler.maxcompiler.v2.kernelcompiler.types.composite.DFEVector;
-import com.maxeler.maxcompiler.v2.kernelcompiler.stdlib.memory.*;
+import com.maxeler.maxcompiler.v2.kernelcompiler.*;
 import com.maxeler.maxcompiler.v2.kernelcompiler.stdlib.KernelMath;
+import com.maxeler.maxcompiler.v2.kernelcompiler.stdlib.core.*;
+import com.maxeler.maxcompiler.v2.kernelcompiler.stdlib.core.Count.*;
+import com.maxeler.maxcompiler.v2.kernelcompiler.stdlib.memory.*;
+import com.maxeler.maxcompiler.v2.kernelcompiler.types.base.*;
+import com.maxeler.maxcompiler.v2.kernelcompiler.types.composite.*;
 import com.maxeler.maxcompiler.v2.utils.MathUtils;
 
 import com.custom_computing_ic.dfe_snippets.utils.Reductions;
@@ -241,6 +240,58 @@ class SpmvReductionKernel extends Kernel {
   }
 }
 
+
+// uses BRAM storage instead of stream offsets, allows us to skip
+// empty rows to achieve better throughput on matrices with long
+// sequences of empty rows (e.g. banded matrices)
+class BramSpmvReductionKernel extends Kernel {
+
+  protected BramSpmvReductionKernel(KernelParameters parameters, int fpl, int maxRows) {
+    super(parameters);
+
+    DFEVar in = io.input("reductionIn", dfeFloat(11, 53));
+    DFEVar n = io.scalarInput("nRows", dfeUInt(32));
+    DFEVar totalCycles = io.scalarInput("totalCycles", dfeUInt(32));
+    DFEVar cycles = control.count.simpleCounter(32);
+
+    // internal buffer for accumulating partial sums
+    Memory<DFEVar> memory = mem.alloc(dfeFloat(11, 53), maxRows);
+
+    // when skipCount != 0, we are to skip skipCount rows (since they are empty)
+    DFEVar skipCount = constant.var(dfeUInt(32), 0); //io.input("skipCount", dfeUInt(32));
+    DFEVar skipEnable = skipCount !== 0;
+    DFEVar addressInc = skipEnable ? skipCount : 1;
+
+    // the element we are going to accumulate with
+    // initially, all data in the BRAM should be 0, it doesn't matter what we read
+    int offset = 1; // offset for integer add
+    optimization.pushPipeliningFactor(0);
+    DFEVar carriedReadAddress = dfeUInt(32).newInstance(this);
+    DFEVar nextReadAddress = (cycles < offset ? cycles : carriedReadAddress) + addressInc;
+    DFEVar wrappedNextReadAddress = nextReadAddress === n ? 0 : nextReadAddress;
+    carriedReadAddress <== stream.offset(wrappedNextReadAddress, -offset);
+    optimization.popPipeliningFactor();
+
+    DFEVar readAddress = cycles < n ? cycles : carriedReadAddress;
+    DFEVar castReadAddress = readAddress.cast(dfeUInt(MathUtils.bitsToAddress(maxRows)));
+    DFEVar prevSum = cycles < n ? 0 : memory.read(castReadAddress);
+    DFEVar sum = prevSum + in;
+
+    //debug.simPrintf(
+        //"readAddress %d sum %f in %f\n",
+        //readAddress, sum, in);
+
+    Stream.OffsetExpr off = stream.measureDistance("BramAccOffset", readAddress, sum);
+    memory.write(
+        stream.offset(castReadAddress, -off),
+        stream.offset(sum, -off),
+        stream.offset(~skipEnable, -off));
+
+    // output on the last n cycles
+    DFEVar outputEnable = totalCycles - cycles <= n;
+    io.output("reductionOut", sum, dfeFloat(11, 53), outputEnable);
+  }
+}
 
 class PaddingKernel extends Kernel {
   protected PaddingKernel(KernelParameters parameters) {

@@ -75,7 +75,7 @@ public class SpmvManager extends CustomManager{
         k.getInput("cycleCounter") <== readControlBlock.getOutput("cycleCounter");
         k.getInput("firstReadPosition") <== readControlBlock.getOutput("firstReadPosition");
 
-        KernelBlock r = addKernel(new SpmvReductionKernel(
+        KernelBlock r = addKernel(new BramSpmvReductionKernel(
               makeKernelParameters(getReductionKernel(id)),
               FLOATING_POINT_LATENCY,
               MAX_ROWS));
