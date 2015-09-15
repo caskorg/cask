@@ -92,17 +92,14 @@ class SpmvKernel extends Kernel {
         dfeFloat(11, mantissaWidth),
         fpL);
 
-    // TODO still need reduction step
     // TODO: remove prefetch
     DFEVar emptyRow = (rowLength === 0);
     DFEVar outputEnable = (~vRomLoadEnable & (rowFinished | emptyRow)) | flushTrigger;
     io.output("output", r.getOutput(), dfeFloat(11, mantissaWidth), outputEnable);
     io.output("flushTriggerOut", flushTrigger, dfeBool(), outputEnable);
-    //flush.allowOutputBeforeFlush("output");
-    //flush.allowOutputBeforeFlush("flushTriggerOut");
-
     // if we find a sequence of empty rows, tell downstream reduction kernrel
-    io.output("skipCount", cycleCounter, dfeUInt(32), outputEnable);
+    DFEVar skipCount = emptyRow ? cycleCounter : 0;
+    io.output("skipCount", skipCount, dfeUInt(32), outputEnable);
 
 
     // --- Debug
@@ -273,7 +270,7 @@ class BramSpmvReductionKernel extends Kernel {
 
     // when skipCount != 0, we are to skip skipCount rows (since they are empty)
     DFEVar skipCount = io.input("skipCount", dfeUInt(32)); //io.input("skipCount", dfeUInt(32));
-    DFEVar skipEnable = constant.var(dfeBool(), 0); // skipCount !== 0;
+    DFEVar skipEnable = skipCount !== 0;
     DFEVar addressInc = skipEnable ? skipCount : 1;
 
     DFEVar in = io.input("reductionIn", dfeFloat(11, 53));
@@ -307,8 +304,8 @@ class BramSpmvReductionKernel extends Kernel {
     DFEVar sum = prevSum + in;
 
     //debug.simPrintf(
-        //"readAddress %d sum %f in %f\n",
-        //readAddress, sum, in);
+        //"readAddress %d sum %f in %f skipEnable %d\n",
+        //readAddress, sum, in, skipEnable);
 
     Stream.OffsetExpr off = stream.measureDistance("BramAccOffset", readAddress, sum);
     memory.write(

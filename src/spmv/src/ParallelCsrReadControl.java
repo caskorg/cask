@@ -142,7 +142,8 @@ public class ParallelCsrReadControl extends ManagerStateMachine {
             rowLengthData.next <== iLength;
             firstReadPosition.next <== crtPos;
             IF (iLength === 0) {
-              makeOutput(fls(), tru(), zero(inputWidth), zero(), zeroI(), crtPos, fls(), fls());
+              // empty row
+              makeOutput(fls(), tru(), zero(inputWidth), zero(), oneI(), crtPos, fls(), fls());
               processRow();
             } ELSE {
               mode.next <== Mode.OutputtingCommands;
@@ -285,6 +286,10 @@ public class ParallelCsrReadControl extends ManagerStateMachine {
 
     DFEsmValue zeroI() {
       return constant.value(dfeInt(32), 0);
+    }
+
+    DFEsmValue oneI() {
+      return constant.value(dfeInt(32), 1);
     }
 
 
