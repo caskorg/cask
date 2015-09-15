@@ -66,6 +66,13 @@ class SpmvKernel extends Kernel {
     DFEVar cycleCounter = io.input("cycleCounter", dfeUInt(32));
     DFEVar firstReadPosition = io.input("firstReadPosition", dfeUInt(32));
 
+    io.pushInputRegistering(false);
+    DFEVar flushTrigger = io.input("flush", dfeBool());
+    io.popInputRegistering();
+
+    //flush.afterTrigger(flushTrigger);
+    flush.onTrigger(flushTrigger);
+
     DFEVar runLength = firstReadPosition + rowLength;
     DFEVar modulo = KernelMath.modulo(runLength, inputWidth);
     DFEVar quot = (runLength - modulo.cast(dfeUInt(32))) / inputWidth;
@@ -136,6 +143,13 @@ class SpmvCacheKernel extends Kernel {
     // load entire vector or until cache is full
     int sizeBits = 32; // XXX may need to run for more cycles
     DFEVar vRomLoadEnable = io.input("loadEnabled_in", dfeBool());
+
+    io.pushInputRegistering(false);
+    DFEVar flushTrigger = io.input("flush", dfeBool());
+    io.popInputRegistering();
+
+    //flush.afterTrigger(flushTrigger);
+    flush.onTrigger(flushTrigger);
 
     DFEVar vectorLoadCycles = io.scalarInput("vectorLoadCycles", dfeUInt(32));
     Params loadAddressParams = control.count.makeParams(sizeBits )

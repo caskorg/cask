@@ -9,6 +9,7 @@ import com.maxeler.maxcompiler.v2.managers.DFEManager;
 public class ParallelCsrReadControl extends ManagerStateMachine {
 
   private enum Mode {
+    Flush,
     VectorLoad,
     ReadingLength,
     OutputtingCommands,
@@ -20,6 +21,7 @@ public class ParallelCsrReadControl extends ManagerStateMachine {
     private final DFEsmPullInput iLength;
     private final DFEsmStateValue iLengthReady;
     private final DFEsmPushOutput oReadMask, oReadEnable, oRowFinished, oRowLength, oNnzCounter, oFirstReadPosition;
+    private final DFEsmPushOutput oFlush, oCacheFlush;
     private final DFEsmInput vectorLoadCycles, nRows, nPartitions;
 
     private final DFEsmPushOutput oVectorLoad;
@@ -28,6 +30,7 @@ public class ParallelCsrReadControl extends ManagerStateMachine {
     private final DFEsmStateValue cycleCounter;
     private final DFEsmStateValue firstReadPosition;
     private final DFEsmStateValue rowsProcessed, vectorLoadCommands, partitionsProcessed, totalOutputs, paddedOutputs;
+    private final DFEsmStateValue flushData;
 
     private final DFEsmStateValue crtPos, toread, iLengthRead;
     private final int inputWidth;
@@ -51,6 +54,8 @@ public class ParallelCsrReadControl extends ManagerStateMachine {
       oNnzCounter  = io.pushOutput("cycleCounter", dfeUInt(32), 1);
       oFirstReadPosition  = io.pushOutput("firstReadPosition", dfeUInt(32), 1);
       oVectorLoad  = io.pushOutput("vectorLoad", dfeBool(), 1);
+      oFlush  = io.pushOutput("flush", dfeBool(), 1);
+      oCacheFlush  = io.pushOutput("cacheFlush", dfeBool(), 1);
 
       cycleCounter = state.value(dfeInt(32), 0);
       crtPos = state.value(dfeUInt(32), 0);
@@ -60,6 +65,7 @@ public class ParallelCsrReadControl extends ManagerStateMachine {
       readEnableData = state.value(dfeBool(), false);
       rowFinishedData = state.value(dfeBool(), false);
       vectorLoadData = state.value(dfeBool(), false);
+      flushData = state.value(dfeBool(), false);
       rowLengthData = state.value(dfeUInt(32), 0);
       outValid = state.value(dfeBool(), false);
       readMaskData = state.value(dfeUInt(inputWidth));
@@ -77,7 +83,8 @@ public class ParallelCsrReadControl extends ManagerStateMachine {
       return ~oReadEnable.stall & ~oReadMask.stall
         & ~oRowFinished.stall & ~oRowLength.stall
         & ~oNnzCounter.stall & ~oFirstReadPosition.stall
-        & ~oVectorLoad.stall;
+        & ~oVectorLoad.stall
+        & ~oFlush.stall & ~oCacheFlush.stall;
     }
 
     DFEsmValue iLengthReady() {
@@ -94,7 +101,7 @@ public class ParallelCsrReadControl extends ManagerStateMachine {
         mode.next <== Mode.VectorLoad;
         partitionsProcessed.next <== partitionsProcessed + 1;
         IF (partitionsProcessed === nPartitions - 1) {
-          mode.next <== Mode.Done;
+          mode.next <== Mode.Flush;
         }
       } ELSE {
         mode.next <== Mode.ReadingLength;
@@ -109,6 +116,11 @@ public class ParallelCsrReadControl extends ManagerStateMachine {
       iLengthReady.next <== iLengthReady();
 
       SWITCH (mode) {
+        CASE (Mode.Flush) {
+          // send flush signal to kernels
+          makeOutput(fls(), fls(), zero(inputWidth), zero(), zeroI(), crtPos, fls(), tru());
+          mode.next <== Mode.Done;
+        }
         CASE (Mode.Done) {
           // do nothing
         }
@@ -120,7 +132,7 @@ public class ParallelCsrReadControl extends ManagerStateMachine {
               iLengthRead.next <== true;
             }
             makeOutput(
-                fls(), fls(), zero(inputWidth), zero(), zeroI(), crtPos, tru()
+                fls(), fls(), zero(inputWidth), zero(), zeroI(), crtPos, tru(), fls()
                 );
           }
         }
@@ -130,7 +142,7 @@ public class ParallelCsrReadControl extends ManagerStateMachine {
             rowLengthData.next <== iLength;
             firstReadPosition.next <== crtPos;
             IF (iLength === 0) {
-              makeOutput(fls(), tru(), zero(inputWidth), zero(), zeroI(), crtPos, fls());
+              makeOutput(fls(), tru(), zero(inputWidth), zero(), zeroI(), crtPos, fls(), fls());
               processRow();
             } ELSE {
               mode.next <== Mode.OutputtingCommands;
@@ -155,6 +167,7 @@ public class ParallelCsrReadControl extends ManagerStateMachine {
                 rowLengthData,
                 cycleCounter + 1,
                 firstReadPosition,
+                fls(),
                 fls());
             IF (toread - canread === 0) {
               processRow();
@@ -175,6 +188,8 @@ public class ParallelCsrReadControl extends ManagerStateMachine {
         oNnzCounter.valid <== outValid;
         oFirstReadPosition.valid <== outValid;
         oVectorLoad.valid <== outValid;
+        oFlush.valid <== outValid;
+        oCacheFlush.valid <== outValid;
 
         oReadEnable <==readEnableData;
         oReadMask <== readMaskData;
@@ -183,6 +198,9 @@ public class ParallelCsrReadControl extends ManagerStateMachine {
         oNnzCounter <== cycleCounter.cast(dfeUInt(32));
         oFirstReadPosition <== firstReadPosition;
         oVectorLoad <== vectorLoadData;
+
+        oFlush <== flushData;
+        oCacheFlush <== flushData;
 
         if (dbg)
           IF (outValid) {
@@ -201,7 +219,8 @@ public class ParallelCsrReadControl extends ManagerStateMachine {
         DFEsmValue rowLength,
         DFEsmValue cycleCounterP,
         DFEsmValue firstReadPositionP,
-        DFEsmValue vectorLoad
+        DFEsmValue vectorLoad,
+        DFEsmValue flush
         )
     {
       outValid.next <== true;
@@ -213,6 +232,7 @@ public class ParallelCsrReadControl extends ManagerStateMachine {
       cycleCounter.next <== cycleCounterP;
       firstReadPosition.next <== firstReadPositionP;
       vectorLoadData.next <== vectorLoad;
+      flushData.next <== flush;
 
       totalOutputs.next <== totalOutputs + 1;
     }

@@ -230,7 +230,7 @@ Eigen::VectorXd ssarch::dfespmv(Eigen::VectorXd x)
       &outputResultSizes[0],
       &outputStartAddresses[0],
       &paddingCycles[0],
-      &totalCycles[0],
+      //&totalCycles[0],
       &vStartAddresses[0]
       );
   std::cout << "Done on DFE" << std::endl;
@@ -282,11 +282,11 @@ void ssarch::preprocess(
     const EigenSparseMatrix mat) {
   this->mat = mat;
 
-  // XXX should be based on the number of pipes constant
   std::vector<EigenSparseMatrix> partitions = do_partition(mat, this->numPipes);
 
   for (const auto& m : partitions) {
     this->partitions.push_back(do_blocking(m, this->cacheSize, this->inputWidth));
   }
 }
+
 
