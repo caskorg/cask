@@ -183,7 +183,7 @@ Eigen::VectorXd ssarch::dfespmv(Eigen::VectorXd x)
   spark::spmv::align(v, sizeof(double) * cacheSize);
   spark::spmv::align(v, 384);
 
-  std::vector<int> nrows, paddingCycles, totalCycles, colptrSizes, indptrValuesSizes, outputResultSizes;
+  std::vector<int> nrows, paddingCycles, colptrSizes, indptrValuesSizes, outputResultSizes;
   std::vector<long> outputStartAddresses, colptrStartAddresses;
   std::vector<long> vStartAddresses, indptrValuesStartAddresses;
 
@@ -195,7 +195,6 @@ Eigen::VectorXd ssarch::dfespmv(Eigen::VectorXd x)
 
     nrows.push_back(p.n);
     paddingCycles.push_back(p.paddingCycles);
-    totalCycles.push_back(p.totalCycles);
 
     PartitionWriteResult pr = writeDataForPartition(offset, p, v);
     outputStartAddresses.push_back(pr.outStartAddr);
@@ -215,8 +214,6 @@ Eigen::VectorXd ssarch::dfespmv(Eigen::VectorXd x)
   std::cout << "Running on DFE" << std::endl;
   dfesnippets::vectorutils::print_vector(paddingCycles);
   dfesnippets::vectorutils::print_vector(nrows);
-  dfesnippets::vectorutils::print_vector(totalCycles);
-
 
   Spmv(
       nPartitions,
@@ -230,7 +227,6 @@ Eigen::VectorXd ssarch::dfespmv(Eigen::VectorXd x)
       &outputResultSizes[0],
       &outputStartAddresses[0],
       &paddingCycles[0],
-      //&totalCycles[0],
       &vStartAddresses[0]
       );
   std::cout << "Done on DFE" << std::endl;

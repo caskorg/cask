@@ -66,11 +66,11 @@ class SpmvKernel extends Kernel {
     DFEVar cycleCounter = io.input("cycleCounter", dfeUInt(32));
     DFEVar firstReadPosition = io.input("firstReadPosition", dfeUInt(32));
 
+    // must disable input registering to use as flush trigger
     io.pushInputRegistering(false);
     DFEVar flushTrigger = io.input("flush", dfeBool());
     io.popInputRegistering();
 
-    //flush.afterTrigger(flushTrigger);
     flush.onTrigger(flushTrigger);
 
     DFEVar runLength = firstReadPosition + rowLength;
@@ -144,11 +144,11 @@ class SpmvCacheKernel extends Kernel {
     int sizeBits = 32; // XXX may need to run for more cycles
     DFEVar vRomLoadEnable = io.input("loadEnabled_in", dfeBool());
 
+    // must disable input registering to use as flush trigger
     io.pushInputRegistering(false);
     DFEVar flushTrigger = io.input("flush", dfeBool());
     io.popInputRegistering();
 
-    //flush.afterTrigger(flushTrigger);
     flush.onTrigger(flushTrigger);
 
     DFEVar vectorLoadCycles = io.scalarInput("vectorLoadCycles", dfeUInt(32));
