@@ -84,6 +84,7 @@ public class SpmvManager extends CustomManager{
               FLOATING_POINT_LATENCY,
               MAX_ROWS));
         r.getInput("reductionIn") <== k.getOutput("output");
+        r.getInput("flush") <== k.getOutput("flushTriggerOut");
 
         KernelBlock p = addKernel(new PaddingKernel(
               makeKernelParameters(getPaddingKernel(id))));
@@ -159,7 +160,6 @@ public class SpmvManager extends CustomManager{
 
       ei.setScalar(cacheKernel, "vectorLoadCycles", vectorLoadCycles);
 
-      ei.setTicks(reductionKernel, (n * nPartitions));
       ei.setScalar(reductionKernel, "nRows", n);
       ei.setScalar(reductionKernel, "totalCycles", n * nPartitions);
 

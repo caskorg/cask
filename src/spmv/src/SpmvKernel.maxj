@@ -71,7 +71,7 @@ class SpmvKernel extends Kernel {
     DFEVar flushTrigger = io.input("flush", dfeBool());
     io.popInputRegistering();
 
-    flush.onTrigger(flushTrigger);
+    flush.afterTrigger(flushTrigger);
 
     DFEVar runLength = firstReadPosition + rowLength;
     DFEVar modulo = KernelMath.modulo(runLength, inputWidth);
@@ -95,7 +95,10 @@ class SpmvKernel extends Kernel {
     // TODO still need reduction step
     // TODO: remove prefetch
     DFEVar outputEnable = ~vRomLoadEnable & rowFinished;
-    io.output("output", r.getOutput(), dfeFloat(11, mantissaWidth), outputEnable);
+    io.output("output", r.getOutput(), dfeFloat(11, mantissaWidth), outputEnable | flushTrigger);
+    io.output("flushTriggerOut", flushTrigger, dfeBool(), outputEnable | flushTrigger);
+    //flush.allowOutputBeforeFlush("output");
+    //flush.allowOutputBeforeFlush("flushTriggerOut");
 
     // --- Debug
     if (dbg) {
@@ -149,7 +152,7 @@ class SpmvCacheKernel extends Kernel {
     DFEVar flushTrigger = io.input("flush", dfeBool());
     io.popInputRegistering();
 
-    flush.onTrigger(flushTrigger);
+    flush.afterTrigger(flushTrigger);
 
     DFEVar vectorLoadCycles = io.scalarInput("vectorLoadCycles", dfeUInt(32));
     Params loadAddressParams = control.count.makeParams(sizeBits )
@@ -268,6 +271,12 @@ class BramSpmvReductionKernel extends Kernel {
     DFEVar totalCycles = io.scalarInput("totalCycles", dfeUInt(32));
     DFEVar cycles = control.count.simpleCounter(32);
 
+    io.pushInputRegistering(false);
+    DFEVar flushTrigger = io.input("flush", dfeBool());
+    io.popInputRegistering();
+
+    flush.afterTrigger(flushTrigger);
+
     // internal buffer for accumulating partial sums
     Memory<DFEVar> memory = mem.alloc(dfeFloat(11, 53), maxRows);
 
@@ -300,6 +309,8 @@ class BramSpmvReductionKernel extends Kernel {
         stream.offset(castReadAddress, -off),
         stream.offset(sum, -off),
         stream.offset(~skipEnable, -off));
+
+    //debug.simPrintf("Reduction Kernel --> cycles %d flush: %d\n", cycles, flushTrigger);
 
     // output on the last n cycles
     DFEVar outputEnable = totalCycles - cycles <= n;
