@@ -195,6 +195,7 @@ Eigen::VectorXd ssarch::dfespmv(Eigen::VectorXd x)
 
     nrows.push_back(p.n);
     paddingCycles.push_back(p.paddingCycles);
+    std::cout << "Total cycles = " << p.totalCycles << std::endl;
 
     PartitionWriteResult pr = writeDataForPartition(offset, p, v);
     outputStartAddresses.push_back(pr.outStartAddr);
@@ -284,5 +285,4 @@ void ssarch::preprocess(
     this->partitions.push_back(do_blocking(m, this->cacheSize, this->inputWidth));
   }
 }
-
 

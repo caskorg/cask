@@ -94,11 +94,16 @@ class SpmvKernel extends Kernel {
 
     // TODO still need reduction step
     // TODO: remove prefetch
-    DFEVar outputEnable = ~vRomLoadEnable & rowFinished;
-    io.output("output", r.getOutput(), dfeFloat(11, mantissaWidth), outputEnable | flushTrigger);
-    io.output("flushTriggerOut", flushTrigger, dfeBool(), outputEnable | flushTrigger);
+    DFEVar emptyRow = (rowLength === 0);
+    DFEVar outputEnable = (~vRomLoadEnable & (rowFinished | emptyRow)) | flushTrigger;
+    io.output("output", r.getOutput(), dfeFloat(11, mantissaWidth), outputEnable);
+    io.output("flushTriggerOut", flushTrigger, dfeBool(), outputEnable);
     //flush.allowOutputBeforeFlush("output");
     //flush.allowOutputBeforeFlush("flushTriggerOut");
+
+    // if we find a sequence of empty rows, tell downstream reduction kernrel
+    io.output("skipCount", cycleCounter, dfeUInt(32), outputEnable);
+
 
     // --- Debug
     if (dbg) {
@@ -266,6 +271,11 @@ class BramSpmvReductionKernel extends Kernel {
   protected BramSpmvReductionKernel(KernelParameters parameters, int fpl, int maxRows) {
     super(parameters);
 
+    // when skipCount != 0, we are to skip skipCount rows (since they are empty)
+    DFEVar skipCount = io.input("skipCount", dfeUInt(32)); //io.input("skipCount", dfeUInt(32));
+    DFEVar skipEnable = constant.var(dfeBool(), 0); // skipCount !== 0;
+    DFEVar addressInc = skipEnable ? skipCount : 1;
+
     DFEVar in = io.input("reductionIn", dfeFloat(11, 53));
     DFEVar n = io.scalarInput("nRows", dfeUInt(32));
     DFEVar totalCycles = io.scalarInput("totalCycles", dfeUInt(32));
@@ -280,10 +290,6 @@ class BramSpmvReductionKernel extends Kernel {
     // internal buffer for accumulating partial sums
     Memory<DFEVar> memory = mem.alloc(dfeFloat(11, 53), maxRows);
 
-    // when skipCount != 0, we are to skip skipCount rows (since they are empty)
-    DFEVar skipCount = constant.var(dfeUInt(32), 0); //io.input("skipCount", dfeUInt(32));
-    DFEVar skipEnable = skipCount !== 0;
-    DFEVar addressInc = skipEnable ? skipCount : 1;
 
     // the element we are going to accumulate with
     // initially, all data in the BRAM should be 0, it doesn't matter what we read

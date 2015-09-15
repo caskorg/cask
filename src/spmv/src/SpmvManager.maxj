@@ -85,6 +85,7 @@ public class SpmvManager extends CustomManager{
               MAX_ROWS));
         r.getInput("reductionIn") <== k.getOutput("output");
         r.getInput("flush") <== k.getOutput("flushTriggerOut");
+        r.getInput("skipCount") <== k.getOutput("skipCount");
 
         KernelBlock p = addKernel(new PaddingKernel(
               makeKernelParameters(getPaddingKernel(id))));
