@@ -149,7 +149,9 @@ gdbsim:
 
 # ---- DFE ----
 
-$(DFEMAXDIR)/$(PRJ).max: $(ENGINEFILES)
+#$(DFEMAXDIR)/$(PRJ).max: $(ENGINEFILES)
+
+par:
 	$(MAXJC) $(JFLAGS) $(ENGINEFILES)
 	MAXAPPJCP=. MAXSOURCEDIRS='../src' $(MAXJAVARUN) -v -m 8192 $(MANAGER) DFEModel=$(DFEModel) maxFileName=$(PRJ) target='DFE' enableMPCX=$(MPCX)
 	cp $(DFEMAXDIR)/$(PRJ).h $(DFEMAXDIR)/Maxfiles.h
@@ -211,3 +213,13 @@ lib$(PRJ)_dfe.so: $(PRJ)_dfe.o $(PRJ)_dfec.o
 dfelib: lib$(PRJ)_dfe.so
 		cp lib$(PRJ)_dfe.so lib$(PRJ)_dfe.so.0
 
+# NB only use this when the timing score is rather small (< 10K)
+# # and you are quite confident you could get the design to meet timing
+forcebuild:
+	@echo "Old timing score"
+	@grep TIMING_SCORE $(DFEMAXDIR)/$(PRJ).max
+	sed  -i -e s/PARAM\(TIMING_SCORE\,.*\)/PARAM\(TIMING_SCORE,\ 0\)/ $(DFEMAXDIR)/$(PRJ).max
+	@echo "New timing score"
+	@grep TIMING_SCORE $(DFEMAXDIR)/$(PRJ).max
+	cp $(DFEMAXDIR)/$(PRJ).h $(DFEMAXDIR)/Maxfiles.h
+	make $(PRJ)_dfe
