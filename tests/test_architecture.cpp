@@ -44,7 +44,7 @@ std::shared_ptr<SpmvArchitecture> dse(
   std::cout << "Mat: " << basename << " Arch: " << bestArchitecture->get_name();
   if (params.gflopsOnly) {
     std::cout << " est. gflops " << bestArchitecture->getEstimatedGFlops();
-    std::cout << "est. cycles " << bestArchitecture->getFrequency() << std::endl;
+    std::cout << "est. cycles " << bestArchitecture->getEstimatedClockCycles() << std::endl;
   } else {
     std::cout << bestArchitecture->to_string() << std::endl;
     std::cout << " ResourceUsage: " << bestArchitecture->getResourceUsage().to_string() << std::endl;
