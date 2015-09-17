@@ -55,8 +55,10 @@ class SpmvKernel extends Kernel {
     // TODO: remove prefetch from this kernel
 
     DFEVar vRomLoadEnable = io.input("loadEnabled", dfeBool());
-    DFEVector<DFEVar> matrixValues = io.input("matrixValues", vtype, ~vRomLoadEnable);
-    DFEVector<DFEVar> vectorValues = io.input("vectorValues", vtype, ~vRomLoadEnable);
+    SpmvCacheKernel cache = new SpmvCacheKernel(this, vRomLoadEnable,
+                                    inputWidth, cacheSize, indexWidth, mantissaWidth);
+    DFEVector<DFEVar> matrixValues = cache.getMatrixValues();
+    DFEVector<DFEVar> vectorValues = cache.getVectorValues();
 
     DFEVar result = Reductions.reduce(matrixValues * vectorValues);
 
@@ -128,46 +130,40 @@ class SpmvKernel extends Kernel {
 
 // This implements cache
 //
-class SpmvCacheKernel extends Kernel {
+class SpmvCacheKernel extends KernelLib {
 
   private final DFEVectorType<DFEVar> vtype, ivtype;
   private final List<Memory<DFEVar>> vroms;
   private final int inputWidth;
   private final DFEType addressT;
+  private final DFEVector<DFEVar> matrixValues;
+  private final DFEVector<DFEVar> vectorValues;
 
-  protected SpmvCacheKernel(KernelParameters parameters,
+  protected SpmvCacheKernel(KernelLib owner,
+      DFEVar vRomLoadEnable,
       int inputWidth,
       int cacheSize,
       int indexWidth,
       int mantissaWidth) {
-    super(parameters);
+    super(owner);
 
     this.inputWidth = inputWidth;
     this.addressT = dfeUInt(MathUtils.bitsToAddress(cacheSize));
 
     // load entire vector or until cache is full
     int sizeBits = 32; // XXX may need to run for more cycles
-    DFEVar vRomLoadEnable = io.input("loadEnabled_in", dfeBool());
 
-    // must disable input registering to use as flush trigger
-    io.pushInputRegistering(false);
-    DFEVar flushTrigger = io.input("flush", dfeBool());
-    io.popInputRegistering();
-
-    flush.afterTrigger(flushTrigger);
-
-    DFEVar vectorLoadCycles = io.scalarInput("vectorLoadCycles", dfeUInt(32));
+    DFEVar vectorLoadCycles = owner.io.scalarInput("vectorLoadCycles", dfeUInt(32));
     Params loadAddressParams = control.count.makeParams(sizeBits )
       .withMax(vectorLoadCycles)
       .withEnable(vRomLoadEnable);
     DFEVar loadAddress = control.count.makeCounter(loadAddressParams).getCount();
 
-
+    DFEVar vectorValue = owner.io.input("vromLoad", dfeFloat(11, mantissaWidth), vRomLoadEnable);
     vtype = new DFEVectorType<DFEVar> (dfeFloat(11, mantissaWidth), inputWidth);
     ivtype = new DFEVectorType<DFEVar> (dfeUInt(indexWidth), inputWidth);
     DFEVectorType<DFEVar> inputType = new DFEVectorType<DFEVar> (dfeUInt(96), inputWidth);
 
-    DFEVar vectorValue = io.input("vromLoad", dfeFloat(11, mantissaWidth), vRomLoadEnable);
      //--- Cache allocation and control
     vroms = new ArrayList<Memory<DFEVar>>();
     for (int i = 0; i < inputWidth; i++) {
@@ -180,10 +176,10 @@ class SpmvCacheKernel extends Kernel {
     }
 
     // --- I/O
-    DFEVar readEnable = io.input("readenable", dfeBool()) & ~vRomLoadEnable;
-    DFEVar readMask = io.input("readmask", dfeUInt(inputWidth));
+    DFEVar readEnable = owner.io.input("readenable", dfeBool()) & ~vRomLoadEnable;
+    DFEVar readMask = owner.io.input("readmask", dfeUInt(inputWidth));
 
-    DFEVector<DFEVar> indptrValues = io.input("indptr_values", inputType, readEnable);
+    DFEVector<DFEVar> indptrValues = owner.io.input("indptr_values", inputType, readEnable);
     DFEVector<DFEVar> valuesVector = vtype.newInstance(this);
     DFEVector<DFEVar> indptrVector = ivtype.newInstance(this);
     for (int i = 0; i < inputWidth; i++) {
@@ -199,17 +195,19 @@ class SpmvCacheKernel extends Kernel {
       //debug.simPrintf("%f ", valuesVector[i]);
     //debug.simPrintf("\n");
 
-    DFEVector<DFEVar> matrixValues = selectValues(
-        valuesVector,
-        readMask);
-    DFEVector<DFEVar> colptr = selectValues(
-        indptrVector,
-        readMask);
-    DFEVector<DFEVar> vectorValues = resolveVectorReads(colptr);
+    DFEVector<DFEVar> colptr = selectValues(indptrVector, readMask);
+    matrixValues = selectValues(valuesVector, readMask);
+    vectorValues = resolveVectorReads(colptr);
+  }
 
-    io.output("loadEnabled_out", vRomLoadEnable, dfeBool());
-    io.output("matrixValues", matrixValues, vtype, ~vRomLoadEnable);
-    io.output("vectorValues", vectorValues, vtype, ~vRomLoadEnable);
+  DFEVector<DFEVar> getMatrixValues()
+  {
+    return matrixValues;
+  }
+
+  DFEVector<DFEVar> getVectorValues()
+  {
+    return vectorValues;
   }
 
   DFEVector<DFEVar> selectValues(
