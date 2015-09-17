@@ -37,6 +37,10 @@ namespace spark {
         return ss.str();
       }
 
+      void restart() {
+        crt = start;
+      }
+
       bool at_start() {
         return crt == start;
       }

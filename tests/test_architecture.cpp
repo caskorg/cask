@@ -13,20 +13,32 @@
 using namespace spark::spmv;
 using namespace spark::utils;
 
-void dse(
+// returns the best architecture
+std::shared_ptr<SpmvArchitecture> dse(
     std::string basename,
     SpmvArchitectureSpace* af,
     Eigen::SparseMatrix<double, Eigen::RowMajor> mat) {
   int it = 0;
-  for (SpmvArchitecture* a = af->begin(); a != af->end(); ) {
+
+  std::shared_ptr<SpmvArchitecture> bestArchitecture, a;
+  std::cout << "bestArchitecture === nul " << (bestArchitecture == nullptr) << std::endl;
+
+  while (a = af->next()) {
     auto start = std::chrono::high_resolution_clock::now();
     a->preprocess(mat); // do spmv?
     std::cout << "Matrix: " << basename << " " << a->to_string() << std::endl;
     std::cout << " ResourceUsage: " << a->getResourceUsage().to_string() << std::endl;
     dfesnippets::timing::print_clock_diff("Took: ", start);
-    a = af->operator++();
-    //std::cout << a.getResourceUsage().to_string() << std::endl;
+    if (bestArchitecture == nullptr ||
+        a->getEstimatedGFlops() > bestArchitecture->getEstimatedGFlops()) {
+      std::cout << "Setting best architecture" << std::endl;
+      bestArchitecture = a;
+    }
   }
+
+  std::cout << "Best architecture ";
+  std::cout << *bestArchitecture << std::endl;
+  return bestArchitecture;
 }
 
 int run (std::string path, Range numPipesRange, Range inputWidthRange, Range cacheSizeRange) {

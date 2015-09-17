@@ -121,11 +121,11 @@ namespace spark {
 
     template<typename T>
     class SimpleSpmvArchitectureSpace : public SpmvArchitectureSpace {
+      // NOTE any raw pointers returned through the API of this class
+      // are assumed to be wrapped in smart pointers by the base class
       spark::utils::Range cacheSizeR{1024, 4096, 512};
       spark::utils::Range inputWidthR{8, 100, 8};
       spark::utils::Range numPipesR{1, 6, 1};
-
-      T* firstArchitecture, *lastArchitecture, *currentArchitecture;
 
       public:
 
@@ -136,35 +136,19 @@ namespace spark {
         cacheSizeR = cacheSizeRange;
         inputWidthR = inputWidthRange;
         numPipesR = numPipesRange;
-
-        firstArchitecture = new T(cacheSizeR.start, inputWidthR.start, numPipesR.start);
-        currentArchitecture = firstArchitecture;
-        lastArchitecture = new T(cacheSizeR.end, inputWidthR.end, numPipesR.end);
       }
 
       SimpleSpmvArchitectureSpace() {
-        firstArchitecture = new T(cacheSizeR.start, inputWidthR.start, numPipesR.start);
-        currentArchitecture = firstArchitecture;
-        lastArchitecture = new T(cacheSizeR.end, inputWidthR.end, numPipesR.end);
       }
 
-      virtual ~SimpleSpmvArchitectureSpace() {
-        delete(lastArchitecture);
-        delete(firstArchitecture);
-        if (currentArchitecture != firstArchitecture &&
-            currentArchitecture != lastArchitecture)
-          delete(currentArchitecture);
+      protected:
+      void restart() override {
+        cacheSizeR.restart();
+        inputWidthR.restart();
+        numPipesR.restart();
       }
 
-      T* begin() {
-        return firstArchitecture;
-      }
-
-      T* end() {
-        return lastArchitecture;
-      }
-
-      T* operator++(){
+      T* doNext(){
         bool last = false;
         ++cacheSizeR;
         if (cacheSizeR.at_start()) {
@@ -176,15 +160,10 @@ namespace spark {
           }
         }
 
-        if (currentArchitecture != firstArchitecture &&
-            currentArchitecture != lastArchitecture)
-          delete(currentArchitecture);
-
         if (last)
-          return lastArchitecture;
+          return nullptr;
 
-        currentArchitecture = new T(cacheSizeR.crt, inputWidthR.crt, numPipesR.crt);
-        return currentArchitecture;
+        return new T(cacheSizeR.crt, inputWidthR.crt, numPipesR.crt);
       }
     };
 

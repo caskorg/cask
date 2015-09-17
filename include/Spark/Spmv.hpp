@@ -48,14 +48,26 @@ namespace spark {
         virtual Eigen::VectorXd dfespmv(Eigen::VectorXd x) = 0;
     };
 
+    std::ostream& operator<<(std::ostream& s, SpmvArchitecture& a) {
+      s << " Estimated clock cycles = " << a.getEstimatedClockCycles();
+      return s;
+    }
+
     // An ArchitectureSpace provides a simple way to iterate over the design space
     // of an architecture, abstracting the details of the architecture's parameters
     // XXX actually implemnt the STL iterator (if it makes sense?)
     class SpmvArchitectureSpace {
       public:
-        virtual SpmvArchitecture* begin() = 0;
-        virtual SpmvArchitecture* end() = 0;
-        virtual SpmvArchitecture* operator++() = 0;
+        std::shared_ptr<SpmvArchitecture> next() {
+          return std::shared_ptr<SpmvArchitecture>(doNext());
+        }
+
+        // restart the exploration process
+        virtual void restart() = 0;
+
+      protected:
+        // returns nullptr if at end
+        virtual SpmvArchitecture* doNext() = 0;
     };
 
     // return the properties for the currently linked hardware design
