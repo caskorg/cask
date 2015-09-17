@@ -21,7 +21,6 @@ std::shared_ptr<SpmvArchitecture> dse(
   int it = 0;
 
   std::shared_ptr<SpmvArchitecture> bestArchitecture, a;
-  std::cout << "bestArchitecture === nul " << (bestArchitecture == nullptr) << std::endl;
 
   while (a = af->next()) {
     auto start = std::chrono::high_resolution_clock::now();
@@ -31,7 +30,6 @@ std::shared_ptr<SpmvArchitecture> dse(
     dfesnippets::timing::print_clock_diff("Took: ", start);
     if (bestArchitecture == nullptr ||
         a->getEstimatedGFlops() > bestArchitecture->getEstimatedGFlops()) {
-      std::cout << "Setting best architecture" << std::endl;
       bestArchitecture = a;
     }
   }
