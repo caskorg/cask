@@ -51,7 +51,7 @@ namespace spark {
       EigenSparseMatrix mat;
       std::vector<Partition> partitions;
 
-      virtual int cycleCount(int32_t* v, int size, int inputWidth);
+      virtual int countComputeCycles(int32_t* v, int size, int inputWidth);
 
       public:
 
@@ -173,7 +173,7 @@ namespace spark {
     class FstSpmvArchitecture : public SimpleSpmvArchitecture {
       protected:
 
-      virtual int cycleCount(int32_t* v, int size, int inputWidth) override {
+      virtual int countComputeCycles(int32_t* v, int size, int inputWidth) override {
         int cycles = 0;
         for (int i = 0; i < size; i++) {
           int toread = v[i] - (i > 0 ? v[i - 1] : 0);
@@ -201,7 +201,7 @@ namespace spark {
     class SkipEmptyRowsArchitecture : public SimpleSpmvArchitecture {
       protected:
 
-      virtual int cycleCount(int32_t* v, int size, int inputWidth) override {
+      virtual int countComputeCycles(int32_t* v, int size, int inputWidth) override {
         int cycles = 0;
         int crtPos = 0;
         int prevtoread = -1;

@@ -12,7 +12,7 @@ using namespace spark::spmv;
 using ssarch = spark::spmv::SimpleSpmvArchitecture;
 
 // how many cycles does it take to resolve the accesses
-int ssarch::cycleCount(int32_t* v, int size, int inputWidth)
+int ssarch::countComputeCycles(int32_t* v, int size, int inputWidth)
 {
   int cycles = 0;
   int crtPos = 0;
@@ -83,7 +83,7 @@ spark::spmv::Partition ssarch::do_blocking(
     auto p_colptr = std::get<0>(p);
     auto p_indptr = std::get<1>(p);
     auto p_values = std::get<2>(p);
-    cycles += this->cycleCount(&p_colptr[0], n, inputWidth);
+    cycles += this->countComputeCycles(&p_colptr[0], n, inputWidth);
     spark::spmv::align(p_indptr, sizeof(int) * inputWidth);
     spark::spmv::align(p_values, sizeof(double) * inputWidth);
 
