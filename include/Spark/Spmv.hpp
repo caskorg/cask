@@ -46,6 +46,7 @@ namespace spark {
         virtual ResourceUsage getResourceUsage() = 0;
         virtual void preprocess(const Eigen::SparseMatrix<double, Eigen::RowMajor> mat) = 0;
         virtual Eigen::VectorXd dfespmv(Eigen::VectorXd x) = 0;
+        virtual std::string get_name() = 0;
     };
 
     std::ostream& operator<<(std::ostream& s, SpmvArchitecture& a) {

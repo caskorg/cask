@@ -13,11 +13,17 @@
 using namespace spark::spmv;
 using namespace spark::utils;
 
+struct Params {
+  bool gflopsOnly;
+  Params(bool _gflopsOnly) : gflopsOnly(_gflopsOnly) {}
+};
+
 // returns the best architecture
 std::shared_ptr<SpmvArchitecture> dse(
     std::string basename,
     SpmvArchitectureSpace* af,
-    Eigen::SparseMatrix<double, Eigen::RowMajor> mat) {
+    Eigen::SparseMatrix<double, Eigen::RowMajor> mat,
+    const Params& params) {
   int it = 0;
 
   std::shared_ptr<SpmvArchitecture> bestArchitecture, a;
@@ -34,13 +40,23 @@ std::shared_ptr<SpmvArchitecture> dse(
     }
   }
 
-  std::cout << "Best architecture ";
-  std::cout << "Matrix: " << basename << " " << bestArchitecture->to_string();
-  std::cout << " ResourceUsage: " << bestArchitecture->getResourceUsage().to_string() << std::endl;
+  std::cout << "Best ";
+  std::cout << "Mat: " << basename << " Arch: " << bestArchitecture->get_name();
+  if (params.gflopsOnly) {
+    std::cout << " est. gflops " << bestArchitecture->getEstimatedGFlops();
+    std::cout << "est. cycles " << bestArchitecture->getFrequency() << std::endl;
+  } else {
+    std::cout << bestArchitecture->to_string() << std::endl;
+    std::cout << " ResourceUsage: " << bestArchitecture->getResourceUsage().to_string() << std::endl;
+  }
   return bestArchitecture;
 }
 
-int run (std::string path, Range numPipesRange, Range inputWidthRange, Range cacheSizeRange) {
+int run (
+    std::string path,
+    Range numPipesRange, Range inputWidthRange, Range cacheSizeRange,
+    const Params& params
+    ) {
 
   std::size_t pos = path.find_last_of("/");
   std::string basename(path.substr(pos, path.size() - pos));
@@ -59,7 +75,7 @@ int run (std::string path, Range numPipesRange, Range inputWidthRange, Range cac
   };
 
   for (auto sas : factories) {
-    dse(basename, sas, *eigenMatrix);
+    dse(basename, sas, *eigenMatrix, params);
   }
 
   delete(factories[0]);
@@ -74,12 +90,15 @@ int main(int argc, char** argv) {
   std::string numPipes = "numPipes";
   std::string cacheSize = "cacheSize";
   std::string inputWidth = "inputWidth";
+  std::string gflopsOnly = "gflopsOnly";
+
   po::options_description desc("Allowed options");
   desc.add_options()
     ("help", "produce help message")
     (numPipes.c_str(), po::value<std::string>(), "range for number of pipes: start,end,step")
     (cacheSize.c_str(), po::value<std::string>(), "range for cache size")
     (inputWidth.c_str(), po::value<std::string>(), "range for input width")
+    (gflopsOnly.c_str(), po::value<bool>(), "print only gflops")
     ("filePath", po::value<std::string>(), "path to matrix")
     ;
 
@@ -112,9 +131,15 @@ int main(int argc, char** argv) {
      cacheSizeRange = Range(vm[cacheSize].as<std::string>());
   }
 
+  bool gflopsOnlyV = false;
+  if (vm.count(gflopsOnly)) {
+    gflopsOnlyV = vm[gflopsOnly].as<bool>();
+  }
+
   auto start = std::chrono::high_resolution_clock::now();
 
-  int status = run(path, numPipesRange, inputWidthRange, cacheSizeRange);
+  Params params{gflopsOnlyV};
+  int status = run(path, numPipesRange, inputWidthRange, cacheSizeRange, params);
 
   dfesnippets::timing::print_clock_diff("Test took: ", start);
   if (status == 0)

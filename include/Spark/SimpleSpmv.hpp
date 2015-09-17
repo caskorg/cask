@@ -48,13 +48,12 @@ namespace spark {
       protected:
       int cacheSize, inputWidth, numPipes;
       EigenSparseMatrix mat;
-      std::string name;
       std::vector<BlockingResult> partitions;
 
       virtual int cycleCount(int32_t* v, int size, int inputWidth);
 
       public:
-      // XXX need a way to find these
+
         SimpleSpmvArchitecture() :
           cacheSize(getPartitionSize()),
           inputWidth(getInputWidth()),
@@ -63,14 +62,7 @@ namespace spark {
         SimpleSpmvArchitecture(int _cacheSize, int  _inputWidth, int _numPipes) :
           cacheSize(_cacheSize),
           inputWidth(_inputWidth),
-          numPipes(_numPipes),
-          name("SimpleSpmvArchitecture") {}
-
-        SimpleSpmvArchitecture(int _cacheSize, int  _inputWidth, int _numPipes, std::string _name) :
-          cacheSize(_cacheSize),
-          inputWidth(_inputWidth),
-          numPipes(_numPipes),
-          name(_name) {}
+          numPipes(_numPipes) {}
 
         virtual ~SimpleSpmvArchitecture() {}
 
@@ -95,7 +87,7 @@ namespace spark {
 
         virtual std::string to_string() {
           std::stringstream s;
-          s << name;
+          s << get_name();
           s << " cacheSize = " << cacheSize;
           s << " inputWidth = " << inputWidth;
           s << " numPipes = " << numPipes;
@@ -107,6 +99,10 @@ namespace spark {
         virtual void preprocess(const EigenSparseMatrix mat) override;
 
         virtual Eigen::VectorXd dfespmv(Eigen::VectorXd x) override;
+
+        virtual std::string get_name() override {
+          return std::string("SimpleSpmvArchitecture");
+        }
 
       private:
         std::vector<EigenSparseMatrix> do_partition(
@@ -189,10 +185,14 @@ namespace spark {
       }
 
       public:
-      FstSpmvArchitecture() : SimpleSpmvArchitecture(2048, 48, 1, "FstSpmvArchitecture"){}
+      FstSpmvArchitecture() : SimpleSpmvArchitecture(2048, 48, 1){}
 
       FstSpmvArchitecture(int _cacheSize, int  _inputWidth, int _numPipes) :
-        SimpleSpmvArchitecture(_cacheSize, _inputWidth, _numPipes, "FstSpmvArchitecture") {}
+        SimpleSpmvArchitecture(_cacheSize, _inputWidth, _numPipes) {}
+
+      virtual std::string get_name() override {
+        return std::string("FstSpmvArchitecture");
+      }
 
     };
 
@@ -224,10 +224,14 @@ namespace spark {
       }
 
       public:
-      SkipEmptyRowsArchitecture() : SimpleSpmvArchitecture(2048, 48, 1, "SkipEmptyRowsSpmvArchitecture"){}
+      SkipEmptyRowsArchitecture() : SimpleSpmvArchitecture(2048, 48, 1){}
 
       SkipEmptyRowsArchitecture(int _cacheSize, int  _inputWidth, int _numPipes) :
-        SimpleSpmvArchitecture(_cacheSize, _inputWidth, _numPipes, "SkipEmptyRowsSpmvArchitecture") {}
+        SimpleSpmvArchitecture(_cacheSize, _inputWidth, _numPipes) {}
+
+      virtual std::string get_name() override {
+        return std::string("SkipEmptyRowsSpmvArchitecture");
+      }
     };
 
 
