@@ -127,6 +127,8 @@ namespace spark {
       spark::utils::Range inputWidthR{8, 100, 8};
       spark::utils::Range numPipesR{1, 6, 1};
 
+      bool last = false;
+
       public:
 
       SimpleSpmvArchitectureSpace(
@@ -146,10 +148,15 @@ namespace spark {
         cacheSizeR.restart();
         inputWidthR.restart();
         numPipesR.restart();
+        last = false;
       }
 
       T* doNext(){
-        bool last = false;
+        if (last)
+          return nullptr;
+
+        T* result = new T(cacheSizeR.crt, inputWidthR.crt, numPipesR.crt);
+
         ++cacheSizeR;
         if (cacheSizeR.at_start()) {
           ++inputWidthR;
@@ -160,10 +167,7 @@ namespace spark {
           }
         }
 
-        if (last)
-          return nullptr;
-
-        return new T(cacheSizeR.crt, inputWidthR.crt, numPipesR.crt);
+        return result;
       }
     };
 
@@ -192,14 +196,41 @@ namespace spark {
 
     };
 
-    class FstSpmvArchitectureSpace : public SimpleSpmvArchitectureSpace<FstSpmvArchitecture> {
+    // Model for an architecture which can skip sequences of empty rows
+    class SkipEmptyRowsArchitecture : public SimpleSpmvArchitecture {
+      protected:
+
+      virtual int cycleCount(int32_t* v, int size, int inputWidth) override {
+        int cycles = 0;
+        int crtPos = 0;
+        int prevtoread = -1;
+        for (int i = 0; i < size; i++) {
+          int toread = v[i] - (i > 0 ? v[i - 1] : 0);
+          //only one cycle for empty row
+          if (toread == 0 && prevtoread == 0)
+            continue;
+          if (toread == 0)
+            cycles++; // we need to cycles to deal with each empty row
+          prevtoread = toread;
+          do {
+            int canread = std::min(inputWidth - crtPos, toread);
+            crtPos += canread;
+            crtPos %= inputWidth;
+            cycles++;
+            toread -= canread;
+          } while (toread > 0);
+        }
+        return cycles;
+      }
+
       public:
-      FstSpmvArchitectureSpace(
-          spark::utils::Range _numPipesRange,
-          spark::utils::Range _inputWidthRange,
-          spark::utils::Range _cacheSizeRange) :
-        SimpleSpmvArchitectureSpace(_numPipesRange, _inputWidthRange, _cacheSizeRange) {}
+      SkipEmptyRowsArchitecture() : SimpleSpmvArchitecture(2048, 48, 1, "SkipEmptyRowsSpmvArchitecture"){}
+
+      SkipEmptyRowsArchitecture(int _cacheSize, int  _inputWidth, int _numPipes) :
+        SimpleSpmvArchitecture(_cacheSize, _inputWidth, _numPipes, "SkipEmptyRowsSpmvArchitecture") {}
     };
+
+
   }
 }
 
