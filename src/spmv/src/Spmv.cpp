@@ -30,7 +30,7 @@ int ssarch::cycleCount(int32_t* v, int size, int inputWidth)
 }
 
 // transform a given matrix with n rows in blocks of size n X blockSize
-spark::spmv::BlockingResult ssarch::do_blocking(
+spark::spmv::Partition ssarch::do_blocking(
     const EigenSparseMatrix m,
     int blockSize,
     int inputWidth)
@@ -44,13 +44,13 @@ spark::spmv::BlockingResult ssarch::do_blocking(
   int n = rows;
   std::cout << "Mat rows " << n << std::endl;
 
-  int nPartitions = cols / blockSize + (cols % blockSize == 0 ? 0 : 1);
+  int nBlocks = cols / blockSize + (cols % blockSize == 0 ? 0 : 1);
   //std::cout << "Npartitions: " << nPartitions << std::endl;
 
-  std::vector<spark::sparse::CsrMatrix> partitions(nPartitions);
+  std::vector<spark::sparse::CsrMatrix> partitions(nBlocks);
 
   for (int i = 0; i < rows; i++) {
-    for (int j = 0; j < nPartitions; j++) {
+    for (int j = 0; j < nBlocks; j++) {
       auto& p = std::get<0>(partitions[j]);
       if (p.size() == 0)
         p.push_back(0);
@@ -68,10 +68,10 @@ spark::spmv::BlockingResult ssarch::do_blocking(
     }
   }
 
-  if (n > Spmv_maxRows)
-    throw std::invalid_argument(
-        "Matrix has too many rows - maximum supported: "
-        + std::to_string(Spmv_maxRows));
+  //if (n > Spmv_maxRows)
+    //throw std::invalid_argument(
+        //"Matrix has too many rows - maximum supported: "
+        //+ std::to_string(Spmv_maxRows));
 
   std::vector<double> v(cols, 0);
   std::vector<int> m_colptr;
@@ -103,15 +103,12 @@ spark::spmv::BlockingResult ssarch::do_blocking(
   std::cout << "Cycles ==== " << cycles << std::endl;
   std::cout << "v.size() ==== " << v.size() << std::endl;
 
-  this->gflopsCount = 2.0 * (double)m.nonZeros() / 1E9;
-  this->totalCycles = cycles + v.size();
-
-  BlockingResult br;
-  br.nPartitions = nPartitions;
+  Partition br;
+  br.nBlocks = nBlocks;
   br.n = n;
   br.paddingCycles = out.size() - n; // number of cycles required to align to the burst size
-  br.totalCycles = totalCycles;
-  br.vector_load_cycles = v.size() / nPartitions; // per partition
+  br.totalCycles = cycles + v.size();
+  br.vector_load_cycles = v.size() / nBlocks; // per partition
   br.m_indptr_values = m_indptr_value;
   br.m_colptr = m_colptr;
   br.outSize = out.size() * sizeof(double);
@@ -140,7 +137,7 @@ int align(int bytes, int to) {
 // write the data for a partition, starting at the given offset
 PartitionWriteResult writeDataForPartition(
     int offset,
-    const BlockingResult& br,
+    const Partition& br,
     const std::vector<double>& v) {
   // for each partition write this down
   PartitionWriteResult pwr;
@@ -183,7 +180,7 @@ Eigen::VectorXd ssarch::dfespmv(Eigen::VectorXd x)
   spark::spmv::align(v, sizeof(double) * cacheSize);
   spark::spmv::align(v, 384);
 
-  std::vector<int> nrows, paddingCycles, colptrSizes, indptrValuesSizes, outputResultSizes;
+  std::vector<int> nrows, totalCycles, paddingCycles, colptrSizes, indptrValuesSizes, outputResultSizes;
   std::vector<long> outputStartAddresses, colptrStartAddresses;
   std::vector<long> vStartAddresses, indptrValuesStartAddresses;
 
@@ -195,6 +192,7 @@ Eigen::VectorXd ssarch::dfespmv(Eigen::VectorXd x)
 
     nrows.push_back(p.n);
     paddingCycles.push_back(p.paddingCycles);
+    //totalCycles1push_back(p.totalCycles);
     std::cout << "Total cycles = " << p.totalCycles << std::endl;
 
     PartitionWriteResult pr = writeDataForPartition(offset, p, v);
@@ -210,14 +208,14 @@ Eigen::VectorXd ssarch::dfespmv(Eigen::VectorXd x)
   }
 
   // npartitions and vector load cycles should be the same for all partitions
-  int nPartitions = this->partitions[0].nPartitions;
+  int nBlocks = this->partitions[0].nBlocks;
   int vector_load_cycles = this->partitions[0].vector_load_cycles;
   std::cout << "Running on DFE" << std::endl;
   dfesnippets::vectorutils::print_vector(paddingCycles);
   dfesnippets::vectorutils::print_vector(nrows);
 
   Spmv(
-      nPartitions,
+      nBlocks,
       vector_load_cycles,
       v.size(),
       &colptrStartAddresses[0],
@@ -228,6 +226,7 @@ Eigen::VectorXd ssarch::dfespmv(Eigen::VectorXd x)
       &outputResultSizes[0],
       &outputStartAddresses[0],
       &paddingCycles[0],
+      //&totalCycles[0],
       &vStartAddresses[0]
       );
   std::cout << "Done on DFE" << std::endl;

@@ -71,7 +71,8 @@ int run (
   std::vector<SpmvArchitectureSpace*> factories{
     new SimpleSpmvArchitectureSpace<SimpleSpmvArchitecture>(numPipesRange, inputWidthRange, cacheSizeRange),
     new SimpleSpmvArchitectureSpace<FstSpmvArchitecture>(numPipesRange, inputWidthRange, cacheSizeRange),
-    new SimpleSpmvArchitectureSpace<SkipEmptyRowsArchitecture>(numPipesRange, inputWidthRange, cacheSizeRange)
+    new SimpleSpmvArchitectureSpace<SkipEmptyRowsArchitecture>(numPipesRange, inputWidthRange, cacheSizeRange),
+    new SimpleSpmvArchitectureSpace<PrefetchingArchitecture>(numPipesRange, inputWidthRange, cacheSizeRange)
   };
 
   for (auto sas : factories) {

@@ -22,8 +22,8 @@ namespace spark {
     } __attribute__((packed));
 #pragma pack()
 
-    struct BlockingResult {
-      int nPartitions, n, paddingCycles, totalCycles, vector_load_cycles, outSize;
+    struct Partition {
+      int nBlocks, n, paddingCycles, totalCycles, vector_load_cycles, outSize;
       std::vector<int> m_colptr;
       std::vector<indptr_value> m_indptr_values;
 
@@ -33,7 +33,7 @@ namespace spark {
         s << "Padding cycles = " << paddingCycles << std::endl;
         s << "Total cycles = " << totalCycles << std::endl;
         s << "Nrows = " << n << std::endl;
-        s << "Partitions = " << nPartitions << std::endl;
+        s << "Partitions = " << nBlocks << std::endl;
         return s.str();
       }
     };
@@ -47,8 +47,9 @@ namespace spark {
       // architecture specific properties
       protected:
       int cacheSize, inputWidth, numPipes;
+
       EigenSparseMatrix mat;
-      std::vector<BlockingResult> partitions;
+      std::vector<Partition> partitions;
 
       virtual int cycleCount(int32_t* v, int size, int inputWidth);
 
@@ -68,7 +69,7 @@ namespace spark {
 
         virtual double getEstimatedClockCycles() {
           auto res = std::max_element(partitions.begin(), partitions.end(),
-              [](const BlockingResult& a, const BlockingResult& b) {
+              [](const Partition& a, const Partition& b) {
                 return a.totalCycles < b.totalCycles;
               });
           return res->totalCycles;
@@ -109,7 +110,7 @@ namespace spark {
             const EigenSparseMatrix mat,
             int numPipes);
 
-        BlockingResult do_blocking(
+        Partition do_blocking(
             const Eigen::SparseMatrix<double, Eigen::RowMajor, int32_t> mat,
             int blockSize,
             int inputWidth);
@@ -234,6 +235,19 @@ namespace spark {
       }
     };
 
+    class PrefetchingArchitecture : public SkipEmptyRowsArchitecture {
+      protected:
+
+      public:
+      PrefetchingArchitecture() : SkipEmptyRowsArchitecture(2048, 48, 1){}
+
+      PrefetchingArchitecture(int _cacheSize, int  _inputWidth, int _numPipes) :
+        SkipEmptyRowsArchitecture(_cacheSize, _inputWidth, _numPipes) {}
+
+      virtual std::string get_name() override {
+        return std::string("PrefetchingArchitecture");
+      }
+    };
 
   }
 }

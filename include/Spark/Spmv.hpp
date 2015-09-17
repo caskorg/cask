@@ -24,14 +24,7 @@ namespace spark {
     // A generic architecture for SpMV
     class SpmvArchitecture {
 
-      // matrix specific properties, only available after process()
-      protected:
-      double gflopsCount = -1;
-      int totalCycles = -1;
-
       public:
-        //doSpmv(iterations, x);
-
         double getEstimatedGFlops() {
           return  getGFlopsCount() /(getEstimatedClockCycles() / getFrequency());
         }
