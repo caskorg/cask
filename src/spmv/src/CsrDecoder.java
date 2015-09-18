@@ -16,8 +16,6 @@ public class CsrDecoder extends ManagerStateMachine {
     private final DFEsmStateValue rowLengthValid;
     private final DFEsmStateValue rowsProcessed;
 
-    private final DFEsmStateValue iColptrRead;
-
     private final int id;
 
     //    private final DFEsmStateValue sCycleCounter = state.value(dfeUInt(64), 0);
@@ -34,8 +32,6 @@ public class CsrDecoder extends ManagerStateMachine {
         rowsProcessed = state.value(dfeUInt(32), 0);
 
         colptrReady = state.value(dfeBool(), false);
-
-        iColptrRead = state.value(dfeBool(), true);
 
         rowLengthValid = state.value(dfeBool(), false);
 
@@ -71,7 +67,7 @@ public class CsrDecoder extends ManagerStateMachine {
 
     @Override
     protected void outputFunction() {
-        iColptr.read <== colptrReady() & iColptrRead;
+        iColptr.read <== colptrReady();
         oRowLength.valid <== rowLengthValid;
         oRowLength <== rowLength;
         if (dbg)
