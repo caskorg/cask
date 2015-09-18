@@ -3,6 +3,7 @@ import com.maxeler.maxcompiler.v2.statemachine.manager.*;
 import com.maxeler.maxcompiler.v2.managers.DFEManager;
 
 import com.maxeler.maxcompiler.v2.statemachine.*;
+import com.maxeler.maxcompiler.v2.statemachine.types.*;
 import com.maxeler.maxcompiler.v2.statemachine.manager.*;
 import com.maxeler.maxcompiler.v2.managers.DFEManager;
 
@@ -20,13 +21,14 @@ public class ParallelCsrReadControl extends ManagerStateMachine {
 
     private final DFEsmPullInput iLength;
     private final DFEsmStateValue iLengthReady;
-    private final DFEsmPushOutput oReadMask, oReadEnable, oRowLength, oNnzCounter, oFirstReadPosition;
+    private final DFEsmPushOutput oReadMask, oRowLength, oNnzCounter, oFirstReadPosition;
     //private final DFEsmPushOutput oFlush;
     private final DFEsmInput vectorLoadCycles, nRows, nPartitions;
     private final DFEsmPushOutput oControl;
+    private final DFEsmStateValue oControlData;
 
     private final DFEsmStateValue outValid;
-    private final DFEsmStateValue readEnableData, readMaskData, rowFinishedData, rowLengthData, vectorLoadData;
+    private final DFEsmStateValue readMaskData, rowLengthData;
     private final DFEsmStateValue cycleCounter;
     private final DFEsmStateValue firstReadPosition;
     private final DFEsmStateValue rowsProcessed, vectorLoadCommands, partitionsProcessed, totalOutputs, paddedOutputs;
@@ -48,10 +50,7 @@ public class ParallelCsrReadControl extends ManagerStateMachine {
       nPartitions = io.scalarInput("nPartitions", dfeUInt(32));
 
       oReadMask    = io.pushOutput("readmask", dfeUInt(inputWidth), 1);
-      oReadEnable  = io.pushOutput("readenable", dfeBool(), 1);
-      //oRowFinished = io.pushOutput("rowFinished", dfeBool(), 1);
-      //oVectorLoad  = io.pushOutput("vectorLoad", dfeBool(), 1);
-      oControl = io.pushOutput("control", dfeUInt(2), 1);
+      oControl = io.pushOutput("control", dfeUInt(3), 1);
       oRowLength   = io.pushOutput("rowLength", dfeUInt(32), 1);
       oNnzCounter  = io.pushOutput("cycleCounter", dfeUInt(32), 1);
       oFirstReadPosition  = io.pushOutput("firstReadPosition", dfeUInt(32), 1);
@@ -62,9 +61,7 @@ public class ParallelCsrReadControl extends ManagerStateMachine {
       firstReadPosition = state.value(dfeUInt(32), 0);
       toread = state.value(dfeUInt(32), 0);
       iLengthRead = state.value(dfeBool(), false);
-      readEnableData = state.value(dfeBool(), false);
-      rowFinishedData = state.value(dfeUInt(2), 0);
-      vectorLoadData = state.value(dfeUInt(2), 0);
+      oControlData = state.value(dfeUInt(3), 0);
       //flushData = state.value(dfeBool(), false);
       rowLengthData = state.value(dfeUInt(32), 0);
       outValid = state.value(dfeBool(), false);
@@ -80,7 +77,7 @@ public class ParallelCsrReadControl extends ManagerStateMachine {
     }
 
     DFEsmValue outputNotStall() {
-      return ~oReadEnable.stall & ~oReadMask.stall
+      return ~oReadMask.stall
         & ~oRowLength.stall
         & ~oNnzCounter.stall & ~oFirstReadPosition.stall
         & ~oControl.stall;
@@ -182,32 +179,26 @@ public class ParallelCsrReadControl extends ManagerStateMachine {
       protected void outputFunction() {
         iLength.read <== iLengthReady();
 
-        oReadEnable.valid <== outValid;
         oReadMask.valid <== outValid;
         oRowLength.valid <== outValid;
-        //oRowFinished.valid <== outValid;
         oNnzCounter.valid <== outValid;
         oFirstReadPosition.valid <== outValid;
-        //oVectorLoad.valid <== outValid;
         //oFlush.valid <== outValid;
         oControl.valid <== outValid;
 
-        oControl <== vectorLoadData.shiftLeft(1) + rowFinishedData;
-        oReadEnable <==readEnableData;
+        oControl <== oControlData;;
         oReadMask <== readMaskData;
         oRowLength <== rowLengthData;
-        //oRowFinished <== rowFinishedData;
         oNnzCounter <== cycleCounter.cast(dfeUInt(32));
         oFirstReadPosition <== firstReadPosition;
-        //oVectorLoad <== vectorLoadData;
 
         //oFlush <== flushData;
 
         if (dbg)
           IF (outValid) {
             debug.simPrintf(
-                "ReadControl SM -- nPartitions %d, partitionsProcessed %d, vectorLoadCycles %d, vectorLoadCommands %d, vectorLoad %d rowsProcessed %d, iLength %d, readmask: %d, readeenable: %d toread: %d, crtPos: %d, rowLength %d, rowFinished %d cycleCounter %d",
-                nPartitions, partitionsProcessed, vectorLoadCycles, vectorLoadCommands, vectorLoadData, rowsProcessed, iLength, readMaskData, readEnableData, toread, crtPos, rowLengthData, rowFinishedData, cycleCounter);
+                "ReadControl SM -- nPartitions %d, partitionsProcessed %d, vectorLoadCycles %d, vectorLoadCommands %d, rowsProcessed %d, iLength %d, readmask: %d, toread: %d, crtPos: %d, rowLength %d, cycleCounter %d",
+                nPartitions, partitionsProcessed, vectorLoadCycles, vectorLoadCommands, rowsProcessed, iLength, readMaskData, toread, crtPos, rowLengthData, cycleCounter);
             debug.simPrintf(
                 "totalOutputs %d\n", totalOutputs);
           }
@@ -226,15 +217,12 @@ public class ParallelCsrReadControl extends ManagerStateMachine {
     {
       outValid.next <== true;
 
-      readEnableData.next <== readEnable;
-      rowFinishedData.next <== rowFinished.cast(dfeUInt(2));
       readMaskData.next <== readMask;
       rowLengthData.next <== rowLength;
       cycleCounter.next <== cycleCounterP;
       firstReadPosition.next <== firstReadPositionP;
-      vectorLoadData.next <== vectorLoad.cast(dfeUInt(2));
       //flushData.next <== flush;
-
+      oControlData.next <== cat(vectorLoad, rowFinished, readEnable);
       totalOutputs.next <== totalOutputs + 1;
     }
 
@@ -292,5 +280,24 @@ public class ParallelCsrReadControl extends ManagerStateMachine {
       return constant.value(dfeInt(32), 1);
     }
 
+    DFEsmValue cat(DFEsmValue... args) {
+      DFEsmValue first = args[0];
+
+      for (int i = 1; i < args.length; i++) {
+        first = cat(first, args[i]);
+      }
+
+      return first;
+    }
+
+    DFEsmValue cat(DFEsmValue left, DFEsmValue right) {
+      int bitsLeft = left.getType().getTotalBits();
+      int bitsRight = right.getType().getTotalBits();
+      int totalBits = bitsRight + bitsLeft;
+      DFEsmValueType t = dfeUInt(totalBits);
+      DFEsmAssignableValue pattern = assignable.value(t);
+      pattern <== left.cast(t).shiftLeft(bitsRight) + right.cast(t);
+      return pattern;
+    }
 
 }
