@@ -44,6 +44,19 @@ function(AddMaxelerImplTest name libtarget lib args)
       -lcolamd -lrt -lklu -lbtf -lamd -lpthread)
 endfunction()
 
+function(AddMaxelerImplTestHw name libtarget lib args)
+  add_executable(
+    test_${name}_hw
+    tests/test_${name}.cpp)
+  add_dependencies(test_${name}_hw ${libtarget})
+  target_link_libraries(
+    test_${name}_hw
+    -L. -l${lib}
+    SparkCpuLib
+    -lumfpack -lsuitesparseconfig -lopenblas -lcholmod -lboost_program_options
+    -lcolamd -lrt -lklu -lbtf -lamd -lpthread)
+endfunction()
+
 function(AddMaxelerImplTestRun binary name args)
     add_test(
       NAME test_${name}
@@ -160,6 +173,8 @@ if (DEFINED ENV{MAXCOMPILERDIR} AND DEFINED ENV{MAXELEROSDIR})
 
     AddMaxelerImplTest("architecture" spmvlib "Spmv_sim" "")
     AddMaxelerImplTestRun("test_architecture" "spmv_architecture_test_small" "--filePath ../test-matrices/TSOPF_RS_b39_c7.mtx")
+
+    AddMaxelerImplTestHw("spmv" spmvlib_dfe "Spmv_dfe" "")
 
   endif()
 
