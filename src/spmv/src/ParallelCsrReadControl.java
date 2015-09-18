@@ -121,7 +121,7 @@ public class ParallelCsrReadControl extends ManagerStateMachine {
               readLength.next <== true;
             }
             makeOutput(
-                fls(), fls(), zero(inputWidth), zero(), zeroI(), crtPos, tru()
+                fls(), fls(), zero(inputWidth), zero(), zero(), crtPos, tru()
                 );
           }
         }
@@ -132,7 +132,7 @@ public class ParallelCsrReadControl extends ManagerStateMachine {
             firstReadPosition.next <== crtPos;
             IF (iLength === 0) {
               // empty row
-              makeOutput(fls(), tru(), zero(inputWidth), zero(), oneI(), crtPos, fls());
+              makeOutput(fls(), tru(), zero(inputWidth), zero(), one(), crtPos, fls());
               processRow();
             } ELSE {
               mode.next <== Mode.OutputtingCommands;
@@ -197,12 +197,16 @@ public class ParallelCsrReadControl extends ManagerStateMachine {
         //DFEsmValue flush
         )
     {
+
       outValid.next <== true;
       //flushData.next <== flush;
+      rowLengthData.next <== rowLength;
+      cycleCounter.next <== cycleCounterP.cast(dfeInt(32));
+      firstReadPosition.next <== firstReadPositionP;
       oControlData.next <== cat(
           readMask,
           vectorLoad, rowFinished, readEnable,
-          rowLength, cycleCounterP, firstReadPosition);
+          rowLength, cycleCounterP, firstReadPositionP);
       totalOutputs.next <== totalOutputs + 1;
     }
 

@@ -61,7 +61,7 @@ class SpmvKernel extends Kernel {
     DFEVar cacheReadEnable = controlS[96];
     DFEVar rowLength = controlS.slice(64, 32).cast(dfeUInt(32));
     DFEVar cycleCounter = controlS.slice(32, 32).cast(dfeUInt(32));
-    DFEVar firstReadPosition = controlS.slice(inputWidth, 32).cast(dfeUInt(32));
+    DFEVar firstReadPosition = controlS.slice(0, 32).cast(dfeUInt(32));
 
     SpmvCacheKernel cache = new SpmvCacheKernel(this,
         vRomLoadEnable, cacheReadEnable, readMask,
@@ -97,6 +97,7 @@ class SpmvKernel extends Kernel {
         newSum,
         dfeFloat(11, mantissaWidth),
         fpL);
+
 
     // TODO: remove prefetch
     DFEVar emptyRow = (rowLength === 0);
