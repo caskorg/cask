@@ -113,20 +113,18 @@ class SpmvKernel extends Kernel {
         Params rowCounterParams = control.count.makeParams(32)
           .withEnable(rowFinished);
         DFEVar rowCounter = control.count.makeCounter(rowCounterParams).getCount();
-/*      debug.simPrintf(
-          rowLength !== 0,
-          "Kernel -- row %d totalCycles %d, readenable %d, readmask %d rowFinished %d rowLength %d output: %f cycleCounter %d validPartialSums %d newSum %f firstRead %d",
-          rowCounter, totalCycles, readEnable, readMask, rowFinished, rowLength, r.getOutput(), cycleCounter, validPartialSums, newSum, firstReadPosition);
-      debug.simPrintf(rowLength !== 0 , " loadEnable %d loadAddress %d\n", vRomLoadEnable, loadAddress);
-*/
-      //debug.simPrintf("\n");
-      //debug.simPrintf("Values: ");
-      //for (int i = 0; i < inputWidth; i++)
-        //debug.simPrintf("%f ", values[i]);
-      //debug.simPrintf("Indices: ");
-      //for (int i = 0; i < inputWidth; i++)
-        //debug.simPrintf("%d ", colptr[i]);
-      //debug.simPrintf("\n");
+      debug.dfePrintf(
+          "Kernel -- row %d totalCycles %d, readmask %d rowFinished %d rowLength %d output: %f cycleCounter %d validPartialSums %d newSum %f firstRead %d",
+          rowCounter, totalCycles, readMask, rowFinished, rowLength, r.getOutput(), cycleCounter, validPartialSums, newSum, firstReadPosition);
+
+      debug.dfePrintf("\n");
+      debug.dfePrintf("Values: ");
+      for (int i = 0; i < inputWidth; i++)
+        debug.dfePrintf("%f ", matrixValues[i]);
+      debug.dfePrintf("Indices: ");
+      for (int i = 0; i < inputWidth; i++)
+        debug.dfePrintf("%d ", vectorValues[i]);
+      debug.dfePrintf("\n");
     }
   }
 
@@ -193,8 +191,8 @@ class SpmvCacheKernel extends KernelLib {
     }
 
     //for (int i = 0; i < inputWidth; i++)
-      //debug.simPrintf("%d ", indptrVector[i]);
-    //debug.simPrintf("\n");
+      //debug.dfePrintf("%d ", indptrVector[i]);
+    //debug.dfePrintf("\n");
 
     //for (int i = 0; i < inputWidth; i++)
       //debug.simPrintf("%f ", valuesVector[i]);

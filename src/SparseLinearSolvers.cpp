@@ -1,18 +1,18 @@
 #include <Spark/SparseLinearSolvers.hpp>
 
-extern "C" {
-#include <SuiteSparse_config.h>
-#include <umfpack.h>
-#include "cblas.h"
-#include "amd.h"
-#include "colamd.h"
-#include "ldl.h"
-#include "umfpack_get_determinant.h"
-}
+//extern "C" {
+//#include <SuiteSparse_config.h>
+//#include <umfpack.h>
+//#include "cblas.h"
+//#include "amd.h"
+//#include "colamd.h"
+//#include "ldl.h"
+//#include "umfpack_get_determinant.h"
+//}
 
 #include <iostream>
 #include <Eigen/Sparse>
-#include <Eigen/UmfPackSupport>
+//#include <Eigen/UmfPackSupport>
 
 Eigen::VectorXd solveBICG(
     const Eigen::SparseMatrix<double>& A,
@@ -36,18 +36,18 @@ Eigen::VectorXd solveLU(
   return solver.solve(b);
 }
 
-Eigen::VectorXd solveUMFLU(
-    const Eigen::SparseMatrix<double>& A,
-    const Eigen::VectorXd& b
+//Eigen::VectorXd solveUMFLU(
+    //const Eigen::SparseMatrix<double>& A,
+    //const Eigen::VectorXd& b
 
-   )
-{
-  using namespace Eigen;
-  UmfPackLU<SparseMatrix<double>> solver;
-  solver.analyzePattern(A);
-  solver.factorize(A);
-  return solver.solve(b);
-}
+   //)
+//{
+  //using namespace Eigen;
+  //UmfPackLU<SparseMatrix<double>> solver;
+  //solver.analyzePattern(A);
+  //solver.factorize(A);
+  //return solver.solve(b);
+//}
 
 Eigen::VectorXd solveCG(
     const Eigen::SparseMatrix<double>& A,
