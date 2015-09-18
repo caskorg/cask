@@ -59,10 +59,10 @@ public class SpmvManager extends CustomManager{
         k.getInput("control") <== readControlBlock.getOutput("control");
 
 
-        k.getInput("rowLength") <== readControlBlock.getOutput("rowLength");
+        //k.getInput("rowLength") <== readControlBlock.getOutput("rowLength");
         //k.getInput("rowFinished") <== readControlBlock.getOutput("rowFinished");
-        k.getInput("cycleCounter") <== readControlBlock.getOutput("cycleCounter");
-        k.getInput("firstReadPosition") <== readControlBlock.getOutput("firstReadPosition");
+        //k.getInput("cycleCounter") <== readControlBlock.getOutput("cycleCounter");
+        //k.getInput("firstReadPosition") <== readControlBlock.getOutput("firstReadPosition");
 
         // flush control is shared between all kernels
         //k.getInput("flush") <== readControlBlock.getOutput("flush");

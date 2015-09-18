@@ -54,10 +54,13 @@ class SpmvKernel extends Kernel {
 
     // TODO: remove prefetch from this kernel
 
-    DFEVar controlS = io.input("control", dfeUInt(3));
-    DFEVar vRomLoadEnable = controlS[2];
-    DFEVar rowFinished = controlS[1];
-    DFEVar cacheReadEnable = controlS[0];
+    DFEVar controlS = io.input("control", dfeUInt(3 + 3 * 32));
+    DFEVar vRomLoadEnable = controlS[98];
+    DFEVar rowFinished = controlS[97];
+    DFEVar cacheReadEnable = controlS[96];
+    DFEVar rowLength = controlS.slice(64, 32).cast(dfeUInt(32));
+    DFEVar cycleCounter = controlS.slice(32, 32).cast(dfeUInt(32));
+    DFEVar firstReadPosition = controlS.slice(0, 32).cast(dfeUInt(32));
 
     SpmvCacheKernel cache = new SpmvCacheKernel(this,
         vRomLoadEnable, cacheReadEnable,
@@ -68,9 +71,6 @@ class SpmvKernel extends Kernel {
     DFEVar result = Reductions.reduce(matrixValues * vectorValues);
 
     // --- Accumulation
-    DFEVar rowLength = io.input("rowLength", dfeUInt(32));
-    DFEVar cycleCounter = io.input("cycleCounter", dfeUInt(32));
-    DFEVar firstReadPosition = io.input("firstReadPosition", dfeUInt(32));
 
     // must disable input registering to use as flush trigger
     //io.pushInputRegistering(false);
