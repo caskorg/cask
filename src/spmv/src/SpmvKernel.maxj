@@ -54,16 +54,17 @@ class SpmvKernel extends Kernel {
 
     // TODO: remove prefetch from this kernel
 
-    DFEVar controlS = io.input("control", dfeUInt(3 + 3 * 32));
+    DFEVar controlS = io.input("control", dfeUInt(3 + 3 * 32 + inputWidth));
+    DFEVar readMask = controlS.slice(99, inputWidth).cast(dfeUInt(inputWidth));
     DFEVar vRomLoadEnable = controlS[98];
     DFEVar rowFinished = controlS[97];
     DFEVar cacheReadEnable = controlS[96];
     DFEVar rowLength = controlS.slice(64, 32).cast(dfeUInt(32));
     DFEVar cycleCounter = controlS.slice(32, 32).cast(dfeUInt(32));
-    DFEVar firstReadPosition = controlS.slice(0, 32).cast(dfeUInt(32));
+    DFEVar firstReadPosition = controlS.slice(inputWidth, 32).cast(dfeUInt(32));
 
     SpmvCacheKernel cache = new SpmvCacheKernel(this,
-        vRomLoadEnable, cacheReadEnable,
+        vRomLoadEnable, cacheReadEnable, readMask,
         inputWidth, cacheSize, indexWidth, mantissaWidth);
     DFEVector<DFEVar> matrixValues = cache.getMatrixValues();
     DFEVector<DFEVar> vectorValues = cache.getVectorValues();
@@ -145,6 +146,7 @@ class SpmvCacheKernel extends KernelLib {
   protected SpmvCacheKernel(KernelLib owner,
       DFEVar vRomLoadEnable,
       DFEVar cacheReadEnable,
+      DFEVar readMask,
       int inputWidth,
       int cacheSize,
       int indexWidth,
@@ -181,7 +183,6 @@ class SpmvCacheKernel extends KernelLib {
 
     // --- I/O
     DFEVar readEnable = cacheReadEnable & ~vRomLoadEnable;
-    DFEVar readMask = owner.io.input("readmask", dfeUInt(inputWidth));
 
     DFEVector<DFEVar> indptrValues = owner.io.input("indptr_values", inputType, readEnable);
     DFEVector<DFEVar> valuesVector = vtype.newInstance(this);

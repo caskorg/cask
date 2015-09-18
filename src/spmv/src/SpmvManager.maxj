@@ -54,7 +54,7 @@ public class SpmvManager extends CustomManager{
             MemoryControlGroup.MemoryAccessPattern.LINEAR_1D);
 
         //k.getInput("readenable") <== readControlBlock.getOutput("readenable");
-        k.getInput("readmask") <== readControlBlock.getOutput("readmask");
+        //k.getInput("readmask") <== readControlBlock.getOutput("readmask");
         //k.getInput("loadEnabled") <== readControlBlock.getOutput("vectorLoad");
         k.getInput("control") <== readControlBlock.getOutput("control");
 
