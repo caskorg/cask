@@ -69,11 +69,10 @@ class SpmvKernel extends Kernel {
     DFEVar firstReadPosition = io.input("firstReadPosition", dfeUInt(32));
 
     // must disable input registering to use as flush trigger
-    io.pushInputRegistering(false);
-    DFEVar flushTrigger = io.input("flush", dfeBool());
-    io.popInputRegistering();
-
-    flush.afterTrigger(flushTrigger);
+    //io.pushInputRegistering(false);
+    //DFEVar flushTrigger = io.input("flush", dfeBool());
+    //io.popInputRegistering();
+    //flush.afterTrigger(flushTrigger);
 
     DFEVar runLength = firstReadPosition + rowLength;
     DFEVar modulo = KernelMath.modulo(runLength, inputWidth);
@@ -96,9 +95,9 @@ class SpmvKernel extends Kernel {
 
     // TODO: remove prefetch
     DFEVar emptyRow = (rowLength === 0);
-    DFEVar outputEnable = (~vRomLoadEnable & (rowFinished | emptyRow)) | flushTrigger;
+    DFEVar outputEnable = (~vRomLoadEnable & (rowFinished | emptyRow)); // | flushTrigger;
     io.output("output", r.getOutput(), dfeFloat(11, mantissaWidth), outputEnable);
-    io.output("flushTriggerOut", flushTrigger, dfeBool(), outputEnable);
+    //io.output("flushTriggerOut", flushTrigger, dfeBool(), outputEnable);
     // if we find a sequence of empty rows, tell downstream reduction kernrel
     DFEVar skipCount = emptyRow ? cycleCounter : 0;
     io.output("skipCount", skipCount, dfeUInt(32), outputEnable);
@@ -276,11 +275,10 @@ class BramSpmvReductionKernel extends Kernel {
     DFEVar totalCycles = io.scalarInput("totalCycles", dfeUInt(32));
     DFEVar cycles = control.count.simpleCounter(32);
 
-    io.pushInputRegistering(false);
-    DFEVar flushTrigger = io.input("flush", dfeBool());
-    io.popInputRegistering();
-
-    flush.afterTrigger(flushTrigger);
+    //io.pushInputRegistering(false);
+    //DFEVar flushTrigger = io.input("flush", dfeBool());
+    //io.popInputRegistering();
+    //flush.afterTrigger(flushTrigger);
 
     // internal buffer for accumulating partial sums
     Memory<DFEVar> memory = mem.alloc(dfeFloat(11, 53), maxRows);

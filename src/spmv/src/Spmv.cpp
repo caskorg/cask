@@ -192,7 +192,7 @@ Eigen::VectorXd ssarch::dfespmv(Eigen::VectorXd x)
 
     nrows.push_back(p.n);
     paddingCycles.push_back(p.paddingCycles);
-    //totalCycles1push_back(p.totalCycles);
+    totalCycles.push_back(p.totalCycles);
     std::cout << "Total cycles = " << p.totalCycles << std::endl;
 
     PartitionWriteResult pr = writeDataForPartition(offset, p, v);
@@ -226,7 +226,7 @@ Eigen::VectorXd ssarch::dfespmv(Eigen::VectorXd x)
       &outputResultSizes[0],
       &outputStartAddresses[0],
       &paddingCycles[0],
-      //&totalCycles[0],
+      &totalCycles[0],
       &vStartAddresses[0]
       );
   std::cout << "Done on DFE" << std::endl;

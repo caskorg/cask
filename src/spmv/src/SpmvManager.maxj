@@ -16,7 +16,7 @@ public class SpmvManager extends CustomManager{
     private static final int cacheSize = 1024 * 2;
     private static final int INPUT_WIDTH = 16;
     private static final int MAX_ROWS = 50000;
-    private static final int NUM_PIPES = 3;
+    private static final int NUM_PIPES = 1;
 
     // parameters of CSR format used: float64 values, int32 index.
     private static final int mantissaWidth = 53;
@@ -64,14 +64,14 @@ public class SpmvManager extends CustomManager{
         k.getInput("firstReadPosition") <== readControlBlock.getOutput("firstReadPosition");
 
         // flush control is shared between all kernels
-        k.getInput("flush") <== readControlBlock.getOutput("flush");
+        //k.getInput("flush") <== readControlBlock.getOutput("flush");
 
         KernelBlock r = addKernel(new BramSpmvReductionKernel(
               makeKernelParameters(getReductionKernel(id)),
               FLOATING_POINT_LATENCY,
               MAX_ROWS));
         r.getInput("reductionIn") <== k.getOutput("output");
-        r.getInput("flush") <== k.getOutput("flushTriggerOut");
+        //r.getInput("flush") <== k.getOutput("flushTriggerOut");
         r.getInput("skipCount") <== k.getOutput("skipCount");
 
         KernelBlock p = addKernel(new PaddingKernel(
@@ -133,6 +133,7 @@ public class SpmvManager extends CustomManager{
         InterfaceParam colptrSize,
         InterfaceParam indptrValuesStartAddress,
         InterfaceParam indptrValuesSize,
+        InterfaceParam totalCycles,
         InterfaceParam paddingCycles) {
 
       String computeKernel = getComputeKernel(id);
@@ -141,8 +142,11 @@ public class SpmvManager extends CustomManager{
       String csrDecoder = getCsrDecoder(id);
       String readControl = getReadControl(id);
 
+      ei.setTicks(computeKernel, totalCycles);
+
       ei.setScalar(computeKernel, "vectorLoadCycles", vectorLoadCycles);
 
+      ei.setTicks(reductionKernel, (n * nPartitions));
       ei.setScalar(reductionKernel, "nRows", n);
       ei.setScalar(reductionKernel, "totalCycles", n * nPartitions);
 
@@ -186,6 +190,7 @@ public class SpmvManager extends CustomManager{
       InterfaceParamArray outStartAddresses = ei.addParamArray("outStartAddresses", CPUTypes.INT64);
       InterfaceParamArray outResultSizes = ei.addParamArray("outResultSizes", CPUTypes.INT32);
 
+      InterfaceParamArray totalCycles = ei.addParamArray("totalCycles", CPUTypes.INT32);
       InterfaceParamArray vStartAddresses = ei.addParamArray("vStartAddresses", CPUTypes.INT64);
 
       InterfaceParamArray indptrValuesAddresses = ei.addParamArray("indptrValuesAddresses", CPUTypes.INT64);
@@ -207,6 +212,7 @@ public class SpmvManager extends CustomManager{
             colptrSizes.get(i),
             indptrValuesAddresses.get(i),
             indptrValuesSizes.get(i),
+            totalCycles.get(i),
             paddingCycles.get(i));
 
       ei.ignoreLMem("cpu2lmem");
