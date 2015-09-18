@@ -54,7 +54,10 @@ class SpmvKernel extends Kernel {
 
     // TODO: remove prefetch from this kernel
 
-    DFEVar vRomLoadEnable = io.input("loadEnabled", dfeBool());
+    DFEVar controlS = io.input("control", dfeUInt(2));
+    DFEVar vRomLoadEnable = controlS[1];
+    DFEVar rowFinished = controlS[0];
+
     SpmvCacheKernel cache = new SpmvCacheKernel(this, vRomLoadEnable,
                                     inputWidth, cacheSize, indexWidth, mantissaWidth);
     DFEVector<DFEVar> matrixValues = cache.getMatrixValues();
@@ -63,7 +66,6 @@ class SpmvKernel extends Kernel {
     DFEVar result = Reductions.reduce(matrixValues * vectorValues);
 
     // --- Accumulation
-    DFEVar rowFinished = io.input("rowFinished", dfeBool());
     DFEVar rowLength = io.input("rowLength", dfeUInt(32));
     DFEVar cycleCounter = io.input("cycleCounter", dfeUInt(32));
     DFEVar firstReadPosition = io.input("firstReadPosition", dfeUInt(32));

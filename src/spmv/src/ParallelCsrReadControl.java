@@ -20,11 +20,11 @@ public class ParallelCsrReadControl extends ManagerStateMachine {
 
     private final DFEsmPullInput iLength;
     private final DFEsmStateValue iLengthReady;
-    private final DFEsmPushOutput oReadMask, oReadEnable, oRowFinished, oRowLength, oNnzCounter, oFirstReadPosition;
+    private final DFEsmPushOutput oReadMask, oReadEnable, oRowLength, oNnzCounter, oFirstReadPosition;
     //private final DFEsmPushOutput oFlush;
     private final DFEsmInput vectorLoadCycles, nRows, nPartitions;
+    private final DFEsmPushOutput oControl;
 
-    private final DFEsmPushOutput oVectorLoad;
     private final DFEsmStateValue outValid;
     private final DFEsmStateValue readEnableData, readMaskData, rowFinishedData, rowLengthData, vectorLoadData;
     private final DFEsmStateValue cycleCounter;
@@ -49,11 +49,12 @@ public class ParallelCsrReadControl extends ManagerStateMachine {
 
       oReadMask    = io.pushOutput("readmask", dfeUInt(inputWidth), 1);
       oReadEnable  = io.pushOutput("readenable", dfeBool(), 1);
-      oRowFinished = io.pushOutput("rowFinished", dfeBool(), 1);
+      //oRowFinished = io.pushOutput("rowFinished", dfeBool(), 1);
+      //oVectorLoad  = io.pushOutput("vectorLoad", dfeBool(), 1);
+      oControl = io.pushOutput("control", dfeUInt(2), 1);
       oRowLength   = io.pushOutput("rowLength", dfeUInt(32), 1);
       oNnzCounter  = io.pushOutput("cycleCounter", dfeUInt(32), 1);
       oFirstReadPosition  = io.pushOutput("firstReadPosition", dfeUInt(32), 1);
-      oVectorLoad  = io.pushOutput("vectorLoad", dfeBool(), 1);
       //oFlush  = io.pushOutput("flush", dfeBool(), 1);
 
       cycleCounter = state.value(dfeInt(32), 0);
@@ -62,8 +63,8 @@ public class ParallelCsrReadControl extends ManagerStateMachine {
       toread = state.value(dfeUInt(32), 0);
       iLengthRead = state.value(dfeBool(), false);
       readEnableData = state.value(dfeBool(), false);
-      rowFinishedData = state.value(dfeBool(), false);
-      vectorLoadData = state.value(dfeBool(), false);
+      rowFinishedData = state.value(dfeUInt(2), 0);
+      vectorLoadData = state.value(dfeUInt(2), 0);
       //flushData = state.value(dfeBool(), false);
       rowLengthData = state.value(dfeUInt(32), 0);
       outValid = state.value(dfeBool(), false);
@@ -80,9 +81,9 @@ public class ParallelCsrReadControl extends ManagerStateMachine {
 
     DFEsmValue outputNotStall() {
       return ~oReadEnable.stall & ~oReadMask.stall
-        & ~oRowFinished.stall & ~oRowLength.stall
+        & ~oRowLength.stall
         & ~oNnzCounter.stall & ~oFirstReadPosition.stall
-        & ~oVectorLoad.stall;
+        & ~oControl.stall;
         //& ~oFlush.stall;
     }
 
@@ -184,19 +185,21 @@ public class ParallelCsrReadControl extends ManagerStateMachine {
         oReadEnable.valid <== outValid;
         oReadMask.valid <== outValid;
         oRowLength.valid <== outValid;
-        oRowFinished.valid <== outValid;
+        //oRowFinished.valid <== outValid;
         oNnzCounter.valid <== outValid;
         oFirstReadPosition.valid <== outValid;
-        oVectorLoad.valid <== outValid;
+        //oVectorLoad.valid <== outValid;
         //oFlush.valid <== outValid;
+        oControl.valid <== outValid;
 
+        oControl <== vectorLoadData.shiftLeft(1) + rowFinishedData;
         oReadEnable <==readEnableData;
         oReadMask <== readMaskData;
         oRowLength <== rowLengthData;
-        oRowFinished <== rowFinishedData;
+        //oRowFinished <== rowFinishedData;
         oNnzCounter <== cycleCounter.cast(dfeUInt(32));
         oFirstReadPosition <== firstReadPosition;
-        oVectorLoad <== vectorLoadData;
+        //oVectorLoad <== vectorLoadData;
 
         //oFlush <== flushData;
 
@@ -224,12 +227,12 @@ public class ParallelCsrReadControl extends ManagerStateMachine {
       outValid.next <== true;
 
       readEnableData.next <== readEnable;
-      rowFinishedData.next <== rowFinished;
+      rowFinishedData.next <== rowFinished.cast(dfeUInt(2));
       readMaskData.next <== readMask;
       rowLengthData.next <== rowLength;
       cycleCounter.next <== cycleCounterP;
       firstReadPosition.next <== firstReadPositionP;
-      vectorLoadData.next <== vectorLoad;
+      vectorLoadData.next <== vectorLoad.cast(dfeUInt(2));
       //flushData.next <== flush;
 
       totalOutputs.next <== totalOutputs + 1;

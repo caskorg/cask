@@ -55,11 +55,12 @@ public class SpmvManager extends CustomManager{
 
         k.getInput("readenable") <== readControlBlock.getOutput("readenable");
         k.getInput("readmask") <== readControlBlock.getOutput("readmask");
-        k.getInput("loadEnabled") <== readControlBlock.getOutput("vectorLoad");
+        //k.getInput("loadEnabled") <== readControlBlock.getOutput("vectorLoad");
+        k.getInput("control") <== readControlBlock.getOutput("control");
 
 
         k.getInput("rowLength") <== readControlBlock.getOutput("rowLength");
-        k.getInput("rowFinished") <== readControlBlock.getOutput("rowFinished");
+        //k.getInput("rowFinished") <== readControlBlock.getOutput("rowFinished");
         k.getInput("cycleCounter") <== readControlBlock.getOutput("cycleCounter");
         k.getInput("firstReadPosition") <== readControlBlock.getOutput("firstReadPosition");
 
