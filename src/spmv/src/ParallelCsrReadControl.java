@@ -108,6 +108,9 @@ public class ParallelCsrReadControl extends ManagerStateMachine {
       outValid.next <== false;
 
       iLengthReady.next <== canRead() & needToRead();
+      // disable read request on next cycle, if we request data this cycle
+      IF (canRead() & needToRead())
+        readLength.next <== false;
 
       SWITCH (mode) {
         CASE (Mode.Done) {
