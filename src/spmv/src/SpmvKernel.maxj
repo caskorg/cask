@@ -25,11 +25,6 @@ class SpmvKernel extends Kernel {
   // -- empty rows
   // -- port sharing cannot be used
 
-  private final DFEVectorType<DFEVar> vtype, ivtype;
-  private final int inputWidth;
-  private final DFEType addressT;
-  private final boolean dbg;
-
   private static final int fpL = 16;
 
   protected SpmvKernel(
@@ -41,18 +36,8 @@ class SpmvKernel extends Kernel {
       boolean dbg) {
     super(parameters);
 
-    optimization.pushPipeliningFactor(0.5);
-    optimization.pushDSPFactor(1);
-
-
-    this.inputWidth = inputWidth;
-    this.addressT = dfeUInt(MathUtils.bitsToAddress(cacheSize));
-    this.dbg = dbg;
-
-    vtype = new DFEVectorType<DFEVar> (dfeFloat(11, mantissaWidth), inputWidth);
-    ivtype = new DFEVectorType<DFEVar> (dfeUInt(indexWidth), inputWidth);
-
-    // TODO: remove prefetch from this kernel
+    //optimization.pushPipeliningFactor(0.5);
+    //optimization.pushDSPFactor(1);
 
     DFEVar controlS = io.input("control", dfeUInt(3 + 3 * 32 + inputWidth));
     DFEVar readMask = controlS.slice(99, inputWidth).cast(dfeUInt(inputWidth));
@@ -137,7 +122,6 @@ class SpmvCacheKernel extends KernelLib {
 
   private final DFEVectorType<DFEVar> vtype, ivtype;
   private final List<Memory<DFEVar>> vroms;
-  private final int inputWidth;
   private final DFEType addressT;
   private final DFEVector<DFEVar> matrixValues;
   private final DFEVector<DFEVar> vectorValues;
@@ -152,7 +136,6 @@ class SpmvCacheKernel extends KernelLib {
       int mantissaWidth) {
     super(owner);
 
-    this.inputWidth = inputWidth;
     this.addressT = dfeUInt(MathUtils.bitsToAddress(cacheSize));
 
     // load entire vector or until cache is full
