@@ -40,8 +40,10 @@ function(AddMaxelerImplTest name libtarget lib args)
       test_${name}
       -L. -l${lib}
       SparkCpuLib
-      -lumfpack -lsuitesparseconfig -lopenblas -lcholmod -lboost_program_options
-      -lcolamd -lrt -lklu -lbtf -lamd -lpthread)
+      #-lumfpack -lsuitesparseconfig -lopenblas -lcholmod
+      #-lboost_program_options
+      #-lcolamd -lklu -lbtf -lamd
+      -lrt -lpthread)
 endfunction()
 
 function(AddMaxelerImplTestHw name libtarget lib args)
@@ -53,15 +55,31 @@ function(AddMaxelerImplTestHw name libtarget lib args)
     test_${name}_hw
     -L. -l${lib}
     SparkCpuLib
-    -lumfpack -lsuitesparseconfig -lopenblas -lcholmod -lboost_program_options
-    -lcolamd -lrt -lklu -lbtf -lamd -lpthread)
+    #-lumfpack -lsuitesparseconfig -lopenblas -lcholmod
+    #-lboost_program_options
+    #-lcolamd -lklu -lbtf -lamd
+    -lrt -lpthread)
 endfunction()
 
 function(AddMaxelerImplTestRun binary name args)
     add_test(
-      NAME test_${name}
+      NAME test_sim_${name}
       WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
       COMMAND ../scripts/simrunner ./${binary} ${args})
+endfunction()
+
+function(AddMaxelerImplTestRunHw binary name args)
+    add_test(
+      NAME test_hw_${name}
+      WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+      COMMAND ../scripts/hwrun ./${binary} ${args})
+endfunction()
+
+function(AddSpmvTestRunHw matrix)
+    add_test(
+      NAME test_hw_${matrix}
+      WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+      COMMAND ../scripts/hwrun ./test_spmv_hw ../test-matrices/${matrix}.mtx)
 endfunction()
 
 # ---- Project wide configuration ----
@@ -175,6 +193,37 @@ if (DEFINED ENV{MAXCOMPILERDIR} AND DEFINED ENV{MAXELEROSDIR})
     AddMaxelerImplTestRun("test_architecture" "spmv_architecture_test_small" "--filePath ../test-matrices/TSOPF_RS_b39_c7.mtx")
 
     AddMaxelerImplTestHw("spmv" spmvlib_dfe "Spmv_dfe" "")
+    AddMaxelerImplTestRunHw("test_spmv_hw" "test_spmv_hw_dense_8" "../test-matrices/test_dense_8.mtx")
+
+    AddSpmvTestRunHw("bfwb62")
+    AddSpmvTestRunHw("OPF_3754")
+    AddSpmvTestRunHw("OPF_6000")
+    AddSpmvTestRunHw("test_break")
+    AddSpmvTestRunHw("test_cage6")
+    gAddSpmvTestRunHw("test_dense_8")
+    AddSpmvTestRunHw("test_dense_128")
+    AddSpmvTestRunHw("test_empty_last_rows_small")
+    AddSpmvTestRunHw("test_large_dense")
+    AddSpmvTestRunHw("test_large_empty")
+    AddSpmvTestRunHw("test_longer_row")
+    AddSpmvTestRunHw("test_long_row")
+    AddSpmvTestRunHw("test_no_empty_rows")
+    AddSpmvTestRunHw("test_non_multiple")
+    AddSpmvTestRunHw("test_one_row_2")
+    AddSpmvTestRunHw("test_one_row")
+    AddSpmvTestRunHw("test_one_value_one_index_per_row")
+    AddSpmvTestRunHw("test_partition")
+    AddSpmvTestRunHw("test_small")
+    AddSpmvTestRunHw("test_some_empty_rows")
+    AddSpmvTestRunHw("test_tiny")
+    AddSpmvTestRunHw("test_tiny_odd")
+    AddSpmvTestRunHw("test_tols90")
+    AddSpmvTestRunHw("test_tsopf1")
+    AddSpmvTestRunHw("test_tsopf2")
+    AddSpmvTestRunHw("test_two_rows_2")
+    AddSpmvTestRunHw("test_two_rows")
+    AddSpmvTestRunHw("test_wa")
+    AddSpmvTestRunHw("TSOPF_RS_b39_c7")
 
   endif()
 
