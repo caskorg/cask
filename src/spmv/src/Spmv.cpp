@@ -29,6 +29,31 @@ int ssarch::countComputeCycles(int32_t* v, int size, int inputWidth)
   return cycles;
 }
 
+std::vector<uint32_t> encodeEmptyRows(std::vector<int> pin) {
+  std::vector<uint32_t> encoded;
+
+  int emptyRunLength = 0;
+  for (size_t i = 0; i < pin.size(); i++) {
+    uint32_t rowLength = pin[i] - (i == 0 ? 0 : pin[i - 1]);
+    if (rowLength == 0) {
+      emptyRunLength++;
+    } else {
+      if (emptyRunLength != 0) {
+        encoded.push_back(emptyRunLength | (1 << 31));
+      }
+      emptyRunLength = 0;
+      encoded.push_back(pin[i]);
+    }
+  }
+
+  std::cout << "Emptyrun length "<< emptyRunLength << std::endl;
+  if (emptyRunLength != 0) {
+    encoded.push_back(emptyRunLength | (1 << 31));
+  }
+
+  return encoded;
+}
+
 // transform a given matrix with n rows in blocks of size n X blockSize
 spark::spmv::Partition ssarch::do_blocking(
     const EigenSparseMatrix m,
@@ -83,11 +108,18 @@ spark::spmv::Partition ssarch::do_blocking(
     auto p_colptr = std::get<0>(p);
     auto p_indptr = std::get<1>(p);
     auto p_values = std::get<2>(p);
-    cycles += this->countComputeCycles(&p_colptr[0], n, inputWidth);
+
+    std::cout << "Before zero encoding" << std::endl;
+    dfesnippets::vectorutils::print_vector(p_colptr);
+    auto enc_p_colptr = encodeEmptyRows(p_colptr);
+    std::cout << "After zero encoding" << std::endl;
+    dfesnippets::vectorutils::print_vector(enc_p_colptr);
+
+    cycles += this->countComputeCycles(&p_colptr[0], n, inputWidth) - (p_colptr.size() - enc_p_colptr.size());
     spark::spmv::align(p_indptr, sizeof(int) * inputWidth);
     spark::spmv::align(p_values, sizeof(double) * inputWidth);
 
-    std::copy(p_colptr.begin(), p_colptr.end(), back_inserter(m_colptr));
+    std::copy(enc_p_colptr.begin(), enc_p_colptr.end(), back_inserter(m_colptr));
     for (size_t i = 0; i < p_values.size(); i++)
       m_indptr_value.push_back(indptr_value( p_values[i], p_indptr[i]));
   }

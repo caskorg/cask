@@ -123,11 +123,23 @@ public class ParallelCsrReadControl extends ManagerStateMachine {
           }
         }
         CASE (Mode.ReadingLength) {
-          toread.next <== iLength - prevData;
-          rowLengthData.next <== iLength - prevData;
-          prevData.next <== iLength;
+          IF (iLength.slice(31, 1) === 1) {
+            // this is a run length encoded sequence of empty rows
+            toread.next <== 0;
+            rowLengthData.next <== 0;
+            // cycleCounter will hold the number of empty rows in this sequence
+            cycleCounter.next <== iLength.slice(0, 31).cast(dfeUInt(32));
+            // the value of prevData will be maintained from the most recent
+            // non-empty row since we don't assign to it when processing an
+            // empty row; this is required to correctly determine the lenght of the
+            // next non-empty tow
+          } ELSE {
+            toread.next <== iLength - prevData;
+            rowLengthData.next <== iLength - prevData;
+            prevData.next <== iLength;
+            cycleCounter.next <== 0;
+          }
           firstReadPosition.next <== crtPos;
-          cycleCounter.next <== 0;
           mode.next <== Mode.OutputtingCommands;
         }
         CASE (Mode.OutputtingCommands) {
