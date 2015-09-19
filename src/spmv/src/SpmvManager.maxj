@@ -6,13 +6,9 @@ import com.maxeler.maxcompiler.v2.managers.engine_interfaces.*;
 import com.maxeler.maxcompiler.v2.managers.BuildConfig;
 import com.maxeler.maxcompiler.v2.statemachine.manager.ManagerStateMachine;
 
-import com.custom_computing_ic.dfe_snippets.sparse.*;
 import com.custom_computing_ic.dfe_snippets.manager.*;
 
 public class SpmvManager extends CustomManager{
-    private static final String s_kernelName  = "SpmvKernel";
-    private static final String s_reductionKernel = "SpmvReductionKernel";
-    private static final String s_paddingKernel = "SpmvPaddingKernel";
 
     private static final int cacheSize = 1024 * 2;
     private static final int INPUT_WIDTH = 16;
@@ -25,20 +21,14 @@ public class SpmvManager extends CustomManager{
 
     private static final int FLOATING_POINT_LATENCY = 16;
 
-    private static final boolean DBG_CSR_DECODER = false;
     private static final boolean DBG_PAR_CSR_CTL = false;
     private static final boolean DBG_SPMV_KERNEL = false;
 
     void addComputePipe(int id, int inputWidth) {
-        ManagerStateMachine csrDecoder = new CsrDecoder(this, DBG_CSR_DECODER);
-        StateMachineBlock csrDecoderBlock = addStateMachine(getCsrDecoder(id), csrDecoder);
-        //csrDecoderBlock.getInput("colptr") <== addStreamFromCPU("colptr");
-        csrDecoderBlock.getInput("colptr") <== addStreamFromOnCardMemory("colptr" + id,
-            MemoryControlGroup.MemoryAccessPattern.LINEAR_1D);
-
         ManagerStateMachine readControl = new ParallelCsrReadControl(this, inputWidth, DBG_PAR_CSR_CTL);
         StateMachineBlock readControlBlock = addStateMachine(getReadControl(id), readControl);
-        readControlBlock.getInput("length") <== csrDecoderBlock.getOutput("rowLength_out");
+        readControlBlock.getInput("length") <== addStreamFromOnCardMemory("colptr" + id,
+            MemoryControlGroup.MemoryAccessPattern.LINEAR_1D);
 
         KernelBlock k = addKernel(new SpmvKernel(
               makeKernelParameters(getComputeKernel(id)),
@@ -54,16 +44,7 @@ public class SpmvManager extends CustomManager{
         k.getInput("vromLoad") <== addStreamFromOnCardMemory("vromLoad" + id,
             MemoryControlGroup.MemoryAccessPattern.LINEAR_1D);
 
-        //k.getInput("readenable") <== readControlBlock.getOutput("readenable");
-        //k.getInput("readmask") <== readControlBlock.getOutput("readmask");
-        //k.getInput("loadEnabled") <== readControlBlock.getOutput("vectorLoad");
         k.getInput("control") <== readControlBlock.getOutput("control");
-
-
-        //k.getInput("rowLength") <== readControlBlock.getOutput("rowLength");
-        //k.getInput("rowFinished") <== readControlBlock.getOutput("rowFinished");
-        //k.getInput("cycleCounter") <== readControlBlock.getOutput("cycleCounter");
-        //k.getInput("firstReadPosition") <== readControlBlock.getOutput("firstReadPosition");
 
         // flush control is shared between all kernels
         //k.getInput("flush") <== readControlBlock.getOutput("flush");
@@ -110,9 +91,9 @@ public class SpmvManager extends CustomManager{
       return "paddingKernel" + id;
     }
 
-    String getCsrDecoder(int id) {
-      return "csrDecoder" + id;
-    }
+    //String getCsrDecoder(int id) {
+      //return "csrDecoder" + id;
+    //}
 
     String getReadControl(int id) {
       return "readControl" + id;
@@ -141,7 +122,7 @@ public class SpmvManager extends CustomManager{
       String computeKernel = getComputeKernel(id);
       String reductionKernel = getReductionKernel(id);
       String paddingKernel = getPaddingKernel(id);
-      String csrDecoder = getCsrDecoder(id);
+      //String csrDecoder = getCsrDecoder(id);
       String readControl = getReadControl(id);
 
       ei.setTicks(computeKernel, totalCycles);
@@ -155,7 +136,7 @@ public class SpmvManager extends CustomManager{
       ei.setTicks(paddingKernel, (n + paddingCycles));
       ei.setScalar(paddingKernel, "nInputs", n);
 
-      ei.setScalar(csrDecoder, "nrows", n);
+      //ei.setScalar(csrDecoder, "nrows", n);
 
       ei.setLMemLinear("colptr" + id,
           colPtrStartAddress,
