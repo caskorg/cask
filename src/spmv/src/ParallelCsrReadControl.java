@@ -76,9 +76,14 @@ public class ParallelCsrReadControl extends ManagerStateMachine {
     void processRow() {
       rowsProcessed.next <== rowsProcessed + 1;
       IF (rowsProcessed === nRows - 1) {
+        // reset all useful state variables between partitions
         rowsProcessed.next <== 0;
         vectorLoadCommands.next <== 0;
         crtPos.next <== 0;
+        toread.next <== 0;
+        rowLengthData.next <== 0;
+        firstReadPosition.next <== 0;
+        cycleCounter.next <== 0;
         mode.next <== Mode.VectorLoad;
         partitionsProcessed.next <== partitionsProcessed + 1;
         IF (partitionsProcessed === nPartitions - 1) {
@@ -119,8 +124,8 @@ public class ParallelCsrReadControl extends ManagerStateMachine {
           toread.next <== iLength;
           rowLengthData.next <== iLength;
           firstReadPosition.next <== crtPos;
-          mode.next <== Mode.OutputtingCommands;
           cycleCounter.next <== 0;
+          mode.next <== Mode.OutputtingCommands;
         }
         CASE (Mode.OutputtingCommands) {
           IF (outputNotStall()) {
