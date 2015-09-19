@@ -139,7 +139,6 @@ public class ParallelCsrReadControl extends ManagerStateMachine {
               processRow();
             } ELSE {
               mode.next <== Mode.OutputtingCommands;
-              readLength.next <== false;
               cycleCounter.next <== -1;
             }
           }
