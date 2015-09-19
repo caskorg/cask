@@ -282,9 +282,7 @@ public class ParallelCsrReadControl extends ManagerStateMachine {
       int bitsRight = right.getType().getTotalBits();
       int totalBits = bitsRight + bitsLeft;
       DFEsmValueType t = dfeUInt(totalBits);
-      DFEsmAssignableValue pattern = assignable.value(t);
-      pattern <== left.cast(t).shiftLeft(bitsRight) + right.cast(t);
-      return pattern;
+      return left.cast(t).shiftLeft(bitsRight) + right.cast(t);
     }
 
 }
