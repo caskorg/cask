@@ -1,11 +1,13 @@
 import random
+import sys
 
 def print_header():
    print '%%MatrixMarket matrix coordinate real general'
 
 def main():
-  rowLength = 64
-  cols = 64
+  order     = int(sys.argv[1])
+  rowLength = order
+  cols = order
 
   print_header()
   print rowLength, cols, rowLength * cols
