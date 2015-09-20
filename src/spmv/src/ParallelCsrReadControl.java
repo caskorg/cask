@@ -8,7 +8,7 @@ public class ParallelCsrReadControl extends ManagerStateMachine {
   private enum Mode {
     //Flush,
     VectorLoad,
-    RequestRead,
+    //RequestRead,
     ReadingLength,
     OutputtingCommands,
     Done,
@@ -22,7 +22,7 @@ public class ParallelCsrReadControl extends ManagerStateMachine {
     private final DFEsmPushOutput oControl;
     private final DFEsmStateValue oControlData;
 
-    private final DFEsmStateValue outValid, prevData;
+    private final DFEsmStateValue outValid, prevData, readLength, iLengthReady;
     private final DFEsmStateValue readMaskData;
     private final DFEsmStateValue cycleCounter, rowLengthData;
     private final DFEsmStateValue firstReadPosition;
@@ -56,6 +56,8 @@ public class ParallelCsrReadControl extends ManagerStateMachine {
       rowLengthData = state.value(dfeUInt(32), 0);
       outValid = state.value(dfeBool(), false);
       readMaskData = state.value(dfeUInt(inputWidth));
+      readLength = state.value(dfeBool(), false);
+      iLengthReady = state.value(dfeBool(), false);
 
       // internal state data, not for output
       rowsProcessed = state.value(dfeUInt(32), 0);
@@ -69,9 +71,13 @@ public class ParallelCsrReadControl extends ManagerStateMachine {
       return ~oControl.stall;
     }
 
+    DFEsmValue needToRead() {
+      return readLength;
+    }
+
     // should be use both in next state and output function to request a read
-    DFEsmValue requestRead() {
-      return ~iLength.empty & outputNotStall() & mode === Mode.RequestRead;
+    DFEsmValue canRead() {
+      return ~iLength.empty & outputNotStall();
     }
 
     void processRows(DFEsmValue r, DFEsmValue requestRead) {
@@ -86,6 +92,8 @@ public class ParallelCsrReadControl extends ManagerStateMachine {
         firstReadPosition.next <== 0;
         cycleCounter.next <== 0;
         prevData.next <== 0;
+        readLength.next <== false;
+        iLengthReady.next <== false;
         mode.next <== Mode.VectorLoad;
         partitionsProcessed.next <== partitionsProcessed + 1;
         IF (partitionsProcessed === nPartitions - 1) {
@@ -94,7 +102,8 @@ public class ParallelCsrReadControl extends ManagerStateMachine {
         }
       } ELSE {
         IF (requestRead) {
-          mode.next <== Mode.RequestRead;
+          mode.next <== Mode.ReadingLength;
+          readLength.next <== true;
         }
       }
     }
@@ -102,6 +111,11 @@ public class ParallelCsrReadControl extends ManagerStateMachine {
     @Override
     protected void nextState() {
       outValid.next <== false;
+
+      iLengthReady.next <== canRead() & needToRead();
+             //disable read request on next cycle, if we request data this cycle
+      IF (canRead() & needToRead())
+        readLength.next <== false;
 
       SWITCH (mode) {
         CASE (Mode.Done) {
@@ -111,43 +125,48 @@ public class ParallelCsrReadControl extends ManagerStateMachine {
           IF (outputNotStall() & ~iLength.empty) {
             vectorLoadCommands.next <== vectorLoadCommands + 1;
             IF (vectorLoadCommands === vectorLoadCycles - 1) {
-              mode.next <== Mode.RequestRead;
+              mode.next <== Mode.ReadingLength;
+              readLength.next <== true;
             }
             makeOutput(
                 fls(), fls(), zero(inputWidth), zero(), zero(), crtPos, tru()
                 );
           }
         }
-        CASE (Mode.RequestRead) {
-          // stay in this mode until we can read the next length
-          IF (requestRead()) {
-            mode.next <== Mode.ReadingLength;
-          }
-        }
+        //CASE (Mode.RequestRead) {
+           //stay in this mode until we can read the next length
+          //IF (requestRead()) {
+            //mode.next <== Mode.ReadingLength;
+          //}
+        //}
         CASE (Mode.ReadingLength) {
-          IF (iLength.slice(31, 1) === 1) {
-            // this is a run length encoded sequence of empty rows
-            toread.next <== 0;
-            rowLengthData.next <== 0;
-            // cycleCounter will hold the number of empty rows in this sequence
-            DFEsmValue emptyRows = iLength.slice(0, 31).cast(dfeUInt(32));
-            cycleCounter.next <== emptyRows;
-            // the value of prevData will be maintained from the most recent
-            // non-empty row since we don't assign to it when processing an
-            // empty row; this is required to correctly determine the lenght of the
-            // next non-empty tow
+          IF (iLengthReady === true) {
+            // XXX When merging must ensure output is not stalled in thiss state
+            IF (iLength.slice(31, 1) === 1) {
+              // this is a run length encoded sequence of empty rows
+              toread.next <== 0;
+              rowLengthData.next <== 0;
+              // cycleCounter will hold the number of empty rows in this sequence
+              DFEsmValue emptyRows = iLength.slice(0, 31).cast(dfeUInt(32));
+              cycleCounter.next <== emptyRows;
+              // the value of prevData will be maintained from the most recent
+              // non-empty row since we don't assign to it when processing an
+              // empty row; this is required to correctly determine the lenght of the
+              // next non-empty tow
 
-            // process n - 1 rows, one will be processed on the next cycle of
-            // the Outputting COmmands mode
-            processRows(emptyRows - 1, fls());
-          } ELSE {
-            toread.next <== iLength - prevData;
-            rowLengthData.next <== iLength - prevData;
-            prevData.next <== iLength;
-            cycleCounter.next <== 0;
+              // process n - 1 rows, one will be processed on the next cycle of
+              // the Outputting COmmands mode
+              processRows(emptyRows - 1, fls());
+              // TODO make commands
+            } ELSE {
+              toread.next <== iLength - prevData;
+              rowLengthData.next <== iLength - prevData;
+              prevData.next <== iLength;
+              cycleCounter.next <== 0;
+            }
+            firstReadPosition.next <== crtPos;
+            mode.next <== Mode.OutputtingCommands;
           }
-          firstReadPosition.next <== crtPos;
-          mode.next <== Mode.OutputtingCommands;
         }
         CASE (Mode.OutputtingCommands) {
           IF (outputNotStall()) {
@@ -177,7 +196,7 @@ public class ParallelCsrReadControl extends ManagerStateMachine {
 
       @Override
       protected void outputFunction() {
-        iLength.read <== requestRead();
+        iLength.read <== canRead() & needToRead();
 
         oControl.valid <== outValid;
 
