@@ -1,0 +1,30 @@
+File: /mnt/data/cccad3/pg1709/sparse-matrices/perf-tests/fpga16/dw8192.mtx
+Took = 0.001858 est = 0.00042963 gflops est: 0.194335 gflopsAct: 0.0449365
+File: /mnt/data/cccad3/pg1709/sparse-matrices/perf-tests/fpga16/consph.mtx
+Took = 0.107702 est = 0.0386292 gflops est: 0.311188 gflopsAct: 0.111613
+File: /mnt/data/cccad3/pg1709/sparse-matrices/perf-tests/fpga16/dense.mtx
+Took = 0.003431 est = 0.00264192 gflops est: 3.17519 gflopsAct: 2.44495
+File: /mnt/data/cccad3/pg1709/sparse-matrices/perf-tests/fpga16/t2d_q9_A_01.mtx
+Took = 0.002369 est = 0.00064072 gflops est: 0.271648 gflopsAct: 0.0734698
+File: /mnt/data/cccad3/pg1709/sparse-matrices/perf-tests/fpga16/mac_econ_fwd500.mtx
+Took = 0.629284 est = 0.211276 gflops est: 0.0120543 gflopsAct: 0.0040471
+File: /mnt/data/cccad3/pg1709/sparse-matrices/perf-tests/fpga16/rma10.mtx
+Took = 0.03498 est = 0.0126767 gflops est: 0.374545 gflopsAct: 0.135735
+File: /mnt/data/cccad3/pg1709/sparse-matrices/perf-tests/fpga16/raefsky1.mtx
+Took = 0.001241 est = 0.00028537 gflops est: 2.06242 gflopsAct: 0.474256
+File: /mnt/data/cccad3/pg1709/sparse-matrices/perf-tests/fpga16/shipsec1.mtx
+Took = 0.298078 est = 0.102744 gflops est: 0.152094 gflopsAct: 0.0524252
+File: /mnt/data/cccad3/pg1709/sparse-matrices/perf-tests/fpga16/mc2depi.mtx
+Took = 4.0614 est = 1.35751 gflops est: 0.00309424 gflopsAct: 0.00103424
+File: /mnt/data/cccad3/pg1709/sparse-matrices/perf-tests/fpga16/epb1.mtx
+Took = 0.004532 est = 0.00139186 gflops est: 0.136584 gflopsAct: 0.0419475
+File: /mnt/data/cccad3/pg1709/sparse-matrices/perf-tests/fpga16/torso2.mtx
+Took = 0.200878 est = 0.0678359 gflops est: 0.0304698 gflopsAct: 0.0102896
+File: /mnt/data/cccad3/pg1709/sparse-matrices/perf-tests/fpga16/cant.mtx
+Took = 0.06198 est = 0.0224506 gflops est: 0.356996 gflopsAct: 0.129312
+File: /mnt/data/cccad3/pg1709/sparse-matrices/perf-tests/fpga16/scircuit.mtx
+Took = 0.433872 est = 0.145728 gflops est: 0.0131606 gflopsAct: 0.00442036
+File: /mnt/data/cccad3/pg1709/sparse-matrices/perf-tests/fpga16/conf5_4-8x8-05.mtx
+Took = 0.037772 est = 0.0133374 gflops est: 0.287452 gflopsAct: 0.1015
+File: /mnt/data/cccad3/pg1709/sparse-matrices/perf-tests/fpga16/psmigr_2.mtx
+Took = 0.001349 est = 0.00043732 gflops est: 2.46969 gflopsAct: 0.800626
