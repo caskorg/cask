@@ -74,9 +74,9 @@ public class ParallelCsrReadControl extends ManagerStateMachine {
       return ~iLength.empty & outputNotStall() & mode === Mode.RequestRead;
     }
 
-    void processRow() {
-      rowsProcessed.next <== rowsProcessed + 1;
-      IF (rowsProcessed === nRows - 1) {
+    void processRows(DFEsmValue r, DFEsmValue requestRead) {
+      rowsProcessed.next <== rowsProcessed + r;
+      IF (rowsProcessed === nRows - r) {
         // reset all useful state variables between partitions
         rowsProcessed.next <== 0;
         vectorLoadCommands.next <== 0;
@@ -93,7 +93,9 @@ public class ParallelCsrReadControl extends ManagerStateMachine {
           mode.next <== Mode.Done;
         }
       } ELSE {
-        mode.next <== Mode.RequestRead;
+        IF (requestRead) {
+          mode.next <== Mode.RequestRead;
+        }
       }
     }
 
@@ -128,11 +130,16 @@ public class ParallelCsrReadControl extends ManagerStateMachine {
             toread.next <== 0;
             rowLengthData.next <== 0;
             // cycleCounter will hold the number of empty rows in this sequence
-            cycleCounter.next <== iLength.slice(0, 31).cast(dfeUInt(32));
+            DFEsmValue emptyRows = iLength.slice(0, 31).cast(dfeUInt(32));
+            cycleCounter.next <== emptyRows;
             // the value of prevData will be maintained from the most recent
             // non-empty row since we don't assign to it when processing an
             // empty row; this is required to correctly determine the lenght of the
             // next non-empty tow
+
+            // process n - 1 rows, one will be processed on the next cycle of
+            // the Outputting COmmands mode
+            processRows(emptyRows - 1, fls());
           } ELSE {
             toread.next <== iLength - prevData;
             rowLengthData.next <== iLength - prevData;
@@ -161,7 +168,7 @@ public class ParallelCsrReadControl extends ManagerStateMachine {
                 fls());
             cycleCounter.next <== cycleCounter + 1;
             IF (toread - canread === 0) {
-              processRow();
+              processRows(one(), tru());
             }
           }
         }

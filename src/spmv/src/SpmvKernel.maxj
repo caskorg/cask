@@ -100,8 +100,8 @@ class SpmvKernel extends Kernel {
           .withEnable(rowFinished);
         DFEVar rowCounter = control.count.makeCounter(rowCounterParams).getCount();
       debug.dfePrintf(
-          "Kernel -- row %d totalCycles %d, readmask %d rowFinished %d rowLength %d output: %f cycleCounter %d validPartialSums %d newSum %f firstRead %d",
-          rowCounter, totalCycles, readMask, rowFinished, rowLength, r.getOutput(), cycleCounter, validPartialSums, newSum, firstReadPosition);
+          "Kernel -- row %d totalCycles %d, readmask %d rowFinished %d rowLength %d output: %f cycleCounter %d validPartialSums %d newSum %f firstRead %d skipCount %d",
+          rowCounter, totalCycles, readMask, rowFinished, rowLength, r.getOutput(), cycleCounter, validPartialSums, newSum, firstReadPosition, skipCount);
 
       debug.dfePrintf("\n");
       debug.dfePrintf("Values: ");
@@ -109,7 +109,7 @@ class SpmvKernel extends Kernel {
         debug.dfePrintf("%f ", matrixValues[i]);
       debug.dfePrintf("Indices: ");
       for (int i = 0; i < inputWidth; i++)
-        debug.dfePrintf("%d ", vectorValues[i]);
+        debug.dfePrintf("%f ", vectorValues[i]);
       debug.dfePrintf("\n");
     }
   }
@@ -282,14 +282,14 @@ class BramSpmvReductionKernel extends Kernel {
     carriedReadAddress <== stream.offset(wrappedNextReadAddress, -offset);
     optimization.popPipeliningFactor();
 
-    DFEVar readAddress = cycles < n ? cycles : carriedReadAddress;
+    DFEVar readAddress = cycles < offset ? cycles : carriedReadAddress;
     DFEVar castReadAddress = readAddress.cast(dfeUInt(MathUtils.bitsToAddress(maxRows)));
-    DFEVar prevSum = cycles < n ? 0 : memory.read(castReadAddress);
+    DFEVar prevSum = cycles < offset ? 0 : memory.read(castReadAddress);
     DFEVar sum = prevSum + in;
 
     //debug.simPrintf(
-        //"readAddress %d sum %f in %f skipEnable %d\n",
-        //readAddress, sum, in, skipEnable);
+        //"readAddress %d sum %f in %f skipEnable %d skipCount %d\n",
+        //readAddress, sum, in, skipEnable, skipCount);
 
     Stream.OffsetExpr off = stream.measureDistance("BramAccOffset", readAddress, sum);
     memory.write(
