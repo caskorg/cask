@@ -24,6 +24,7 @@ namespace spark {
 
     struct Partition {
       int nBlocks, n, paddingCycles, totalCycles, vector_load_cycles, outSize;
+      int reductionCycles, emptyCycles;
       std::vector<int> m_colptr;
       std::vector<indptr_value> m_indptr_values;
 
@@ -34,6 +35,8 @@ namespace spark {
         s << "Total cycles = " << totalCycles << std::endl;
         s << "Nrows = " << n << std::endl;
         s << "Partitions = " << nBlocks << std::endl;
+        s << "Reduction cycles = " << reductionCycles << std::endl;
+        std::cout << "Empty cycles = " << emptyCycles << std::endl;
         return s.str();
       }
     };

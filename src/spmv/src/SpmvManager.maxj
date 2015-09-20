@@ -117,6 +117,7 @@ public class SpmvManager extends CustomManager{
         InterfaceParam indptrValuesStartAddress,
         InterfaceParam indptrValuesSize,
         InterfaceParam totalCycles,
+        InterfaceParam reductionCycles,
         InterfaceParam paddingCycles) {
 
       String computeKernel = getComputeKernel(id);
@@ -129,9 +130,9 @@ public class SpmvManager extends CustomManager{
 
       ei.setScalar(computeKernel, "vectorLoadCycles", vectorLoadCycles);
 
-      ei.setTicks(reductionKernel, (n * nPartitions));
+      ei.setTicks(reductionKernel, reductionCycles);
       ei.setScalar(reductionKernel, "nRows", n);
-      ei.setScalar(reductionKernel, "totalCycles", n * nPartitions);
+      ei.setScalar(reductionKernel, "totalCycles", reductionCycles);
 
       ei.setTicks(paddingKernel, (n + paddingCycles));
       ei.setScalar(paddingKernel, "nInputs", n);
@@ -182,6 +183,8 @@ public class SpmvManager extends CustomManager{
       InterfaceParamArray colptrStartAddresses = ei.addParamArray("colPtrStartAddresses", CPUTypes.INT64);
       InterfaceParamArray colptrSizes = ei.addParamArray("colptrSizes", CPUTypes.INT32);
 
+      InterfaceParamArray reductionCycles = ei.addParamArray("reductionCycles", CPUTypes.INT32);
+
       for (int i = 0; i < NUM_PIPES; i++)
         setUpComputePipe(ei, i,
             vectorSize,
@@ -196,6 +199,7 @@ public class SpmvManager extends CustomManager{
             indptrValuesAddresses.get(i),
             indptrValuesSizes.get(i),
             totalCycles.get(i),
+            reductionCycles.get(i),
             paddingCycles.get(i));
 
       ei.ignoreLMem("cpu2lmem");
