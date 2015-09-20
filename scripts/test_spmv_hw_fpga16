@@ -17,8 +17,9 @@ do
     fi
     abs_f=`readlink -f $f`
 
+    /opt/maxeler/maxeleros/utils/maxforceidle -a
     start_time=`date +%s`
-    timeout --signal=KILL ${max_time} ${run_script} ${bin} ${abs_f} 1 > /dev/null
+    timeout --signal=KILL ${max_time} ${run_script} ${bin} ${abs_f} 1
     status=$?
     end_time=`date +%s`
     exec_time=`expr $end_time - $start_time`
