@@ -6,6 +6,7 @@
 #include <tuple>
 
 #include <dfesnippets/VectorUtils.hpp>
+#include <dfesnippets/Timing.hpp>
 #include <Maxfiles.h>
 
 using namespace spark::spmv;
@@ -211,9 +212,10 @@ Eigen::VectorXd ssarch::dfespmv(Eigen::VectorXd x)
   int nBlocks = this->partitions[0].nBlocks;
   int vector_load_cycles = this->partitions[0].vector_load_cycles;
   std::cout << "Running on DFE" << std::endl;
-  dfesnippets::vectorutils::print_vector(paddingCycles);
-  dfesnippets::vectorutils::print_vector(nrows);
+  //dfesnippets::vectorutils::print_vector(paddingCycles);
+  //dfesnippets::vectorutils::print_vector(nrows);
 
+  auto start = std::chrono::high_resolution_clock::now();
   Spmv(
       nBlocks,
       vector_load_cycles,
@@ -229,7 +231,13 @@ Eigen::VectorXd ssarch::dfespmv(Eigen::VectorXd x)
       &totalCycles[0],
       &vStartAddresses[0]
       );
+  double took = dfesnippets::timing::clock_diff(start);
   std::cout << "Done on DFE" << std::endl;
+  double est =(double) totalCycles[0] / (100.0 * 1e6);
+  double gflopsEst = (2.0 * (double)this->mat.nonZeros() / est) / 1E9;
+  double gflopsActual = (2.0 * (double)this->mat.nonZeros() / took) / 1E9;
+  std::cout << "Took = " << took << " est = " << est;
+  std::cout << " gflops est: " << gflopsEst << " gflopsAct: " << gflopsActual << std::endl;
 
   std::vector<double> total;
   for (size_t i = 0; i < outputStartAddresses.size(); i++) {
@@ -238,7 +246,7 @@ Eigen::VectorXd ssarch::dfespmv(Eigen::VectorXd x)
         size_bytes(tmp),
         outputStartAddresses[i],
         (uint8_t*)&tmp[0]);
-    dfesnippets::vectorutils::print_vector(tmp);
+    //dfesnippets::vectorutils::print_vector(tmp);
     std::copy(tmp.begin(), tmp.begin() + nrows[i], std::back_inserter(total));
   }
 
