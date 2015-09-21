@@ -125,6 +125,8 @@ spark::spmv::Partition ssarch::do_blocking(
     reductionCycles -= diff;
     cycles += this->countComputeCycles(&p_colptr[0], n, inputWidth) - diff;
 
+    spark::spmv::align(p_indptr, sizeof(int) * inputWidth);
+    spark::spmv::align(p_values, sizeof(double) * inputWidth);
     std::copy(enc_p_colptr.begin(), enc_p_colptr.end(), back_inserter(m_colptr));
     for (size_t i = 0; i < p_values.size(); i++)
       m_indptr_value.push_back(indptr_value( p_values[i], p_indptr[i]));
@@ -257,7 +259,7 @@ Eigen::VectorXd ssarch::dfespmv(Eigen::VectorXd x)
   std::cout << "colptrSize " << colptrSizes[0] << std::endl;
   std::cout << "colptrUnpaddedSizes " << colptrUnpaddedSizes[0] << std::endl;
 
-  int nIterations = 1;
+  int nIterations = 2;
   auto start = std::chrono::high_resolution_clock::now();
   Spmv(
       nIterations,
