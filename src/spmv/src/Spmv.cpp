@@ -282,7 +282,7 @@ Eigen::VectorXd ssarch::dfespmv(Eigen::VectorXd x)
       &totalCycles[0],
       &vStartAddresses[0]
       );
-  double took = dfesnippets::timing::clock_diff(start);
+  double took = dfesnippets::timing::clock_diff(start) / nIterations;
   std::cout << "Done on DFE" << std::endl;
   double est =(double) totalCycles[0] / (100.0 * 1e6);
   double gflopsEst = (2.0 * (double)this->mat.nonZeros() / est) / 1E9;
