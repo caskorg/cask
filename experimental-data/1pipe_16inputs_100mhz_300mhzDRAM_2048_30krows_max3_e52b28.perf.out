@@ -4,7 +4,6 @@ File: /mnt/data/cccad3/pg1709/sparse-matrices/perf-tests/fpga16/consph.mtx
 Took = 0.0142993 est = 0.0074837 gflops est: 1.60629 gflopsAct: 0.840667
 File: /mnt/data/cccad3/pg1709/sparse-matrices/perf-tests/fpga16/dense.mtx
 Took = 0.00341688 est = 0.00264192 gflops est: 3.17519 gflopsAct: 2.45505
-File: /mnt/data/cccad3/pg1709/sparse-matrices/perf-tests/fpga16/dense_16384.mtx
 File: /mnt/data/cccad3/pg1709/sparse-matrices/perf-tests/fpga16/t2d_q9_A_01.mtx
 Took = 0.0014411 est = 0.00033767 gflops est: 0.515444 gflopsAct: 0.120776
 File: /mnt/data/cccad3/pg1709/sparse-matrices/perf-tests/fpga16/mac_econ_fwd500.mtx
