@@ -11,7 +11,7 @@ import com.custom_computing_ic.dfe_snippets.manager.*;
 public class SpmvManager extends CustomManager{
 
     private static final int cacheSize = 1024 * 2;
-    private static final int INPUT_WIDTH = 16;
+    private static final int INPUT_WIDTH = 32;
     private static final int MAX_ROWS = 200000;
     private static final int NUM_PIPES = 1;
 
@@ -24,6 +24,20 @@ public class SpmvManager extends CustomManager{
     private static final boolean DBG_PAR_CSR_CTL = false;
     private static final boolean DBG_SPMV_KERNEL = false;
     private static final boolean DBG_REDUCTION_KERNEL = false;
+
+    SpmvManager(EngineParameters ep) {
+        super(ep);
+        addMaxFileConstant("inputWidth", INPUT_WIDTH);
+        addMaxFileConstant("cacheSize", cacheSize);
+        addMaxFileConstant("maxRows", MAX_ROWS);
+        addMaxFileConstant("numPipes", NUM_PIPES);
+
+        ManagerUtils.setDRAMMaxDeviceFrequency(this, ep);
+        //config.setAllowNonMultipleTransitions(true);
+
+        for (int i = 0; i < NUM_PIPES; i++)
+          addComputePipe(i, INPUT_WIDTH);
+    }
 
     void addComputePipe(int id, int inputWidth) {
         ManagerStateMachine readControl = new ParallelCsrReadControl(this, inputWidth, DBG_PAR_CSR_CTL);
@@ -80,20 +94,6 @@ public class SpmvManager extends CustomManager{
             MemoryControlGroup.MemoryAccessPattern.LINEAR_1D) <== p.getOutput("paddingOut");
     }
 
-    SpmvManager(EngineParameters ep) {
-        super(ep);
-        addMaxFileConstant("inputWidth", INPUT_WIDTH);
-        addMaxFileConstant("cacheSize", cacheSize);
-        addMaxFileConstant("maxRows", MAX_ROWS);
-        addMaxFileConstant("numPipes", NUM_PIPES);
-
-        //ManagerUtils.setDRAMMaxDeviceFrequency(this, ep);
-        //config.setAllowNonMultipleTransitions(true);
-
-        for (int i = 0; i < NUM_PIPES; i++)
-          addComputePipe(i, INPUT_WIDTH);
-    }
-
     String getComputeKernel(int id) {
       return "computeKernel" + id;
     }
@@ -105,10 +105,6 @@ public class SpmvManager extends CustomManager{
     String getPaddingKernel(int id) {
       return "paddingKernel" + id;
     }
-
-    //String getCsrDecoder(int id) {
-      //return "csrDecoder" + id;
-    //}
 
     String getReadControl(int id) {
       return "readControl" + id;
@@ -153,7 +149,6 @@ public class SpmvManager extends CustomManager{
       String computeKernel = getComputeKernel(id);
       String reductionKernel = getReductionKernel(id);
       String paddingKernel = getPaddingKernel(id);
-      //String csrDecoder = getCsrDecoder(id);
       String readControl = getReadControl(id);
 
       ei.setTicks(computeKernel, totalCycles * nIterations);
@@ -185,8 +180,6 @@ public class SpmvManager extends CustomManager{
       ei.setTicks(unpaddingValues, valueEntries * nIterations);
       ei.setScalar(unpaddingValues, "nInputs", valuesUnpaddedLength / INPUT_WIDTH);
       ei.setScalar(unpaddingValues, "totalCycles", valueEntries);
-
-      //ei.setScalar(csrDecoder, "nrows", n);
 
       InterfaceParam zero = ei.addConstant(0l);
 
@@ -282,11 +275,11 @@ public class SpmvManager extends CustomManager{
             "This may lead to stalls due to padding / unpadding ");
       }
       SpmvManager manager = new SpmvManager(new EngineParameters(args));
-      ManagerUtils.debug(manager);
+      //ManagerUtils.debug(manager);
       manager.createSLiCinterface(ManagerUtils.dramWrite(manager));
       manager.createSLiCinterface(ManagerUtils.dramRead(manager));
       manager.createSLiCinterface(manager.interfaceDefault());
-      ManagerUtils.setFullBuild(manager, BuildConfig.Effort.MEDIUM, 2, 2);
+      ManagerUtils.setFullBuild(manager, BuildConfig.Effort.HIGH, 4, 4);
       manager.build();
     }
 }
