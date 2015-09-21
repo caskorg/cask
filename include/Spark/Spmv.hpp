@@ -8,17 +8,60 @@
 namespace spark {
   namespace spmv {
 
-    class ResourceUsage {
+    class LogicResourceUsage {
       public:
       int luts, ffs, dsps, brams;
-      int mluts, mffs, mdsps, mbrams;
-      ResourceUsage(int _luts, int _ffs, int _dsps, int _brams) :
-        luts(_luts), ffs(_ffs), dsps(_dsps), brams(_brams) {}
+
+      LogicResourceUsage() : luts(0), ffs(0), dsps(0), brams(0) {}
+
+      LogicResourceUsage(int _l, int _f, int _b, int _d) :
+        luts(_l), ffs(_f), brams(_b), dsps(_d) {}
+
+      LogicResourceUsage(const LogicResourceUsage& ru) {
+        luts = ru.luts;
+        ffs = ru.ffs;
+        dsps = ru.dsps;
+        brams = ru.brams;
+      }
+
       std::string to_string() {
         std::stringstream s;
         s << "LUTs: " << luts << " FFs: " << ffs << " DSPs: " << dsps << " BRAMs: " << brams;
         return s.str();
       }
+
+      const LogicResourceUsage operator+(const LogicResourceUsage& ru) const {
+        return LogicResourceUsage(luts + ru.luts, ffs + ru.ffs, brams + ru.brams, dsps + ru.dsps);
+      }
+
+      const LogicResourceUsage operator*(int x) const {
+        return LogicResourceUsage(x * luts,  x * ffs, x * brams, x * dsps);
+      }
+    };
+
+    // models the implementation parameters which are constrained (e.g. by
+    // physical properties, such as lut usage, or by the compiler, such as the
+    // number of streams)
+    class ImplementationParameters {
+      public:
+
+        LogicResourceUsage ru;
+
+        //  params belows not being used currently
+        int memoryBandwidth; // <-- would be nice to have this
+        int streams;
+        int clockFrequency;
+        int memoryClockFrequency;
+
+      ImplementationParameters(const LogicResourceUsage& _ru) : ru(_ru) {}
+
+      std::string to_string() {
+        std::stringstream s;
+        s << ru.to_string();
+        s << "Clock frequency " << clockFrequency;
+        return s.str();
+      }
+
     };
 
     // A generic architecture for SpMV
@@ -36,7 +79,7 @@ namespace spark {
         virtual double getEstimatedClockCycles() = 0;
         virtual double getGFlopsCount() = 0;
         virtual std::string to_string() = 0;
-        virtual ResourceUsage getResourceUsage() = 0;
+        virtual ImplementationParameters getImplementationParameters() = 0;
         virtual void preprocess(const Eigen::SparseMatrix<double, Eigen::RowMajor> mat) = 0;
         virtual Eigen::VectorXd dfespmv(Eigen::VectorXd x) = 0;
         virtual std::string get_name() = 0;

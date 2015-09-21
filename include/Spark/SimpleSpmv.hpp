@@ -83,10 +83,32 @@ namespace spark {
         }
 
         // NOTE: only call this after a call to preprocessMatrix
-        virtual ResourceUsage getResourceUsage() {
+        virtual ImplementationParameters getImplementationParameters() {
           // XXX bram usage for altera in double precision only (512 deep, 40 bits wide, so need 2 BRAMs)
-          int brams = (double)cacheSize * (double)inputWidth / 512.0 * 2.0;
-          return ResourceUsage{-1, -1, -1, brams};
+          //int brams = (double)cacheSize * (double)inputWidth / 512.0 * 2.0;
+
+          // XXX these should be architecture params
+          int maxRows = 200000;
+          const int virtex6EntriesPerBram = 512;
+
+          LogicResourceUsage interPartitionReductionKernel(2768,1505, maxRows / virtex6EntriesPerBram, 0);
+          LogicResourceUsage paddingKernel{400, 500, 0, 0};
+          LogicResourceUsage spmvKernelPerInput{1466, 2060, cacheSize / virtex6EntriesPerBram, 10}; // includes cache
+          LogicResourceUsage sm{800, 500, 0, 0};
+
+          LogicResourceUsage spmvPerPipe =
+            interPartitionReductionKernel +
+            paddingKernel +
+            spmvKernelPerInput * inputWidth +
+            sm;
+
+          LogicResourceUsage memoryPerPipe{3922, 8393, 160, 0};
+          LogicResourceUsage memory{24000, 32000, 0, 0};
+
+          //LogicResourceUsage designOther{};
+          LogicResourceUsage designUsage = (spmvPerPipe + memoryPerPipe) * numPipes + memory;
+
+          return ImplementationParameters{designUsage};
         }
 
         virtual std::string to_string() {

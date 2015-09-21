@@ -32,7 +32,7 @@ std::shared_ptr<SpmvArchitecture> dse(
     auto start = std::chrono::high_resolution_clock::now();
     a->preprocess(mat); // do spmv?
     std::cout << "Matrix: " << basename << " " << a->to_string();
-    std::cout << " ResourceUsage: " << a->getResourceUsage().to_string() << std::endl;
+    std::cout << " ResourceUsage: " << a->getImplementationParameters().to_string() << std::endl;
     dfesnippets::timing::print_clock_diff("Took: ", start);
     if (bestArchitecture == nullptr ||
         a->getEstimatedGFlops() > bestArchitecture->getEstimatedGFlops()) {
@@ -47,7 +47,7 @@ std::shared_ptr<SpmvArchitecture> dse(
     std::cout << "est. cycles " << bestArchitecture->getEstimatedClockCycles() << std::endl;
   } else {
     std::cout << bestArchitecture->to_string() << std::endl;
-    std::cout << " ResourceUsage: " << bestArchitecture->getResourceUsage().to_string() << std::endl;
+    std::cout << " ResourceUsage: " << bestArchitecture->getImplementationParameters().to_string() << std::endl;
   }
   return bestArchitecture;
 }
@@ -72,7 +72,7 @@ int run (
     new SimpleSpmvArchitectureSpace<SimpleSpmvArchitecture>(numPipesRange, inputWidthRange, cacheSizeRange),
     new SimpleSpmvArchitectureSpace<FstSpmvArchitecture>(numPipesRange, inputWidthRange, cacheSizeRange),
     new SimpleSpmvArchitectureSpace<SkipEmptyRowsArchitecture>(numPipesRange, inputWidthRange, cacheSizeRange),
-    new SimpleSpmvArchitectureSpace<PrefetchingArchitecture>(numPipesRange, inputWidthRange, cacheSizeRange)
+    //new SimpleSpmvArchitectureSpace<PrefetchingArchitecture>(numPipesRange, inputWidthRange, cacheSizeRange)
   };
 
   for (auto sas : factories) {

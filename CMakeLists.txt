@@ -41,7 +41,7 @@ function(AddMaxelerImplTest name libtarget lib args)
       -L. -l${lib}
       SparkCpuLib
       #-lumfpack -lsuitesparseconfig -lopenblas -lcholmod
-      #-lboost_program_options
+      -lboost_program_options
       #-lcolamd -lklu -lbtf -lamd
       -lrt -lpthread)
 endfunction()

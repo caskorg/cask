@@ -315,10 +315,8 @@ int spark::spmv::getNumPipes() {
 std::vector<EigenSparseMatrix> ssarch::do_partition(EigenSparseMatrix mat, int numPipes) {
   std::vector<EigenSparseMatrix> res;
   int rowsPerPartition = mat.rows() / numPipes;
-  std::cout << "Rows per partition" << rowsPerPartition << std::endl;
   int start = 0;
   for (int i = 0; i < numPipes - 1; i++) {
-    std::cout << "start finish"  << start << " " << start + rowsPerPartition << std::endl;
     res.push_back(mat.middleRows(start, rowsPerPartition));
     start += rowsPerPartition;
   }
