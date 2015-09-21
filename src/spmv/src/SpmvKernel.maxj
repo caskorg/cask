@@ -305,6 +305,7 @@ class BramSpmvReductionKernel extends Kernel {
   }
 }
 
+// pads the inputs with 0 after nInputs have been processed
 class PaddingKernel extends Kernel {
   protected PaddingKernel(KernelParameters parameters) {
     super(parameters);
@@ -318,5 +319,21 @@ class PaddingKernel extends Kernel {
     DFEVar input = io.input("paddingIn", dfeFloat(11, 53), ~paddingCycles);
     DFEVar out = paddingCycles ? 0 : input;
     io.output("paddingOut", out, dfeFloat(11, 53));
+  }
+}
+
+// extracts trailing zeros from input stream, after nInputs have been processed
+class UnpaddingKernel extends Kernel {
+  protected UnpaddingKernel(KernelParameters parameters) {
+    super(parameters);
+    DFEVar nInputs = io.scalarInput("nInputs", dfeUInt(32));
+    DFEVar totalCycles = io.scalarInput("totalCycles", dfeUInt(32));
+
+    CounterChain chain = control.count.makeCounterChain();
+    DFEVar cycles = chain.addCounter(totalCycles, 1);
+    DFEVar unpaddingCycles = cycles >= nInputs;
+
+    DFEVar input = io.input("paddingIn", dfeFloat(11, 53));
+    io.output("pout", input, dfeFloat(11, 53), ~unpaddingCycles);
   }
 }

@@ -210,7 +210,7 @@ Eigen::VectorXd ssarch::dfespmv(Eigen::VectorXd x)
 
   vector<double> v = spark::converters::eigenVectorToStdVector(x);
   spark::spmv::align(v, sizeof(double) * cacheSize);
-  //spark::spmv::align(v, 384);
+  spark::spmv::align(v, 384);
 
   std::vector<int> nrows, totalCycles, reductionCycles, paddingCycles, colptrSizes, indptrValuesSizes, outputResultSizes;
   std::vector<long> outputStartAddresses, colptrStartAddresses;
@@ -243,10 +243,11 @@ Eigen::VectorXd ssarch::dfespmv(Eigen::VectorXd x)
   int nBlocks = this->partitions[0].nBlocks;
   int vector_load_cycles = this->partitions[0].vector_load_cycles;
   std::cout << "Running on DFE" << std::endl;
+  std::cout << "V.size == " << v.size()  << std::endl;
   //dfesnippets::vectorutils::print_vector(paddingCycles);
   //dfesnippets::vectorutils::print_vector(nrows);
 
-  int nIterations = 1;
+  int nIterations = 10;
   auto start = std::chrono::high_resolution_clock::now();
   Spmv(
       nIterations,
@@ -326,4 +327,3 @@ void ssarch::preprocess(
     this->partitions.push_back(do_blocking(m, this->cacheSize, this->inputWidth));
   }
 }
-

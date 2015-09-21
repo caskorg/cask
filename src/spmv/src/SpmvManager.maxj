@@ -10,7 +10,7 @@ import com.custom_computing_ic.dfe_snippets.manager.*;
 
 public class SpmvManager extends CustomManager{
 
-    private static final int cacheSize = 384 * 5;
+    private static final int cacheSize = 1024 * 2;
     private static final int INPUT_WIDTH = 16;
     private static final int MAX_ROWS = 200000;
     private static final int NUM_PIPES = 1;
@@ -42,8 +42,14 @@ public class SpmvManager extends CustomManager{
 
         k.getInput("indptr_values") <== addStreamFromOnCardMemory("indptr_values" + id,
             MemoryControlGroup.MemoryAccessPattern.LINEAR_1D);
-        k.getInput("vromLoad") <== addStreamFromOnCardMemory("vromLoad" + id,
+
+        KernelBlock unpadddingVrom = addKernel(new
+            UnpaddingKernel(makeKernelParameters(getUnpaddingVromLoad(id))));
+
+        unpadddingVrom.getInput("paddingIn") <== addStreamFromOnCardMemory("vromLoad" + id,
             MemoryControlGroup.MemoryAccessPattern.LINEAR_1D);
+
+        k.getInput("vromLoad") <== unpadddingVrom.getOutput("pout");
 
         k.getInput("control") <== readControlBlock.getOutput("control");
 
@@ -106,6 +112,10 @@ public class SpmvManager extends CustomManager{
       return "flush" + id;
     }
 
+    String getUnpaddingVromLoad(int id) {
+      return "unpaddingVromLoad" + id;
+    }
+
     void setUpComputePipe(
         EngineInterface ei, int id,
         InterfaceParam vectorSize,
@@ -141,6 +151,12 @@ public class SpmvManager extends CustomManager{
       ei.setTicks(paddingKernel, (n + paddingCycles) * nIterations);
       ei.setScalar(paddingKernel, "nInputs", n);
       ei.setScalar(paddingKernel, "totalCycles", n + paddingCycles);
+
+
+      String vromUnpaddingKernel = getUnpaddingVromLoad(id);
+      ei.setTicks(vromUnpaddingKernel, vectorSize * nIterations);
+      ei.setScalar(vromUnpaddingKernel, "nInputs", vectorLoadCycles * nPartitions );
+      ei.setScalar(vromUnpaddingKernel, "totalCycles", vectorSize);
 
       //ei.setScalar(csrDecoder, "nrows", n);
 
