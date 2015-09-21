@@ -14,7 +14,7 @@ ENGINEFILES=../src/*.maxj ../src/*.java
 CPUFILES=../src/*.cpp
 
 # Using known hardware settings
-include $(WHEREISROOT)/Makefile.Maia.hardware
+include $(WHEREISROOT)/Makefile.Max3.hardware
 
 
 # Using common compillation targets and compiler settings

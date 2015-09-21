@@ -28,8 +28,12 @@ public class SpmvManager extends CustomManager{
     void addComputePipe(int id, int inputWidth) {
         ManagerStateMachine readControl = new ParallelCsrReadControl(this, inputWidth, DBG_PAR_CSR_CTL);
         StateMachineBlock readControlBlock = addStateMachine(getReadControl(id), readControl);
-        readControlBlock.getInput("length") <== addStreamFromOnCardMemory("colptr" + id,
+
+        KernelBlock unpaddingColptr = addKernel(new
+            UnpaddingKernel(makeKernelParameters(getUnpaddingColptr(id)), 32, id));
+        unpaddingColptr.getInput("paddingIn") <== addStreamFromOnCardMemory("colptr" + id,
             MemoryControlGroup.MemoryAccessPattern.LINEAR_1D);
+        readControlBlock.getInput("length") <== unpaddingColptr.getOutput("pout");
 
         KernelBlock k = addKernel(new SpmvKernel(
               makeKernelParameters(getComputeKernel(id)),
@@ -42,10 +46,8 @@ public class SpmvManager extends CustomManager{
 
         k.getInput("indptr_values") <== addStreamFromOnCardMemory("indptr_values" + id,
             MemoryControlGroup.MemoryAccessPattern.LINEAR_1D);
-
         KernelBlock unpadddingVrom = addKernel(new
-            UnpaddingKernel(makeKernelParameters(getUnpaddingVromLoad(id))));
-
+            UnpaddingKernel(makeKernelParameters(getUnpaddingVromLoad(id)), 64, id));
         unpadddingVrom.getInput("paddingIn") <== addStreamFromOnCardMemory("vromLoad" + id,
             MemoryControlGroup.MemoryAccessPattern.LINEAR_1D);
 
@@ -116,6 +118,10 @@ public class SpmvManager extends CustomManager{
       return "unpaddingVromLoad" + id;
     }
 
+    String getUnpaddingColptr(int id) {
+      return "unpaddingColptr" + id;
+    }
+
     void setUpComputePipe(
         EngineInterface ei, int id,
         InterfaceParam vectorSize,
@@ -127,6 +133,7 @@ public class SpmvManager extends CustomManager{
         InterfaceParam vStartAddress,
         InterfaceParam colPtrStartAddress,
         InterfaceParam colptrSize,
+        InterfaceParam colptrUnpaddedlength,
         InterfaceParam indptrValuesStartAddress,
         InterfaceParam indptrValuesSize,
         InterfaceParam totalCycles,
@@ -157,6 +164,12 @@ public class SpmvManager extends CustomManager{
       ei.setTicks(vromUnpaddingKernel, vectorSize * nIterations);
       ei.setScalar(vromUnpaddingKernel, "nInputs", vectorLoadCycles * nPartitions );
       ei.setScalar(vromUnpaddingKernel, "totalCycles", vectorSize);
+
+      String unpaddingColptr = getUnpaddingColptr(id);
+      InterfaceParam colptrEntries = colptrSize / CPUTypes.INT32.sizeInBytes();
+      ei.setTicks(unpaddingColptr, colptrEntries * nIterations);
+      ei.setScalar(unpaddingColptr, "nInputs", colptrUnpaddedlength);
+      ei.setScalar(unpaddingColptr, "totalCycles", colptrEntries);
 
       //ei.setScalar(csrDecoder, "nrows", n);
 
@@ -216,6 +229,7 @@ public class SpmvManager extends CustomManager{
 
       InterfaceParamArray colptrStartAddresses = ei.addParamArray("colPtrStartAddresses", CPUTypes.INT64);
       InterfaceParamArray colptrSizes = ei.addParamArray("colptrSizes", CPUTypes.INT32);
+      InterfaceParamArray colptrUnpaddedlengths = ei.addParamArray("colptrUnpaddedlengths", CPUTypes.INT32);
 
       InterfaceParamArray reductionCycles = ei.addParamArray("reductionCycles", CPUTypes.INT32);
 
@@ -230,6 +244,7 @@ public class SpmvManager extends CustomManager{
             vStartAddresses.get(i),
             colptrStartAddresses.get(i),
             colptrSizes.get(i),
+            colptrUnpaddedlengths.get(i),
             indptrValuesAddresses.get(i),
             indptrValuesSizes.get(i),
             totalCycles.get(i),
