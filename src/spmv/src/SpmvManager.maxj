@@ -30,7 +30,7 @@ public class SpmvManager extends CustomManager{
         StateMachineBlock readControlBlock = addStateMachine(getReadControl(id), readControl);
 
         KernelBlock unpaddingColptr = addKernel(new
-            UnpaddingKernel(makeKernelParameters(getUnpaddingColptr(id)), 32, id));
+            UnpaddingKernel(makeKernelParameters(getUnpaddingColptr(id)), 32, id * 10 + 1));
         unpaddingColptr.getInput("paddingIn") <== addStreamFromOnCardMemory("colptr" + id,
             MemoryControlGroup.MemoryAccessPattern.LINEAR_1D);
         readControlBlock.getInput("length") <== unpaddingColptr.getOutput("pout");
@@ -44,10 +44,14 @@ public class SpmvManager extends CustomManager{
               DBG_SPMV_KERNEL
               ));
 
-        k.getInput("indptr_values") <== addStreamFromOnCardMemory("indptr_values" + id,
+        KernelBlock unpaddingValues = addKernel(new
+            UnpaddingKernel(makeKernelParameters(getUnpaddingValues(id)), inputWidth * 96, id * 10 + 2));
+        unpaddingValues.getInput("paddingIn") <== addStreamFromOnCardMemory("indptr_values" + id,
             MemoryControlGroup.MemoryAccessPattern.LINEAR_1D);
+        k.getInput("indptr_values") <== unpaddingValues.getOutput("pout");
+
         KernelBlock unpadddingVrom = addKernel(new
-            UnpaddingKernel(makeKernelParameters(getUnpaddingVromLoad(id)), 64, id));
+            UnpaddingKernel(makeKernelParameters(getUnpaddingVromLoad(id)), 64, id * 10 + 3));
         unpadddingVrom.getInput("paddingIn") <== addStreamFromOnCardMemory("vromLoad" + id,
             MemoryControlGroup.MemoryAccessPattern.LINEAR_1D);
 
@@ -122,6 +126,10 @@ public class SpmvManager extends CustomManager{
       return "unpaddingColptr" + id;
     }
 
+    String getUnpaddingValues(int id) {
+      return "unpaddingValues" + id;
+    }
+
     void setUpComputePipe(
         EngineInterface ei, int id,
         InterfaceParam vectorSize,
@@ -136,6 +144,7 @@ public class SpmvManager extends CustomManager{
         InterfaceParam colptrUnpaddedlength,
         InterfaceParam indptrValuesStartAddress,
         InterfaceParam indptrValuesSize,
+        InterfaceParam valuesUnpaddedLength,
         InterfaceParam totalCycles,
         InterfaceParam reductionCycles,
         InterfaceParam nIterations,
@@ -170,6 +179,12 @@ public class SpmvManager extends CustomManager{
       ei.setTicks(unpaddingColptr, colptrEntries * nIterations);
       ei.setScalar(unpaddingColptr, "nInputs", colptrUnpaddedlength);
       ei.setScalar(unpaddingColptr, "totalCycles", colptrEntries);
+
+      String unpaddingValues = getUnpaddingValues(id);
+      InterfaceParam valueEntries = indptrValuesSize / (8 + 4) / INPUT_WIDTH; // 12 bytes per entry
+      ei.setTicks(unpaddingValues, valueEntries * nIterations);
+      ei.setScalar(unpaddingValues, "nInputs", valuesUnpaddedLength / INPUT_WIDTH);
+      ei.setScalar(unpaddingValues, "totalCycles", valueEntries);
 
       //ei.setScalar(csrDecoder, "nrows", n);
 
@@ -226,6 +241,7 @@ public class SpmvManager extends CustomManager{
 
       InterfaceParamArray indptrValuesAddresses = ei.addParamArray("indptrValuesAddresses", CPUTypes.INT64);
       InterfaceParamArray indptrValuesSizes = ei.addParamArray("indptrValuesSizes", CPUTypes.INT32);
+      InterfaceParamArray indptrValuesUnpaddedLengths = ei.addParamArray("indptrValuesUnpaddedLengths", CPUTypes.INT32);
 
       InterfaceParamArray colptrStartAddresses = ei.addParamArray("colPtrStartAddresses", CPUTypes.INT64);
       InterfaceParamArray colptrSizes = ei.addParamArray("colptrSizes", CPUTypes.INT32);
@@ -247,6 +263,7 @@ public class SpmvManager extends CustomManager{
             colptrUnpaddedlengths.get(i),
             indptrValuesAddresses.get(i),
             indptrValuesSizes.get(i),
+            indptrValuesUnpaddedLengths.get(i),
             totalCycles.get(i),
             reductionCycles.get(i),
             nIterations,
@@ -260,12 +277,16 @@ public class SpmvManager extends CustomManager{
     }
 
     public static void main(String[] args) {
-        SpmvManager manager = new SpmvManager(new EngineParameters(args));
-        ManagerUtils.debug(manager);
-        manager.createSLiCinterface(ManagerUtils.dramWrite(manager));
-        manager.createSLiCinterface(ManagerUtils.dramRead(manager));
-        manager.createSLiCinterface(manager.interfaceDefault());
-        ManagerUtils.setFullBuild(manager, BuildConfig.Effort.MEDIUM, 2, 2);
-        manager.build();
+      if (384 % INPUT_WIDTH != 0) {
+        throw new RuntimeException("Error! 384 is not a multiple of INPUT WIDTH: " +
+            "This may lead to stalls due to padding / unpadding ");
+      }
+      SpmvManager manager = new SpmvManager(new EngineParameters(args));
+      ManagerUtils.debug(manager);
+      manager.createSLiCinterface(ManagerUtils.dramWrite(manager));
+      manager.createSLiCinterface(ManagerUtils.dramRead(manager));
+      manager.createSLiCinterface(manager.interfaceDefault());
+      ManagerUtils.setFullBuild(manager, BuildConfig.Effort.MEDIUM, 2, 2);
+      manager.build();
     }
 }

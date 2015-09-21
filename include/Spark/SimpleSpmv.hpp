@@ -26,6 +26,7 @@ namespace spark {
       int nBlocks, n, paddingCycles, totalCycles, vector_load_cycles, outSize;
       int reductionCycles, emptyCycles;
       int m_colptr_unpaddedLength;
+      int m_indptr_values_unpaddedLength;
       std::vector<int> m_colptr;
       std::vector<indptr_value> m_indptr_values;
 

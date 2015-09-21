@@ -136,6 +136,7 @@ spark::spmv::Partition ssarch::do_blocking(
 
   Partition br;
   br.m_colptr_unpaddedLength = m_colptr.size();
+  br.m_indptr_values_unpaddedLength = m_indptr_value.size();
   std::cout << "m_colptr unaligned size" << m_colptr.size() << std::endl;
   spark::spmv::align(m_colptr, 384);
   spark::spmv::align(m_indptr_value, 384);
@@ -219,7 +220,7 @@ Eigen::VectorXd ssarch::dfespmv(Eigen::VectorXd x)
   spark::spmv::align(v, 384);
 
   std::vector<int> nrows, totalCycles, reductionCycles, paddingCycles, colptrSizes, indptrValuesSizes, outputResultSizes;
-  std::vector<int> colptrUnpaddedSizes;
+  std::vector<int> colptrUnpaddedSizes, indptrValuesUnpaddedLengths;
   std::vector<long> outputStartAddresses, colptrStartAddresses;
   std::vector<long> vStartAddresses, indptrValuesStartAddresses;
 
@@ -234,6 +235,7 @@ Eigen::VectorXd ssarch::dfespmv(Eigen::VectorXd x)
     totalCycles.push_back(p.totalCycles);
     reductionCycles.push_back(p.reductionCycles);
     colptrUnpaddedSizes.push_back(p.m_colptr_unpaddedLength);
+    indptrValuesUnpaddedLengths.push_back(p.m_indptr_values_unpaddedLength);
 
     PartitionWriteResult pr = writeDataForPartition(offset, p, v);
     outputStartAddresses.push_back(pr.outStartAddr);
@@ -271,6 +273,7 @@ Eigen::VectorXd ssarch::dfespmv(Eigen::VectorXd x)
       &colptrUnpaddedSizes[0],
       &indptrValuesStartAddresses[0],
       &indptrValuesSizes[0],
+      &indptrValuesUnpaddedLengths[0],
       &nrows[0],
       &outputResultSizes[0],
       &outputStartAddresses[0],

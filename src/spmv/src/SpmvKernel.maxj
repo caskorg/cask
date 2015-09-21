@@ -334,8 +334,10 @@ class UnpaddingKernel extends Kernel {
 
     DFEVar input = io.input("paddingIn", dfeRawBits(bitWidth));
     io.output("pout", input, dfeRawBits(bitWidth), ~unpaddingCycles);
-    //debug.simPrintf("id: %d cycles %d nInputs %d totalCycles %d unpadding %d\n",
-        //id, cycles, nInputs, totalCycles, unpaddingCycles
-        //);
+    //if (id == 2) {
+      //debug.simPrintf("id: %d cycles %d nInputs %d totalCycles %d unpadding %d\n",
+          //id, cycles, nInputs, totalCycles, unpaddingCycles);
+      //debug.simPrintf("input %d\n", input);
+    //}
   }
 }
