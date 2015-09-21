@@ -18,7 +18,7 @@ public class ParallelCsrReadControl extends ManagerStateMachine {
 
     private final DFEsmPullInput iLength;
     //private final DFEsmPushOutput oFlush;
-    private final DFEsmInput vectorLoadCycles, nRows, nPartitions;
+    private final DFEsmInput vectorLoadCycles, nRows, nPartitions, nIterations;
     private final DFEsmPushOutput oControl;
     private final DFEsmStateValue oControlData;
 
@@ -27,6 +27,7 @@ public class ParallelCsrReadControl extends ManagerStateMachine {
     private final DFEsmStateValue cycleCounter, rowLengthData;
     private final DFEsmStateValue firstReadPosition;
     private final DFEsmStateValue rowsProcessed, vectorLoadCommands, partitionsProcessed, totalOutputs;
+    private final DFEsmStateValue iterationsProcessed;
     //private final DFEsmStateValue flushData;
 
     private final DFEsmStateValue crtPos, toread;
@@ -43,6 +44,7 @@ public class ParallelCsrReadControl extends ManagerStateMachine {
       vectorLoadCycles = io.scalarInput("vectorLoadCycles", dfeUInt(32));
       nRows = io.scalarInput("nrows", dfeUInt(32));
       nPartitions = io.scalarInput("nPartitions", dfeUInt(32));
+      nIterations = io.scalarInput("nIterations", dfeUInt(32));
 
       oControl = io.pushOutput("control", dfeUInt(3 + 3 * 32 + inputWidth), 1);
       //oFlush  = io.pushOutput("flush", dfeBool(), 1);
@@ -63,6 +65,7 @@ public class ParallelCsrReadControl extends ManagerStateMachine {
       rowsProcessed = state.value(dfeUInt(32), 0);
       vectorLoadCommands = state.value(dfeUInt(32), 0);
       partitionsProcessed = state.value(dfeUInt(32), 0);
+      iterationsProcessed = state.value(dfeUInt(32), 0);
       totalOutputs = state.value(dfeUInt(32), 0);
       prevData = state.value(dfeUInt(32), 0);
     }
@@ -98,7 +101,12 @@ public class ParallelCsrReadControl extends ManagerStateMachine {
         partitionsProcessed.next <== partitionsProcessed + 1;
         IF (partitionsProcessed === nPartitions - 1) {
           //mode.next <== Mode.Flush;
-          mode.next <== Mode.Done;
+          partitionsProcessed.next <== 0;
+          // XXX will also need to skip padding between partitions
+          iterationsProcessed.next <== iterationsProcessed + 1;
+          IF (iterationsProcessed === nIterations - 1) {
+            mode.next <== Mode.Done;
+          }
         }
       } ELSE {
         IF (requestRead) {

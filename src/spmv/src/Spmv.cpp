@@ -115,19 +115,13 @@ spark::spmv::Partition ssarch::do_blocking(
     auto p_indptr = std::get<1>(p);
     auto p_values = std::get<2>(p);
 
-    //std::cout << "Before zero encoding" << std::endl;
-    //dfesnippets::vectorutils::print_vector(p_colptr);
     bool lastPartition = partition == partitions.size() - 1;
-    auto enc_p_colptr = encodeEmptyRows(p_colptr, lastPartition);
-    //std::cout << "After zero encoding" << std::endl;
-    //dfesnippets::vectorutils::print_vector(enc_p_colptr);
+    auto enc_p_colptr = encodeEmptyRows(p_colptr, lastPartition || partition == 0);
 
     int diff = p_colptr.size() - enc_p_colptr.size();
     emptyCycles += diff;
     reductionCycles -= diff;
     cycles += this->countComputeCycles(&p_colptr[0], n, inputWidth) - diff;
-    spark::spmv::align(p_indptr, sizeof(int) * inputWidth);
-    spark::spmv::align(p_values, sizeof(double) * inputWidth);
 
     std::copy(enc_p_colptr.begin(), enc_p_colptr.end(), back_inserter(m_colptr));
     for (size_t i = 0; i < p_values.size(); i++)
@@ -137,14 +131,10 @@ spark::spmv::Partition ssarch::do_blocking(
   }
 
   spark::spmv::align(m_colptr, 384);
-  //std::cout << "Before aliginig " << m_indptr_value.size() << std::endl;
-  spark::spmv::align(m_indptr_value, 384); // XXX ? will this actually work
-  //std::cout << "After aliginig " << m_indptr_value.size() << std::endl;
+  spark::spmv::align(m_indptr_value, 384);
   std::vector<double> out(n, 0);
-  align(out, 384);
+  spark::spmv::align(out, 384);
   spark::spmv::align(v, sizeof(double) * blockSize);
-  //std::cout << "Cycles ==== " << cycles << std::endl;
-  //std::cout << "v.size() ==== " << v.size() << std::endl;
 
   Partition br;
   br.nBlocks = nBlocks;
@@ -188,20 +178,17 @@ PartitionWriteResult writeDataForPartition(
   PartitionWriteResult pwr;
   pwr.indptrValuesStartAddress = align(offset, 384);
   pwr.indptrValuesSize = size_bytes(br.m_indptr_values);
-  std::cout << "indptr values sizses" << pwr.indptrValuesSize << std::endl;
   Spmv_dramWrite(
       pwr.indptrValuesSize,
       pwr.indptrValuesStartAddress,
       (uint8_t *)&br.m_indptr_values[0]);
 
-  //std::cout << "Wrote indptr" << std::endl;
   pwr.vStartAddress = pwr.indptrValuesStartAddress + pwr.indptrValuesSize;
   Spmv_dramWrite(
       size_bytes(v),
       pwr.vStartAddress,
       (uint8_t *)&v[0]);
 
-  //std::cout << "Wrote v" << std::endl;
   pwr.colptrStartAddress = pwr.vStartAddress + size_bytes(v);
   pwr.colptrSize = size_bytes(br.m_colptr);
   Spmv_dramWrite(
@@ -223,7 +210,7 @@ Eigen::VectorXd ssarch::dfespmv(Eigen::VectorXd x)
 
   vector<double> v = spark::converters::eigenVectorToStdVector(x);
   spark::spmv::align(v, sizeof(double) * cacheSize);
-  spark::spmv::align(v, 384);
+  //spark::spmv::align(v, 384);
 
   std::vector<int> nrows, totalCycles, reductionCycles, paddingCycles, colptrSizes, indptrValuesSizes, outputResultSizes;
   std::vector<long> outputStartAddresses, colptrStartAddresses;
@@ -259,8 +246,10 @@ Eigen::VectorXd ssarch::dfespmv(Eigen::VectorXd x)
   //dfesnippets::vectorutils::print_vector(paddingCycles);
   //dfesnippets::vectorutils::print_vector(nrows);
 
+  int nIterations = 1;
   auto start = std::chrono::high_resolution_clock::now();
   Spmv(
+      nIterations,
       nBlocks,
       vector_load_cycles,
       v.size(),

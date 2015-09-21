@@ -10,9 +10,9 @@ import com.custom_computing_ic.dfe_snippets.manager.*;
 
 public class SpmvManager extends CustomManager{
 
-    private static final int cacheSize = 1024 * 2;
+    private static final int cacheSize = 384 * 5;
     private static final int INPUT_WIDTH = 16;
-    private static final int MAX_ROWS = 30000;
+    private static final int MAX_ROWS = 200000;
     private static final int NUM_PIPES = 1;
 
     // parameters of CSR format used: float64 values, int32 index.
@@ -23,6 +23,7 @@ public class SpmvManager extends CustomManager{
 
     private static final boolean DBG_PAR_CSR_CTL = false;
     private static final boolean DBG_SPMV_KERNEL = false;
+    private static final boolean DBG_REDUCTION_KERNEL = false;
 
     void addComputePipe(int id, int inputWidth) {
         ManagerStateMachine readControl = new ParallelCsrReadControl(this, inputWidth, DBG_PAR_CSR_CTL);
@@ -52,7 +53,9 @@ public class SpmvManager extends CustomManager{
         KernelBlock r = addKernel(new BramSpmvReductionKernel(
               makeKernelParameters(getReductionKernel(id)),
               FLOATING_POINT_LATENCY,
-              MAX_ROWS));
+              MAX_ROWS,
+              DBG_REDUCTION_KERNEL
+              ));
         r.getInput("reductionIn") <== k.getOutput("output");
         //r.getInput("flush") <== k.getOutput("flushTriggerOut");
         r.getInput("skipCount") <== k.getOutput("skipCount");
@@ -118,6 +121,7 @@ public class SpmvManager extends CustomManager{
         InterfaceParam indptrValuesSize,
         InterfaceParam totalCycles,
         InterfaceParam reductionCycles,
+        InterfaceParam nIterations,
         InterfaceParam paddingCycles) {
 
       String computeKernel = getComputeKernel(id);
@@ -126,40 +130,53 @@ public class SpmvManager extends CustomManager{
       //String csrDecoder = getCsrDecoder(id);
       String readControl = getReadControl(id);
 
-      ei.setTicks(computeKernel, totalCycles);
+      ei.setTicks(computeKernel, totalCycles * nIterations);
 
       ei.setScalar(computeKernel, "vectorLoadCycles", vectorLoadCycles);
 
-      ei.setTicks(reductionKernel, reductionCycles);
+      ei.setTicks(reductionKernel, reductionCycles * nIterations);
       ei.setScalar(reductionKernel, "nRows", n);
       ei.setScalar(reductionKernel, "totalCycles", reductionCycles);
 
-      ei.setTicks(paddingKernel, (n + paddingCycles));
+      ei.setTicks(paddingKernel, (n + paddingCycles) * nIterations);
       ei.setScalar(paddingKernel, "nInputs", n);
+      ei.setScalar(paddingKernel, "totalCycles", n + paddingCycles);
 
       //ei.setScalar(csrDecoder, "nrows", n);
 
-      ei.setLMemLinear("colptr" + id,
-          colPtrStartAddress,
-          colptrSize);
+      InterfaceParam zero = ei.addConstant(0l);
 
-      ei.setLMemLinear("vromLoad" + id,
+      ei.setLMemLinearWrapped("colptr" + id,
+          colPtrStartAddress,
+          colptrSize,
+          colptrSize * nIterations,
+          zero);
+
+      ei.setLMemLinearWrapped("vromLoad" + id,
           vStartAddress,
-          vectorSize * CPUTypes.DOUBLE.sizeInBytes());
+          vectorSize * CPUTypes.DOUBLE.sizeInBytes(),
+          vectorSize * CPUTypes.DOUBLE.sizeInBytes() * nIterations,
+          zero);
 
       ei.setScalar(readControl, "nrows", n);
       ei.setScalar(readControl, "vectorLoadCycles", vectorLoadCycles);
       ei.setScalar(readControl, "nPartitions", nPartitions);
+      ei.setScalar(readControl, "nIterations", nIterations);
 
-      ei.setLMemLinear(
+      ei.setLMemLinearWrapped(
           "indptr_values" + id,
           indptrValuesStartAddress,
-          indptrValuesSize);
+          indptrValuesSize,
+          indptrValuesSize * nIterations,
+          zero);
 
-      ei.setLMemLinear(
+      ei.setLMemLinearWrapped(
           "paddingOut" + id,
           outResultStartAddress,
-          outResultSize);
+          outResultSize,
+          outResultSize * nIterations,
+          zero
+          );
     }
 
     private EngineInterface interfaceDefault() {
@@ -168,6 +185,7 @@ public class SpmvManager extends CustomManager{
       InterfaceParam vectorSize = ei.addParam("vectorSize", CPUTypes.INT);
       InterfaceParam vectorLoadCycles = ei.addParam("vectorLoadCycles", CPUTypes.INT);
       InterfaceParam nPartitions = ei.addParam("nPartitions", CPUTypes.INT);
+      InterfaceParam nIterations = ei.addParam("nIterations", CPUTypes.INT);
       InterfaceParamArray nrows = ei.addParamArray("nrows", CPUTypes.INT32);
       InterfaceParamArray paddingCycles = ei.addParamArray("paddingCycles", CPUTypes.INT32);
 
@@ -200,6 +218,7 @@ public class SpmvManager extends CustomManager{
             indptrValuesSizes.get(i),
             totalCycles.get(i),
             reductionCycles.get(i),
+            nIterations,
             paddingCycles.get(i));
 
       ei.ignoreLMem("cpu2lmem");
