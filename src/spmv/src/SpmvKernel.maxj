@@ -53,6 +53,7 @@ class SpmvKernel extends Kernel {
         inputWidth, cacheSize, indexWidth, mantissaWidth);
     DFEVector<DFEVar> matrixValues = cache.getMatrixValues();
     DFEVector<DFEVar> vectorValues = cache.getVectorValues();
+    //DFEVector<DFEVar> vectorIndices = cache.getVectorIndices();
 
     DFEVar result = Reductions.reduce(matrixValues * vectorValues);
 
@@ -96,21 +97,23 @@ class SpmvKernel extends Kernel {
 
     // --- Debug
     if (dbg) {
+      DFEVar printEnable = rowLength !== 0;
         Params rowCounterParams = control.count.makeParams(32)
           .withEnable(rowFinished);
         DFEVar rowCounter = control.count.makeCounter(rowCounterParams).getCount();
       debug.dfePrintf(
+          printEnable,
           "Kernel -- row %d totalCycles %d, readmask %d rowFinished %d rowLength %d output: %f cycleCounter %d validPartialSums %d newSum %f firstRead %d skipCount %d",
           rowCounter, totalCycles, readMask, rowFinished, rowLength, r.getOutput(), cycleCounter, validPartialSums, newSum, firstReadPosition, skipCount);
 
-      debug.dfePrintf("\n");
-      debug.dfePrintf("Values: ");
+      debug.dfePrintf(printEnable, "\n");
+      debug.dfePrintf(printEnable, "Values: ");
       for (int i = 0; i < inputWidth; i++)
-        debug.dfePrintf("%f ", matrixValues[i]);
-      debug.dfePrintf("Indices: ");
+        debug.dfePrintf(printEnable, "%f ", matrixValues[i]);
+      debug.dfePrintf(printEnable, "Vector Values: ");
       for (int i = 0; i < inputWidth; i++)
-        debug.dfePrintf("%f ", vectorValues[i]);
-      debug.dfePrintf("\n");
+        debug.dfePrintf(printEnable, "%f ", vectorValues[i]);
+      debug.dfePrintf(printEnable, "\n");
     }
   }
 
@@ -125,6 +128,7 @@ class SpmvCacheKernel extends KernelLib {
   private final DFEType addressT;
   private final DFEVector<DFEVar> matrixValues;
   private final DFEVector<DFEVar> vectorValues;
+  private final DFEVector<DFEVar> indptrVector;
 
   protected SpmvCacheKernel(KernelLib owner,
       DFEVar vRomLoadEnable,
@@ -168,19 +172,11 @@ class SpmvCacheKernel extends KernelLib {
 
     DFEVector<DFEVar> indptrValues = owner.io.input("indptr_values", inputType, readEnable);
     DFEVector<DFEVar> valuesVector = vtype.newInstance(this);
-    DFEVector<DFEVar> indptrVector = ivtype.newInstance(this);
+    indptrVector = ivtype.newInstance(this);
     for (int i = 0; i < inputWidth; i++) {
       indptrVector[i] <== indptrValues[i].slice(64, 32).cast(dfeUInt(32));
       valuesVector[i] <== indptrValues[i].slice(0, 64).cast(dfeFloat(11, 53));
     }
-
-    //for (int i = 0; i < inputWidth; i++)
-      //debug.dfePrintf("%d ", indptrVector[i]);
-    //debug.dfePrintf("\n");
-
-    //for (int i = 0; i < inputWidth; i++)
-      //debug.simPrintf("%f ", valuesVector[i]);
-    //debug.simPrintf("\n");
 
     DFEVector<DFEVar> colptr = selectValues(indptrVector, readMask);
     matrixValues = selectValues(valuesVector, readMask);
@@ -250,7 +246,7 @@ class SpmvReductionKernel extends Kernel {
 // sequences of empty rows (e.g. banded matrices)
 class BramSpmvReductionKernel extends Kernel {
 
-  protected BramSpmvReductionKernel(KernelParameters parameters, int fpl, int maxRows) {
+  protected BramSpmvReductionKernel(KernelParameters parameters, int fpl, int maxRows, boolean dbg) {
     super(parameters);
 
     // when skipCount != 0, we are to skip skipCount rows (since they are empty)
@@ -261,8 +257,10 @@ class BramSpmvReductionKernel extends Kernel {
     DFEVar in = io.input("reductionIn", dfeFloat(11, 53));
     DFEVar n = io.scalarInput("nRows", dfeUInt(32));
     DFEVar totalCycles = io.scalarInput("totalCycles", dfeUInt(32));
-    DFEVar cycles = control.count.simpleCounter(32);
+    //DFEVar cycles = control.count.simpleCounter(32);
 
+    CounterChain chain = control.count.makeCounterChain();
+    DFEVar cycles = chain.addCounter(totalCycles, 1);
     //io.pushInputRegistering(false);
     //DFEVar flushTrigger = io.input("flush", dfeBool());
     //io.popInputRegistering();
@@ -284,12 +282,10 @@ class BramSpmvReductionKernel extends Kernel {
 
     DFEVar readAddress = cycles < offset ? cycles : carriedReadAddress;
     DFEVar castReadAddress = readAddress.cast(dfeUInt(MathUtils.bitsToAddress(maxRows)));
-    DFEVar prevSum = cycles < offset ? 0 : memory.read(castReadAddress);
+    // we know that the first partition will not have been compressed on the CPU
+    DFEVar prevSum = cycles < n ? 0 : memory.read(castReadAddress);
     DFEVar sum = prevSum + in;
 
-    //debug.simPrintf(
-        //"readAddress %d sum %f in %f skipEnable %d skipCount %d\n",
-        //readAddress, sum, in, skipEnable, skipCount);
 
     Stream.OffsetExpr off = stream.measureDistance("BramAccOffset", readAddress, sum);
     memory.write(
@@ -297,22 +293,51 @@ class BramSpmvReductionKernel extends Kernel {
         stream.offset(sum, -off),
         stream.offset(~skipEnable, -off));
 
-    //debug.simPrintf("Reduction Kernel --> cycles %d flush: %d\n", cycles, flushTrigger);
-
     // output on the last n cycles
     DFEVar outputEnable = totalCycles - cycles <= n;
     io.output("reductionOut", sum, dfeFloat(11, 53), outputEnable);
+
+    if (dbg) {
+      debug.simPrintf(
+          "ReductionKernel --> cycle %d readAddress %d sum %f prevSum %f in %f skipEnable %d skipCount %d\n",
+          cycles, readAddress, sum, prevSum, in, skipEnable, skipCount);
+    }
   }
 }
 
+// pads the inputs with 0 after nInputs have been processed
 class PaddingKernel extends Kernel {
   protected PaddingKernel(KernelParameters parameters) {
     super(parameters);
     DFEVar nInputs = io.scalarInput("nInputs", dfeUInt(32));
-    DFEVar cycles = control.count.simpleCounter(32);
+    DFEVar totalCycles = io.scalarInput("totalCycles", dfeUInt(32));
+
+    CounterChain chain = control.count.makeCounterChain();
+    DFEVar cycles = chain.addCounter(totalCycles, 1);
     DFEVar paddingCycles = cycles >= nInputs;
+
     DFEVar input = io.input("paddingIn", dfeFloat(11, 53), ~paddingCycles);
     DFEVar out = paddingCycles ? 0 : input;
     io.output("paddingOut", out, dfeFloat(11, 53));
+  }
+}
+
+// extracts trailing zeros from input stream, after nInputs have been processed
+class UnpaddingKernel extends Kernel {
+  protected UnpaddingKernel(KernelParameters parameters, int bitWidth, int id) {
+    super(parameters);
+    DFEVar nInputs = io.scalarInput("nInputs", dfeUInt(32));
+    DFEVar totalCycles = io.scalarInput("totalCycles", dfeUInt(32));
+    CounterChain chain = control.count.makeCounterChain();
+    DFEVar cycles = chain.addCounter(totalCycles, 1);
+    DFEVar unpaddingCycles = cycles >= nInputs;
+
+    DFEVar input = io.input("paddingIn", dfeRawBits(bitWidth));
+    io.output("pout", input, dfeRawBits(bitWidth), ~unpaddingCycles);
+    //if (id == 2) {
+      //debug.simPrintf("id: %d cycles %d nInputs %d totalCycles %d unpadding %d\n",
+          //id, cycles, nInputs, totalCycles, unpaddingCycles);
+      //debug.simPrintf("input %d\n", input);
+    //}
   }
 }
