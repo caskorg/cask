@@ -26,7 +26,7 @@ namespace spark {
 
       std::string to_string() {
         std::stringstream s;
-        s << "LUTs: " << luts << " FFs: " << ffs << " DSPs: " << dsps << " BRAMs: " << brams;
+        s << luts << " " << ffs << " " << " " << dsps << " " << brams;
         return s.str();
       }
 
@@ -69,8 +69,7 @@ namespace spark {
 
       std::string to_string() {
         std::stringstream s;
-        s << ru.to_string();
-        s << " Clock frequency " << clockFrequency;
+        s << ru.to_string() << " " << clockFrequency;
         return s.str();
       }
 

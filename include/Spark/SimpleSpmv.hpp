@@ -117,11 +117,11 @@ namespace spark {
         virtual std::string to_string() {
           std::stringstream s;
           s << get_name();
-          s << " cacheSize = " << cacheSize;
-          s << " inputWidth = " << inputWidth;
-          s << " numPipes = " << numPipes;
-          s << " est. cycles = " << getEstimatedClockCycles();
-          s << " est. gflops = " << getEstimatedGFlops();
+          s << " " << cacheSize;
+          s << " " << inputWidth;
+          s << " " << numPipes;
+          s << " " << getEstimatedClockCycles();
+          s << " " << getEstimatedGFlops();
           return s.str();
         }
 
@@ -130,7 +130,7 @@ namespace spark {
         virtual Eigen::VectorXd dfespmv(Eigen::VectorXd x) override;
 
         virtual std::string get_name() override {
-          return std::string("SimpleSpmvArchitecture");
+          return std::string("Simple");
         }
 
       private:
@@ -220,7 +220,7 @@ namespace spark {
         SimpleSpmvArchitecture(_cacheSize, _inputWidth, _numPipes) {}
 
       virtual std::string get_name() override {
-        return std::string("FstSpmvArchitecture");
+        return std::string("Fst");
       }
 
     };
@@ -274,7 +274,7 @@ namespace spark {
         SimpleSpmvArchitecture(_cacheSize, _inputWidth, _numPipes) {}
 
       virtual std::string get_name() override {
-        return std::string("SkipEmptyRowsSpmvArchitecture");
+        return std::string("SkipEmpty");
       }
     };
 

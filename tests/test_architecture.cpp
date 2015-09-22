@@ -35,15 +35,13 @@ std::shared_ptr<SpmvArchitecture> dse(
   while (a = af->next()) {
     auto start = std::chrono::high_resolution_clock::now();
     a->preprocess(mat); // do spmv?
-    std::cout << "Matrix: " << basename << " " << a->to_string();
-    std::cout << " ResourceUsage: " << a->getImplementationParameters().to_string() << std::endl;
-    dfesnippets::timing::print_clock_diff("Took: ", start);
+    if (a->getImplementationParameters().ru < maxResources)
+      std::cout << basename << " " << a->to_string() << " " << a->getImplementationParameters().to_string() << std::endl;
+    //dfesnippets::timing::print_clock_diff("Took: ", start);
     if (bestArchitecture == nullptr ||
         *a < *bestArchitecture) {
       if (a->getImplementationParameters().ru < maxResources) {
         bestArchitecture = a;
-      } else {
-        std::cout << "Architecture exceeds device resources" << std::endl;
       }
     }
   }
@@ -51,15 +49,15 @@ std::shared_ptr<SpmvArchitecture> dse(
   if (!bestArchitecture)
     return nullptr;
 
-  std::cout << "Best ";
-  std::cout << "Mat: " << basename << " Arch: " << bestArchitecture->get_name();
+  std::cout << basename << " ";
   if (params.gflopsOnly) {
-    std::cout << " est. gflops " << bestArchitecture->getEstimatedGFlops();
-    std::cout << "est. cycles " << bestArchitecture->getEstimatedClockCycles() << std::endl;
+    std::cout << bestArchitecture->getEstimatedGFlops();
+    std::cout << bestArchitecture->getEstimatedClockCycles();
   } else {
     std::cout << bestArchitecture->to_string();
-    std::cout << " ResourceUsage: " << bestArchitecture->getImplementationParameters().to_string() << std::endl;
+    std::cout << " " << bestArchitecture->getImplementationParameters().to_string();
   }
+  std::cout << " Best " << std::endl;
   return bestArchitecture;
 }
 
@@ -86,6 +84,7 @@ int run (
     //new SimpleSpmvArchitectureSpace<PrefetchingArchitecture>(numPipesRange, inputWidthRange, cacheSizeRange)
   };
 
+  std::cout << "File Architecture CacheSize InputWidth NumPipes EstClockCycles EstGflops LUTS FFs DSPs BRAMs ClockFrequency Observation" << std::endl;
   std::shared_ptr<SpmvArchitecture> bestOverall;
   for (auto sas : factories) {
     std::shared_ptr<SpmvArchitecture> best = dse(basename, sas, *eigenMatrix, params);
@@ -104,15 +103,15 @@ int run (
   if (!bestOverall)
     return 1;
 
-  std::cout << "Best overall ";
-  std::cout << "Mat: " << basename << " Arch: " << bestOverall->get_name();
+  std::cout  << basename << " ";
   if (params.gflopsOnly) {
-    std::cout << " est. gflops " << bestOverall->getEstimatedGFlops();
-    std::cout << "est. cycles " << bestOverall->getEstimatedClockCycles() << std::endl;
+    std::cout << bestOverall->getEstimatedGFlops();
+    std::cout << bestOverall->getEstimatedClockCycles();
   } else {
     std::cout << bestOverall->to_string();
-    std::cout << " ResourceUsage: " << bestOverall->getImplementationParameters().to_string() << std::endl;
+    std::cout << " "  << bestOverall->getImplementationParameters().to_string();
   }
+  std::cout << " BestOverall " << std::endl;
 }
 
 
