@@ -52,11 +52,10 @@ namespace spark {
       // architecture specific properties
       protected:
       int cacheSize, inputWidth, numPipes;
-
       EigenSparseMatrix mat;
       std::vector<Partition> partitions;
 
-      virtual int countComputeCycles(int32_t* v, int size, int inputWidth);
+      virtual int countComputeCycles(uint32_t* v, int size, int inputWidth);
 
       public:
 
@@ -200,7 +199,7 @@ namespace spark {
     class FstSpmvArchitecture : public SimpleSpmvArchitecture {
       protected:
 
-      virtual int countComputeCycles(int32_t* v, int size, int inputWidth) override {
+      virtual int countComputeCycles(uint32_t* v, int size, int inputWidth) override {
         int cycles = 0;
         for (int i = 0; i < size; i++) {
           int toread = v[i] - (i > 0 ? v[i - 1] : 0);
@@ -213,7 +212,7 @@ namespace spark {
       }
 
       public:
-      FstSpmvArchitecture() : SimpleSpmvArchitecture(2048, 48, 1){}
+      FstSpmvArchitecture() : SimpleSpmvArchitecture() {}
 
       FstSpmvArchitecture(int _cacheSize, int  _inputWidth, int _numPipes) :
         SimpleSpmvArchitecture(_cacheSize, _inputWidth, _numPipes) {}
@@ -228,31 +227,46 @@ namespace spark {
     class SkipEmptyRowsArchitecture : public SimpleSpmvArchitecture {
       protected:
 
-      virtual int countComputeCycles(int32_t* v, int size, int inputWidth) override {
-        int cycles = 0;
-        int crtPos = 0;
-        int prevtoread = -1;
-        for (int i = 0; i < size; i++) {
-          int toread = v[i] - (i > 0 ? v[i - 1] : 0);
-          //only one cycle for empty row
-          if (toread == 0 && prevtoread == 0)
-            continue;
-          if (toread == 0)
-            cycles++; // we need to cycles to deal with each empty row
-          prevtoread = toread;
-          do {
-            int canread = std::min(inputWidth - crtPos, toread);
-            crtPos += canread;
-            crtPos %= inputWidth;
-            cycles++;
-            toread -= canread;
-          } while (toread > 0);
+        std::vector<uint32_t> encodeEmptyRows(std::vector<uint32_t> pin, bool encode) {
+          std::vector<uint32_t> encoded;
+          if (!encode) {
+            return pin;
+          }
+
+          int emptyRunLength = 0;
+          for (size_t i = 0; i < pin.size(); i++) {
+            uint32_t rowLength = pin[i] - (i == 0 ? 0 : pin[i - 1]);
+            if (rowLength == 0) {
+              emptyRunLength++;
+            } else {
+              if (emptyRunLength != 0) {
+                encoded.push_back(emptyRunLength | (1 << 31));
+              }
+              emptyRunLength = 0;
+              encoded.push_back(pin[i]);
+            }
+          }
+
+          if (emptyRunLength != 0) {
+            encoded.push_back(emptyRunLength | (1 << 31));
+          }
+
+          return encoded;
         }
-        return cycles;
-      }
+
+        virtual spark::sparse::CsrMatrix preprocessBlock(
+            const spark::sparse::CsrMatrix& in,
+            int blockNumber,
+            int nBlocks) override {
+          bool encode = blockNumber != 0 && blockNumber != nBlocks - 1;
+          return std::make_tuple(
+              encodeEmptyRows(std::get<0>(in), encode),
+              std::get<1>(in),
+              std::get<2>(in));
+        }
 
       public:
-      SkipEmptyRowsArchitecture() : SimpleSpmvArchitecture(2048, 48, 1){}
+      SkipEmptyRowsArchitecture() : SimpleSpmvArchitecture(){}
 
       SkipEmptyRowsArchitecture(int _cacheSize, int  _inputWidth, int _numPipes) :
         SimpleSpmvArchitecture(_cacheSize, _inputWidth, _numPipes) {}
@@ -266,7 +280,7 @@ namespace spark {
       protected:
 
       public:
-      PrefetchingArchitecture() : SkipEmptyRowsArchitecture(2048, 48, 1){}
+      PrefetchingArchitecture() : SkipEmptyRowsArchitecture(){}
 
       PrefetchingArchitecture(int _cacheSize, int  _inputWidth, int _numPipes) :
         SkipEmptyRowsArchitecture(_cacheSize, _inputWidth, _numPipes) {}

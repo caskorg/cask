@@ -13,7 +13,7 @@ using namespace spark::spmv;
 using ssarch = spark::spmv::SimpleSpmvArchitecture;
 
 // how many cycles does it take to resolve the accesses
-int ssarch::countComputeCycles(int32_t* v, int size, int inputWidth)
+int ssarch::countComputeCycles(uint32_t* v, int size, int inputWidth)
 {
   int cycles = 0;
   int crtPos = 0;
@@ -28,33 +28,6 @@ int ssarch::countComputeCycles(int32_t* v, int size, int inputWidth)
     } while (toread > 0);
   }
   return cycles;
-}
-
-std::vector<uint32_t> encodeEmptyRows(std::vector<int> pin, bool lastPartition) {
-  std::vector<uint32_t> encoded;
-  if (lastPartition) {
-    return std::vector<uint32_t>{pin.begin(), pin.end()};
-  }
-
-  int emptyRunLength = 0;
-  for (size_t i = 0; i < pin.size(); i++) {
-    uint32_t rowLength = pin[i] - (i == 0 ? 0 : pin[i - 1]);
-    if (rowLength == 0) {
-      emptyRunLength++;
-    } else {
-      if (emptyRunLength != 0) {
-        encoded.push_back(emptyRunLength | (1 << 31));
-      }
-      emptyRunLength = 0;
-      encoded.push_back(pin[i]);
-    }
-  }
-
-  if (emptyRunLength != 0) {
-    encoded.push_back(emptyRunLength | (1 << 31));
-  }
-
-  return encoded;
 }
 
 // transform a given matrix with n rows in blocks of size n X blockSize
@@ -111,33 +84,27 @@ spark::spmv::Partition ssarch::do_blocking(
   int reductionCycles = rows * partitions.size();
   int emptyCycles = 0;
   for (auto p : partitions) {
-    auto p_colptr = std::get<0>(p);
-    auto p_indptr = std::get<1>(p);
-    auto p_values = std::get<2>(p);
+    auto pp = preprocessBlock(p, partition++, partitions.size());
+    auto p_colptr = std::get<0>(pp);
+    auto p_indptr = std::get<1>(pp);
+    auto p_values = std::get<2>(pp);
 
-    bool lastPartition = partition == partitions.size() - 1;
-    auto enc_p_colptr = encodeEmptyRows(p_colptr, true); // lastPartition || partition == 0);
-    std::cout << "Size before encodign" << p_colptr.size() << std::endl;
-    std::cout << "Size after encodign" << enc_p_colptr.size() << std::endl;
-
-    int diff = p_colptr.size() - enc_p_colptr.size();
+    int diff = std::get<0>(p).size() - p_colptr.size();
     emptyCycles += diff;
     reductionCycles -= diff;
-    cycles += this->countComputeCycles(&p_colptr[0], n, inputWidth) - diff;
+    cycles += this->countComputeCycles(&std::get<0>(p)[0], n, inputWidth) - diff;
 
     spark::spmv::align(p_indptr, sizeof(int) * inputWidth);
     spark::spmv::align(p_values, sizeof(double) * inputWidth);
-    std::copy(enc_p_colptr.begin(), enc_p_colptr.end(), back_inserter(m_colptr));
+    std::copy(p_colptr.begin(), p_colptr.end(), back_inserter(m_colptr));
     for (size_t i = 0; i < p_values.size(); i++)
       m_indptr_value.push_back(indptr_value( p_values[i], p_indptr[i]));
-
-    partition++;
   }
 
   Partition br;
   br.m_colptr_unpaddedLength = m_colptr.size();
   br.m_indptr_values_unpaddedLength = m_indptr_value.size();
-  std::cout << "m_colptr unaligned size" << m_colptr.size() << std::endl;
+  //std::cout << "m_colptr unaligned size" << m_colptr.size() << std::endl;
   spark::spmv::align(m_colptr, 384);
   spark::spmv::align(m_indptr_value, 384);
   std::vector<double> out(n, 0);
@@ -253,13 +220,13 @@ Eigen::VectorXd ssarch::dfespmv(Eigen::VectorXd x)
   int nBlocks = this->partitions[0].nBlocks;
   int vector_load_cycles = this->partitions[0].vector_load_cycles;
   std::cout << "Running on DFE" << std::endl;
-  std::cout << "V.size == " << v.size()  << std::endl;
+  //std::cout << "V.size == " << v.size()  << std::endl;
   //dfesnippets::vectorutils::print_vector(paddingCycles);
   //dfesnippets::vectorutils::print_vector(nrows);
 
-  std::cout << "Colptr elements" << this->partitions[0].m_colptr.size() << std::endl;
-  std::cout << "colptrSize " << colptrSizes[0] << std::endl;
-  std::cout << "colptrUnpaddedSizes " << colptrUnpaddedSizes[0] << std::endl;
+  //std::cout << "Colptr elements" << this->partitions[0].m_colptr.size() << std::endl;
+  //std::cout << "colptrSize " << colptrSizes[0] << std::endl;
+  //std::cout << "colptrUnpaddedSizes " << colptrUnpaddedSizes[0] << std::endl;
 
   int nIterations = 2;
   auto start = std::chrono::high_resolution_clock::now();

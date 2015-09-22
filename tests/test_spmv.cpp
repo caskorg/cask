@@ -20,7 +20,9 @@ int test(string path) {
   for (int i = 0; i < cols; i++)
     x[i] = (double)i * 0.25;
 
-  auto a = new spark::spmv::SimpleSpmvArchitecture();
+  //auto a = new spark::spmv::SimpleSpmvArchitecture();
+  auto a = new spark::spmv::SkipEmptyRowsArchitecture();
+
   a->preprocess(*eigenMatrix);
   Eigen::VectorXd got = a->dfespmv(x);
   Eigen::VectorXd exp = *eigenMatrix * x;

@@ -26,6 +26,9 @@ std::shared_ptr<SpmvArchitecture> dse(
     const Params& params) {
   int it = 0;
 
+  // for virtex 6
+  const LogicResourceUsage deviceResources{297600, 297600, 2016, 2128};
+
   std::shared_ptr<SpmvArchitecture> bestArchitecture, a;
 
   while (a = af->next()) {
@@ -35,10 +38,17 @@ std::shared_ptr<SpmvArchitecture> dse(
     std::cout << " ResourceUsage: " << a->getImplementationParameters().to_string() << std::endl;
     dfesnippets::timing::print_clock_diff("Took: ", start);
     if (bestArchitecture == nullptr ||
-        a->getEstimatedGFlops() > bestArchitecture->getEstimatedGFlops()) {
-      bestArchitecture = a;
+        a < bestArchitecture) {
+      if (a->getImplementationParameters().ru < deviceResources) {
+        bestArchitecture = a;
+      } else {
+        std::cout << "Architecture exceeds device resources" << std::endl;
+      }
     }
   }
+
+  if (!bestArchitecture)
+    return nullptr;
 
   std::cout << "Best ";
   std::cout << "Mat: " << basename << " Arch: " << bestArchitecture->get_name();

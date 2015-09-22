@@ -1,0 +1,7 @@
+#!/bin/env bash
+
+
+command="--numPipes=1 --cacheSize=1024 --inputWidth=16"
+path=/mnt/data/cccad3/pg1709/sparse-matrices/perf-tests/fpga16
+
+cd ../build && find ${path} -name "*.mtx" -exec ../build/test_architecture --filePath {} ${command} \;

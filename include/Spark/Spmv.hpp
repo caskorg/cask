@@ -10,7 +10,7 @@ namespace spark {
 
     class LogicResourceUsage {
       public:
-      int luts, ffs, dsps, brams;
+      int luts, ffs, brams, dsps;
 
       LogicResourceUsage() : luts(0), ffs(0), dsps(0), brams(0) {}
 
@@ -36,6 +36,14 @@ namespace spark {
 
       const LogicResourceUsage operator*(int x) const {
         return LogicResourceUsage(x * luts,  x * ffs, x * brams, x * dsps);
+      }
+
+      const bool operator<(const LogicResourceUsage& ru) {
+        return
+          luts < ru.luts &&
+          ffs < ru.ffs &&
+          dsps < ru.dsps &&
+          brams < ru.brams;
       }
     };
 
@@ -83,6 +91,20 @@ namespace spark {
         virtual void preprocess(const Eigen::SparseMatrix<double, Eigen::RowMajor> mat) = 0;
         virtual Eigen::VectorXd dfespmv(Eigen::VectorXd x) = 0;
         virtual std::string get_name() = 0;
+
+        const bool operator< (SpmvArchitecture& other) {
+          return
+            getEstimatedGFlops() > other.getEstimatedGFlops() &&
+            getImplementationParameters().ru < other.getImplementationParameters().ru;
+        }
+
+      protected:
+        virtual spark::sparse::CsrMatrix preprocessBlock(
+            const spark::sparse::CsrMatrix& in,
+            int blockNumber,
+            int nBlocks) {
+          return in;
+        }
     };
 
     std::ostream& operator<<(std::ostream& s, SpmvArchitecture& a) {
