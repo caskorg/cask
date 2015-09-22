@@ -83,6 +83,14 @@ namespace spark {
         virtual void preprocess(const Eigen::SparseMatrix<double, Eigen::RowMajor> mat) = 0;
         virtual Eigen::VectorXd dfespmv(Eigen::VectorXd x) = 0;
         virtual std::string get_name() = 0;
+
+      protected:
+        virtual spark::sparse::CsrMatrix preprocessBlock(
+            const spark::sparse::CsrMatrix& in,
+            int blockNumber,
+            int nBlocks) {
+          return in;
+        }
     };
 
     std::ostream& operator<<(std::ostream& s, SpmvArchitecture& a) {
