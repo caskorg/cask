@@ -38,6 +38,10 @@ namespace spark {
         return LogicResourceUsage(x * luts,  x * ffs, x * brams, x * dsps);
       }
 
+      const LogicResourceUsage operator*(double x) const {
+        return LogicResourceUsage(x * (double)luts,  x * (double)ffs, x * (double)brams, x * (double)dsps);
+      }
+
       const bool operator<(const LogicResourceUsage& ru) {
         return
           luts < ru.luts &&
@@ -66,7 +70,7 @@ namespace spark {
       std::string to_string() {
         std::stringstream s;
         s << ru.to_string();
-        s << "Clock frequency " << clockFrequency;
+        s << " Clock frequency " << clockFrequency;
         return s.str();
       }
 
@@ -94,8 +98,9 @@ namespace spark {
 
         const bool operator< (SpmvArchitecture& other) {
           return
-            getEstimatedGFlops() > other.getEstimatedGFlops() &&
-            getImplementationParameters().ru < other.getImplementationParameters().ru;
+            getEstimatedGFlops() > other.getEstimatedGFlops() || (
+                getEstimatedGFlops() == other.getEstimatedGFlops() &&
+                getImplementationParameters().ru < other.getImplementationParameters().ru);
         }
 
       protected:
