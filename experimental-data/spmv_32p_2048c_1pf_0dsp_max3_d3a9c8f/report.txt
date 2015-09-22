@@ -1,0 +1,160 @@
+
+Total resource usage
+-----------------------------------------------------------------
+    LUTs     FFs   BRAMs    DSPs                            
+  297600  595200    1064    2016  total available resources for FPGA
+   89314  128687     744     320  total resources used      
+  30.01%  21.62%  69.88%  15.87%  % of available
+   51106   73914     479     320  used by kernels           
+  17.17%  12.42%  45.02%  15.87%  % of available
+   35764   54545     265       0  used by manager           
+  12.02%   9.16%  24.86%   0.00%  % of available
+    2390     228       0       0  stray resources           
+   0.80%   0.04%   0.00%   0.00%  % of available
+
+High level manager breakdown aggregated by type
+-----------------------------------------------------------------
+    LUTs     FFs   BRAMs    DSPs  Type                      Occurrences
+    1581    2454       0       0  AddrGen                   6
+    1428    2173       6       0  AsymmetricIFPGALink       1
+      30      36       1       0  ChecksumMappedDRP         1
+    1599    1660       0       0  DualAspectMux             3
+     299    4869       0       0  DualAspectReg             3
+     832     943      95       0  Fifo                      11
+      37      40       1       0  InterFPGALinkAdapter      1
+   51106   73914     479     320  Kernel                    6
+    1242     654       0       0  ManagerStateMachine_read  1
+     321      56       0       0  MappedElementSwitch       1
+     311     590       3       0  MappedMemoriesController  1
+      94     100       0       0  MappedRegistersControlle  1
+    3953    8367     160       0  MemoryControllerPro       1
+     176     190       0       0  PerfMonitor               1
+      13      13       0       0  ResetControl              1
+     102     136       0       0  SanityBlock               1
+      63      72       0       0  SignalForwardingAdapter   1
+       3       2       0       0  StreamPullPushAdapter     2
+       3      19       0       0  SystemMonitor             1
+    2218    2059       0       0  Virtex6Aurora             1
+   21360   30008       0       0  Virtex6DDR3               1
+      99     104       0       0  XilinxClockGenerator      1
+      38       0       0       0  Other InterFPGA           --
+      16       0       0       0  Other MappedElements      --
+       0       0       0       0  Other PCIe                --
+
+Kernel breakdown
+-----------------------------------------------------------------
+    LUTs     FFs   BRAMs    DSPs  category
+   51106   73914     479     320  total for all kernels
+  17.17%  12.42%  45.02%  15.87%  % of total available
+
+Totals for each kernel
+    LUTs     FFs   BRAMs    DSPs  Kernel name
+   44442   61709     130     320  computeKernel0 (total)
+  14.93%  10.37%  12.22%  15.87%  % of total available
+   40853   58488     128     320  computeKernel0 (user)
+  13.73%   9.83%  12.03%  15.87%  % of total available
+    1882    2257       2       0  computeKernel0 (scheduling)
+   0.63%   0.38%   0.19%   0.00%  % of total available
+    1707     964       0       0  computeKernel0 (other Kernel resources)
+   0.57%   0.16%   0.00%   0.00%  % of total available
+     645    1024       0       0  paddingKernel0 (total)
+   0.22%   0.17%   0.00%   0.00%  % of total available
+     489     571       0       0  paddingKernel0 (user)
+   0.16%   0.10%   0.00%   0.00%  % of total available
+       1       1       0       0  paddingKernel0 (scheduling)
+   0.00%   0.00%   0.00%   0.00%  % of total available
+     155     452       0       0  paddingKernel0 (other Kernel resources)
+   0.05%   0.08%   0.00%   0.00%  % of total available
+    3267    2353     349       0  reductionKernel0 (total)
+   1.10%   0.40%  32.80%   0.00%  % of total available
+    3058    1730     349       0  reductionKernel0 (user)
+   1.03%   0.29%  32.80%   0.00%  % of total available
+      15     118       0       0  reductionKernel0 (scheduling)
+   0.01%   0.02%   0.00%   0.00%  % of total available
+     194     505       0       0  reductionKernel0 (other Kernel resources)
+   0.07%   0.08%   0.00%   0.00%  % of total available
+     577     898       0       0  unpaddingColptr0 (total)
+   0.19%   0.15%   0.00%   0.00%  % of total available
+     428     475       0       0  unpaddingColptr0 (user)
+   0.14%   0.08%   0.00%   0.00%  % of total available
+       0       0       0       0  unpaddingColptr0 (scheduling)
+   0.00%   0.00%   0.00%   0.00%  % of total available
+     149     423       0       0  unpaddingColptr0 (other Kernel resources)
+   0.05%   0.07%   0.00%   0.00%  % of total available
+    1577    6973       0       0  unpaddingValues0 (total)
+   0.53%   1.17%   0.00%   0.00%  % of total available
+    1421    3515       0       0  unpaddingValues0 (user)
+   0.48%   0.59%   0.00%   0.00%  % of total available
+       0       0       0       0  unpaddingValues0 (scheduling)
+   0.00%   0.00%   0.00%   0.00%  % of total available
+     156    3458       0       0  unpaddingValues0 (other Kernel resources)
+   0.05%   0.58%   0.00%   0.00%  % of total available
+     598     957       0       0  unpaddingVromLoad0 (total)
+   0.20%   0.16%   0.00%   0.00%  % of total available
+     437     507       0       0  unpaddingVromLoad0 (user)
+   0.15%   0.09%   0.00%   0.00%  % of total available
+       0       0       0       0  unpaddingVromLoad0 (scheduling)
+   0.00%   0.00%   0.00%   0.00%  % of total available
+     161     450       0       0  unpaddingVromLoad0 (other Kernel resources)
+   0.05%   0.08%   0.00%   0.00%  % of total available
+
+
+Manager breakdown
+-----------------------------------------------------------------
+    LUTs     FFs   BRAMs    DSPs  Type                      Instance
+      26    1691       0       0  DualAspectReg             Stream_13
+     521     534       0       0  DualAspectMux             Stream_2
+      97     107      43       0  Fifo                      Stream_20
+     520     596       0       0  DualAspectMux             Stream_23
+      71      86       1       0  Fifo                      Stream_30
+      65      75       2       0  Fifo                      Stream_32
+      77      86       1       0  Fifo                      Stream_35
+      76      86       1       0  Fifo                      Stream_37
+      72      86       1       0  Fifo                      Stream_40
+     121    1625       0       0  DualAspectReg             Stream_47
+     152    1553       0       0  DualAspectReg             Stream_54
+     558     530       0       0  DualAspectMux             Stream_58
+      74      86       1       0  Fifo                      Stream_68
+     104      97      43       0  Fifo                      Stream_72
+      77      86       1       0  Fifo                      Stream_76
+       1       1       0       0  StreamPullPushAdapter     Stream_80
+      59      74       1       0  Fifo                      Stream_86
+       2       1       0       0  StreamPullPushAdapter     Stream_88
+      60      74       1       0  Fifo                      Stream_9
+     284     409       0       0  AddrGen                   addrgen_cmd_colptr0
+     260     409       0       0  AddrGen                   addrgen_cmd_cpu2lmem
+     249     409       0       0  AddrGen                   addrgen_cmd_indptr_values0
+     276     409       0       0  AddrGen                   addrgen_cmd_lmem2cpu
+     264     409       0       0  AddrGen                   addrgen_cmd_paddingOut0
+     248     409       0       0  AddrGen                   addrgen_cmd_vromLoad0
+   44442   61709     130     320  Kernel                    computeKernel0
+     645    1024       0       0  Kernel                    paddingKernel0
+    1242     654       0       0  ManagerStateMachine_read  readControl0
+    3267    2353     349       0  Kernel                    reductionKernel0
+     577     898       0       0  Kernel                    unpaddingColptr0
+    1577    6973       0       0  Kernel                    unpaddingValues0
+     598     957       0       0  Kernel                    unpaddingVromLoad0
+    2218    2059       0       0  Virtex6Aurora             aurora_INTERFPGA_LINK_i
+   21360   30008       0       0  Virtex6DDR3               ddr3_core
+      37      40       1       0  InterFPGALinkAdapter      InterFPGALinkAdapter_ifpga_i
+     321      56       0       0  MappedElementSwitch       MappedElementSwitch_i
+     311     590       3       0  MappedMemoriesController  MappedMemoriesController_i
+      94     100       0       0  MappedRegistersControlle  MappedRegistersController_i
+     176     190       0       0  PerfMonitor               perfm
+      99     104       0       0  XilinxClockGenerator      stream_clock_gen
+     102     136       0       0  SanityBlock               SanityBlock_i
+      63      72       0       0  SignalForwardingAdapter   SignalForwardingAdapter_i
+       3      19       0       0  SystemMonitor             sysm
+    1428    2173       6       0  AsymmetricIFPGALink       asymmetric_interfpgalink_ifpga
+      30      36       1       0  ChecksumMappedDRP         checksum_mem_drp
+      13      13       0       0  ResetControl              reset_controller
+    3953    8367     160       0  MemoryControllerPro       memctrlpro_max3_sodimms
+
+Source files annotation report
+-----------------------------------------------------------------
+
+% of total used for each file (note: multiple files may share the same resources)
+    LUTs     FFs   BRAMs    DSPs  filename
+  52.38%  50.98%  64.43% 100.00%  SpmvKernel.maxj
+  54.40%  52.58%  64.43% 100.00%  SpmvManager.maxj
+  90.06%  85.01%  64.69% 100.00%  [ missing source files ]
