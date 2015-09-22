@@ -116,6 +116,34 @@ public class ParallelCsrReadControl extends ManagerStateMachine {
       }
     }
 
+    void makeCommand(
+        DFEsmValue p_crtPos,
+        DFEsmValue p_toread,
+        DFEsmValue p_rowLengthData,
+        DFEsmValue p_firstReadPosition,
+        DFEsmValue p_cycleCounter
+        ) {
+      DFEsmValue canread = min(inputWidth - p_crtPos, p_toread);
+      IF (p_crtPos + canread >= inputWidth) {
+        crtPos.next <== 0;
+      } ELSE {
+        crtPos.next <== p_crtPos + canread;
+      }
+      toread.next <== p_toread - canread;
+      makeOutput(
+          p_crtPos === 0 & p_rowLengthData !== 0,
+          p_toread - canread === 0,
+          buildReadMask(canread),
+          p_rowLengthData,
+          p_cycleCounter,
+          p_firstReadPosition,
+          fls());
+      cycleCounter.next <== p_cycleCounter + 1;
+      IF (p_toread - canread === 0) {
+        processRows(one(), tru());
+      }
+    }
+
     @Override
     protected void nextState() {
       outValid.next <== false;
@@ -141,12 +169,6 @@ public class ParallelCsrReadControl extends ManagerStateMachine {
                 );
           }
         }
-        //CASE (Mode.RequestRead) {
-           //stay in this mode until we can read the next length
-          //IF (requestRead()) {
-            //mode.next <== Mode.ReadingLength;
-          //}
-        //}
         CASE (Mode.ReadingLength) {
           IF (iLengthReady === true) {
             // XXX When merging must ensure output is not stalled in thiss state
@@ -156,47 +178,30 @@ public class ParallelCsrReadControl extends ManagerStateMachine {
               rowLengthData.next <== 0;
               // cycleCounter will hold the number of empty rows in this sequence
               DFEsmValue emptyRows = iLength.slice(0, 31).cast(dfeUInt(32));
-              cycleCounter.next <== emptyRows;
+              //cycleCounter.next <== emptyRows;
               // the value of prevData will be maintained from the most recent
               // non-empty row since we don't assign to it when processing an
               // empty row; this is required to correctly determine the lenght of the
               // next non-empty tow
 
-              // process n - 1 rows, one will be processed on the next cycle of
-              // the Outputting COmmands mode
-              processRows(emptyRows - 1, fls());
-              // TODO make commands
+              makeOutput(fls(), tru(), zero(inputWidth), zero(), emptyRows, crtPos, fls());
+              processRows(emptyRows, tru());
             } ELSE {
               toread.next <== iLength - prevData;
               rowLengthData.next <== iLength - prevData;
               prevData.next <== iLength;
               cycleCounter.next <== 0;
+
+              mode.next <== Mode.OutputtingCommands;
+              makeCommand(crtPos, iLength - prevData, iLength - prevData, crtPos, zero());
+              //mode.next <== Mode.OutputtingCommands;
             }
             firstReadPosition.next <== crtPos;
-            mode.next <== Mode.OutputtingCommands;
           }
         }
         CASE (Mode.OutputtingCommands) {
           IF (outputNotStall()) {
-            DFEsmValue canread = min(inputWidth - crtPos, toread);
-            IF (crtPos + canread >= inputWidth) {
-              crtPos.next <== 0;
-            } ELSE {
-              crtPos.next <== crtPos + canread;
-            }
-            toread.next <== toread - canread;
-            makeOutput(
-                crtPos === 0 & rowLengthData !== 0,
-                toread - canread === 0,
-                buildReadMask(canread),
-                rowLengthData,
-                cycleCounter,
-                firstReadPosition,
-                fls());
-            cycleCounter.next <== cycleCounter + 1;
-            IF (toread - canread === 0) {
-              processRows(one(), tru());
-            }
+            makeCommand(crtPos, toread, rowLengthData, firstReadPosition, cycleCounter);
           }
         }
       }
