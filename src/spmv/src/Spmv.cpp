@@ -90,7 +90,6 @@ spark::spmv::Partition ssarch::do_blocking(
     auto p_values = std::get<2>(pp);
 
     int diff = std::get<0>(p).size() - p_colptr.size();
-    std::cout << "Diff " << diff << std::endl;
     emptyCycles += diff;
     reductionCycles -= diff;
     cycles += this->countComputeCycles(&std::get<0>(p)[0], n, inputWidth) - diff;
@@ -105,7 +104,7 @@ spark::spmv::Partition ssarch::do_blocking(
   Partition br;
   br.m_colptr_unpaddedLength = m_colptr.size();
   br.m_indptr_values_unpaddedLength = m_indptr_value.size();
-  std::cout << "m_colptr unaligned size" << m_colptr.size() << std::endl;
+  //std::cout << "m_colptr unaligned size" << m_colptr.size() << std::endl;
   spark::spmv::align(m_colptr, 384);
   spark::spmv::align(m_indptr_value, 384);
   std::vector<double> out(n, 0);
@@ -221,13 +220,13 @@ Eigen::VectorXd ssarch::dfespmv(Eigen::VectorXd x)
   int nBlocks = this->partitions[0].nBlocks;
   int vector_load_cycles = this->partitions[0].vector_load_cycles;
   std::cout << "Running on DFE" << std::endl;
-  std::cout << "V.size == " << v.size()  << std::endl;
+  //std::cout << "V.size == " << v.size()  << std::endl;
   //dfesnippets::vectorutils::print_vector(paddingCycles);
   //dfesnippets::vectorutils::print_vector(nrows);
 
-  std::cout << "Colptr elements" << this->partitions[0].m_colptr.size() << std::endl;
-  std::cout << "colptrSize " << colptrSizes[0] << std::endl;
-  std::cout << "colptrUnpaddedSizes " << colptrUnpaddedSizes[0] << std::endl;
+  //std::cout << "Colptr elements" << this->partitions[0].m_colptr.size() << std::endl;
+  //std::cout << "colptrSize " << colptrSizes[0] << std::endl;
+  //std::cout << "colptrUnpaddedSizes " << colptrUnpaddedSizes[0] << std::endl;
 
   int nIterations = 2;
   auto start = std::chrono::high_resolution_clock::now();

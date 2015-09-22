@@ -230,7 +230,6 @@ namespace spark {
         std::vector<uint32_t> encodeEmptyRows(std::vector<uint32_t> pin, bool encode) {
           std::vector<uint32_t> encoded;
           if (!encode) {
-            std::cout << "Not encoding" << std::endl;
             return pin;
           }
 
@@ -260,7 +259,6 @@ namespace spark {
             int blockNumber,
             int nBlocks) override {
           bool encode = blockNumber != 0 && blockNumber != nBlocks - 1;
-          std::cout << "Encode " << encode << std::endl;
           return std::make_tuple(
               encodeEmptyRows(std::get<0>(in), encode),
               std::get<1>(in),
