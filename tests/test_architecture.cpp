@@ -38,7 +38,7 @@ std::shared_ptr<SpmvArchitecture> dse(
     std::cout << " ResourceUsage: " << a->getImplementationParameters().to_string() << std::endl;
     dfesnippets::timing::print_clock_diff("Took: ", start);
     if (bestArchitecture == nullptr ||
-        a->getEstimatedGFlops() > bestArchitecture->getEstimatedGFlops()) {
+        a < bestArchitecture) {
       if (a->getImplementationParameters().ru < deviceResources) {
         bestArchitecture = a;
       } else {

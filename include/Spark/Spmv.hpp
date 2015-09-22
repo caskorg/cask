@@ -92,6 +92,12 @@ namespace spark {
         virtual Eigen::VectorXd dfespmv(Eigen::VectorXd x) = 0;
         virtual std::string get_name() = 0;
 
+        const bool operator< (SpmvArchitecture& other) {
+          return
+            getEstimatedGFlops() > other.getEstimatedGFlops() &&
+            getImplementationParameters().ru < other.getImplementationParameters().ru;
+        }
+
       protected:
         virtual spark::sparse::CsrMatrix preprocessBlock(
             const spark::sparse::CsrMatrix& in,
