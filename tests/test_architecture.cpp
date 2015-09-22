@@ -27,7 +27,8 @@ std::shared_ptr<SpmvArchitecture> dse(
   int it = 0;
 
   // for virtex 6
-  const LogicResourceUsage deviceResources{297600, 297600, 2016, 2128};
+  double alpha = 0.9; // aim to fit about 90% of the chip
+  const LogicResourceUsage maxResources(LogicResourceUsage{297600, 297600, 2016, 2128} * alpha);
 
   std::shared_ptr<SpmvArchitecture> bestArchitecture, a;
 
@@ -38,8 +39,8 @@ std::shared_ptr<SpmvArchitecture> dse(
     std::cout << " ResourceUsage: " << a->getImplementationParameters().to_string() << std::endl;
     dfesnippets::timing::print_clock_diff("Took: ", start);
     if (bestArchitecture == nullptr ||
-        a < bestArchitecture) {
-      if (a->getImplementationParameters().ru < deviceResources) {
+        *a < *bestArchitecture) {
+      if (a->getImplementationParameters().ru < maxResources) {
         bestArchitecture = a;
       } else {
         std::cout << "Architecture exceeds device resources" << std::endl;
@@ -56,7 +57,7 @@ std::shared_ptr<SpmvArchitecture> dse(
     std::cout << " est. gflops " << bestArchitecture->getEstimatedGFlops();
     std::cout << "est. cycles " << bestArchitecture->getEstimatedClockCycles() << std::endl;
   } else {
-    std::cout << bestArchitecture->to_string() << std::endl;
+    std::cout << bestArchitecture->to_string();
     std::cout << " ResourceUsage: " << bestArchitecture->getImplementationParameters().to_string() << std::endl;
   }
   return bestArchitecture;
@@ -85,12 +86,33 @@ int run (
     //new SimpleSpmvArchitectureSpace<PrefetchingArchitecture>(numPipesRange, inputWidthRange, cacheSizeRange)
   };
 
+  std::shared_ptr<SpmvArchitecture> bestOverall;
   for (auto sas : factories) {
-    dse(basename, sas, *eigenMatrix, params);
+    std::shared_ptr<SpmvArchitecture> best = dse(basename, sas, *eigenMatrix, params);
+    if (!bestOverall) {
+      bestOverall = best;
+    } else {
+      if (best && *best < *bestOverall) {
+        bestOverall = best;
+      }
+    }
   }
 
   delete(factories[0]);
   delete(factories[1]);
+
+  if (!bestOverall)
+    return 1;
+
+  std::cout << "Best overall ";
+  std::cout << "Mat: " << basename << " Arch: " << bestOverall->get_name();
+  if (params.gflopsOnly) {
+    std::cout << " est. gflops " << bestOverall->getEstimatedGFlops();
+    std::cout << "est. cycles " << bestOverall->getEstimatedClockCycles() << std::endl;
+  } else {
+    std::cout << bestOverall->to_string();
+    std::cout << " ResourceUsage: " << bestOverall->getImplementationParameters().to_string() << std::endl;
+  }
 }
 
 

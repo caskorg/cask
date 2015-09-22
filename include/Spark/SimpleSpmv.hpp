@@ -109,7 +109,9 @@ namespace spark {
           //LogicResourceUsage designOther{};
           LogicResourceUsage designUsage = (spmvPerPipe + memoryPerPipe) * numPipes + memory;
 
-          return ImplementationParameters{designUsage};
+          ImplementationParameters ip{designUsage};
+          ip.clockFrequency = getFrequency() / 1E6; // MHz
+          return ip;
         }
 
         virtual std::string to_string() {
