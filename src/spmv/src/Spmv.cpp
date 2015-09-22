@@ -287,6 +287,7 @@ Eigen::VectorXd ssarch::dfespmv(Eigen::VectorXd x)
   double est =(double) totalCycles[0] / (100.0 * 1e6);
   double gflopsEst = (2.0 * (double)this->mat.nonZeros() / est) / 1E9;
   double gflopsActual = (2.0 * (double)this->mat.nonZeros() / took) / 1E9;
+  std::cout << "Iterations = " << nIterations;
   std::cout << "Took = " << took << " est = " << est;
   std::cout << " gflops est: " << gflopsEst << " gflopsAct: " << gflopsActual << std::endl;
 
