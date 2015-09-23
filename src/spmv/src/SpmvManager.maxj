@@ -32,6 +32,11 @@ public class SpmvManager extends CustomManager{
         addMaxFileConstant("maxRows", MAX_ROWS);
         addMaxFileConstant("numPipes", NUM_PIPES);
 
+        System.out.println("Max rows = " + MAX_ROWS);
+        System.out.println("Input width" + INPUT_WIDTH);
+        System.out.println("Num Pipes" + NUM_PIPES);
+        System.out.println("Cache Size" + cacheSize);
+
         ManagerUtils.setDRAMMaxDeviceFrequency(this, ep);
         //config.setAllowNonMultipleTransitions(true);
 
