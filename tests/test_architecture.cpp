@@ -22,7 +22,7 @@ struct Params {
 std::shared_ptr<SpmvArchitecture> dse(
     std::string basename,
     SpmvArchitectureSpace* af,
-    Eigen::SparseMatrix<double, Eigen::RowMajor> mat,
+    const Eigen::SparseMatrix<double, Eigen::RowMajor>& mat,
     const Params& params) {
   int it = 0;
 
@@ -37,11 +37,11 @@ std::shared_ptr<SpmvArchitecture> dse(
   while (a = af->next()) {
     auto start = std::chrono::high_resolution_clock::now();
     a->preprocess(mat); // do spmv?
+    //dfesnippets::timing::print_clock_diff("Took: ", start);
     if (!(a->getImplementationParameters() < maxParams))
       continue;
 
     std::cout << basename << " " << a->to_string() << " " << a->getImplementationParameters().to_string() << std::endl;
-    //dfesnippets::timing::print_clock_diff("Took: ", start);
     if (bestArchitecture == nullptr ||
         *a < *bestArchitecture) {
         bestArchitecture = a;

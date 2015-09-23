@@ -126,7 +126,7 @@ namespace spark {
           return s.str();
         }
 
-        virtual void preprocess(const EigenSparseMatrix mat) override;
+        virtual void preprocess(const EigenSparseMatrix& mat) override;
 
         virtual Eigen::VectorXd dfespmv(Eigen::VectorXd x) override;
 
@@ -136,11 +136,11 @@ namespace spark {
 
       private:
         std::vector<EigenSparseMatrix> do_partition(
-            const EigenSparseMatrix mat,
+            const EigenSparseMatrix& mat,
             int numPipes);
 
         Partition do_blocking(
-            const Eigen::SparseMatrix<double, Eigen::RowMajor, int32_t> mat,
+            const Eigen::SparseMatrix<double, Eigen::RowMajor, int32_t>& mat,
             int blockSize,
             int inputWidth);
     };

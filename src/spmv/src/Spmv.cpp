@@ -32,7 +32,7 @@ int ssarch::countComputeCycles(uint32_t* v, int size, int inputWidth)
 
 // transform a given matrix with n rows in blocks of size n X blockSize
 spark::spmv::Partition ssarch::do_blocking(
-    const EigenSparseMatrix m,
+    const EigenSparseMatrix& m,
     int blockSize,
     int inputWidth)
 {
@@ -83,11 +83,11 @@ spark::spmv::Partition ssarch::do_blocking(
   int partition = 0;
   int reductionCycles = rows * partitions.size();
   int emptyCycles = 0;
-  for (auto p : partitions) {
+  for (auto& p : partitions) {
     auto pp = preprocessBlock(p, partition++, partitions.size());
-    auto p_colptr = std::get<0>(pp);
-    auto p_indptr = std::get<1>(pp);
-    auto p_values = std::get<2>(pp);
+    auto& p_colptr = std::get<0>(pp);
+    auto& p_indptr = std::get<1>(pp);
+    auto& p_values = std::get<2>(pp);
 
     int diff = std::get<0>(p).size() - p_colptr.size();
     emptyCycles += diff;
@@ -286,7 +286,7 @@ int spark::spmv::getNumPipes() {
   return Spmv_numPipes;
 }
 
-std::vector<EigenSparseMatrix> ssarch::do_partition(EigenSparseMatrix mat, int numPipes) {
+std::vector<EigenSparseMatrix> ssarch::do_partition(const EigenSparseMatrix& mat, int numPipes) {
   std::vector<EigenSparseMatrix> res;
   int rowsPerPartition = mat.rows() / numPipes;
   int start = 0;
@@ -300,12 +300,22 @@ std::vector<EigenSparseMatrix> ssarch::do_partition(EigenSparseMatrix mat, int n
 }
 
 void ssarch::preprocess(
-    const EigenSparseMatrix mat) {
+    const EigenSparseMatrix& mat) {
   this->mat = mat;
 
-  std::vector<EigenSparseMatrix> partitions = do_partition(mat, this->numPipes);
-
-  for (const auto& m : partitions) {
-    this->partitions.push_back(do_blocking(m, this->cacheSize, this->inputWidth));
+  int rowsPerPartition = mat.rows() / numPipes;
+  int start = 0;
+  for (int i = 0; i < numPipes - 1; i++) {
+    this->partitions.push_back(
+        do_blocking(
+          mat.middleRows(start, rowsPerPartition),
+          this->cacheSize, this->inputWidth));
+    start += rowsPerPartition;
   }
+
+  // put all rows left in the last partition
+  this->partitions.push_back(
+      do_blocking(mat.middleRows(start, mat.rows() - start),
+        this->cacheSize, this->inputWidth));
+
 }
