@@ -153,7 +153,7 @@ int main(int argc, char** argv) {
     return 1;
   }
 
-  Range numPipesRange{1, 6, 1}, inputWidthRange{8, 96, 8}, cacheSizeRange{1024, 4096, 1024};
+  Range numPipesRange{1, 4, 1}, inputWidthRange{8, 40, 8}, cacheSizeRange{1024, 1024 * 32, 1024};
 
   if (vm.count(numPipes)) {
     numPipesRange = Range(vm[numPipes].as<std::string>());
