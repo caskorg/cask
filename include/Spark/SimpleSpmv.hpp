@@ -89,7 +89,7 @@ namespace spark {
           //int brams = (double)cacheSize * (double)inputWidth / 512.0 * 2.0;
 
           // XXX these should be architecture params
-          int maxRows = 200000;
+          int maxRows = (this->mat.rows() / 512) * 512;
           const int virtex6EntriesPerBram = 512;
 
           LogicResourceUsage interPartitionReductionKernel(2768,1505, maxRows / virtex6EntriesPerBram, 0);
