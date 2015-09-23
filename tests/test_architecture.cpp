@@ -30,19 +30,21 @@ std::shared_ptr<SpmvArchitecture> dse(
   double alpha = 0.9; // aim to fit about 90% of the chip
   const LogicResourceUsage maxResources(LogicResourceUsage{297600, 297600, 2016, 2128} * alpha);
 
+  const ImplementationParameters maxParams{maxResources, 39};
+
   std::shared_ptr<SpmvArchitecture> bestArchitecture, a;
 
   while (a = af->next()) {
     auto start = std::chrono::high_resolution_clock::now();
     a->preprocess(mat); // do spmv?
-    if (a->getImplementationParameters().ru < maxResources)
-      std::cout << basename << " " << a->to_string() << " " << a->getImplementationParameters().to_string() << std::endl;
+    if (!(a->getImplementationParameters() < maxParams))
+      continue;
+
+    std::cout << basename << " " << a->to_string() << " " << a->getImplementationParameters().to_string() << std::endl;
     //dfesnippets::timing::print_clock_diff("Took: ", start);
     if (bestArchitecture == nullptr ||
         *a < *bestArchitecture) {
-      if (a->getImplementationParameters().ru < maxResources) {
         bestArchitecture = a;
-      }
     }
   }
 
@@ -84,7 +86,7 @@ int run (
     //new SimpleSpmvArchitectureSpace<PrefetchingArchitecture>(numPipesRange, inputWidthRange, cacheSizeRange)
   };
 
-  std::cout << "File Architecture CacheSize InputWidth NumPipes EstClockCycles EstGflops LUTS FFs DSPs BRAMs ClockFrequency Observation" << std::endl;
+  std::cout << "File Architecture CacheSize InputWidth NumPipes EstClockCycles EstGflops LUTS FFs DSPs BRAMs MemBandwidth Observation" << std::endl;
   std::shared_ptr<SpmvArchitecture> bestOverall;
   for (auto sas : factories) {
     std::shared_ptr<SpmvArchitecture> best = dse(basename, sas, *eigenMatrix, params);

@@ -42,7 +42,7 @@ namespace spark {
         return LogicResourceUsage(x * (double)luts,  x * (double)ffs, x * (double)brams, x * (double)dsps);
       }
 
-      const bool operator<(const LogicResourceUsage& ru) {
+      const bool operator<(const LogicResourceUsage& ru) const {
         return
           luts < ru.luts &&
           ffs < ru.ffs &&
@@ -60,20 +60,30 @@ namespace spark {
         LogicResourceUsage ru;
 
         //  params belows not being used currently
-        int memoryBandwidth; // <-- would be nice to have this
-        int streams;
-        int clockFrequency;
-        int memoryClockFrequency;
+        double memoryBandwidth; // <-- would be nice to have this
+        //int streams;
+        //int clockFrequency;
+        //int memoryClockFrequency;
 
-      ImplementationParameters(const LogicResourceUsage& _ru) : ru(_ru) {}
+      ImplementationParameters(const LogicResourceUsage& _ru, double _memoryBandwidth) : ru(_ru), memoryBandwidth(_memoryBandwidth) {}
 
       std::string to_string() {
         std::stringstream s;
-        s << ru.to_string() << " " << clockFrequency;
+        s << ru.to_string() << " " << memoryBandwidth;
         return s.str();
       }
 
+      bool operator<(const ImplementationParameters& other) const {
+        return
+          ru < other.ru &&
+          memoryBandwidth < other.memoryBandwidth;
+          //stream < other.streams &&
+          //clockFrequency < other.clockFrequency &&
+          //memoryClockFrequency < other.memoryClockFrequency;
+      }
     };
+
+
 
     // A generic architecture for SpMV
     class SpmvArchitecture {

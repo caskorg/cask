@@ -109,8 +109,9 @@ namespace spark {
           //LogicResourceUsage designOther{};
           LogicResourceUsage designUsage = (spmvPerPipe + memoryPerPipe) * numPipes + memory;
 
-          ImplementationParameters ip{designUsage};
-          ip.clockFrequency = getFrequency() / 1E6; // MHz
+          double memoryBandwidth =(double)inputWidth * numPipes * getFrequency() * 12.0 / 1E9;
+          ImplementationParameters ip{designUsage, memoryBandwidth};
+          //ip.clockFrequency = getFrequency() / 1E6; // MHz
           return ip;
         }
 
