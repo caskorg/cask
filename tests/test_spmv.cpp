@@ -37,7 +37,9 @@ int test(string path) {
     return 0;
   }
 
+#ifndef CPUONLY
   spark::test::print_mismatches(mismatches);
+#endif
   std::cout << "Test failed: " << mismatches.size() << " mismatches " << std::endl;
   return 1;
 }

@@ -226,6 +226,20 @@ if (DEFINED ENV{MAXCOMPILERDIR} AND DEFINED ENV{MAXELEROSDIR})
     AddSpmvTestRunHw("TSOPF_RS_b39_c7")
 
   endif()
+else()
 
+  include_directories(dfe-snippets/include)
+
+  message(STATUS "Maxeler not found")
+  add_definitions("-DCPUONLY")
+  #add_library(ArchLibrary src/spmv/src/Spmv.cpp)
+  add_executable(test_architecture tests/test_architecture.cpp src/spmv/src/Spmv.cpp)
+  target_link_libraries(
+    test_architecture
+    #ArchLibrary
+      -lboost_program_options)
+
+    include_directories(tests)
+    add_executable(test_spmv tests/test_spmv.cpp src/spmv/src/Spmv.cpp src/SparseLinearSolvers.cpp)
 endif()
 
