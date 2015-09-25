@@ -121,7 +121,7 @@ namespace spark {
         }
     };
 
-    std::ostream& operator<<(std::ostream& s, SpmvArchitecture& a) {
+    inline std::ostream& operator<<(std::ostream& s, SpmvArchitecture& a) {
       s << " Estimated clock cycles = " << a.getEstimatedClockCycles();
       return s;
     }
