@@ -1,0 +1,321 @@
+
+Total resource usage
+-----------------------------------------------------------------
+    LUTs     FFs   BRAMs    DSPs                            
+  524800 1049600    2567    1963  total available resources for FPGA
+  189064  324459    2567     192  total resources used      
+  36.03%  30.91% 100.00%   9.78%  % of available
+   93853  142972     960     192  used by kernels           
+  17.88%  13.62%  37.40%   9.78%  % of available
+   94152  179551    1594       0  used by manager           
+  17.94%  17.11%  62.10%   0.00%  % of available
+  137593  266802    2366     192  stray resources           
+  26.22%  25.42%  92.17%   9.78%  % of available
+
+High level manager breakdown aggregated by type
+-----------------------------------------------------------------
+    LUTs     FFs   BRAMs    DSPs  Type                      Occurrences
+    3208    5748       0       0  AddrGen                   14
+      39      37       1       0  ChecksumMappedDRP         1
+   10738   11139       0       0  DualAspectMux             10
+      54   12519       0       0  DualAspectReg             4
+    1550    1382     236       0  Fifo                      35
+   93853  142972     960     192  Kernel                    18
+     163     218       0       0  MAX4CPLD                  1
+     783    1037       2       0  MAX4PCIeSlaveInterface    1
+      34      54       0       0  MAXEvents                 1
+    1294     717       0       0  ManagerStateMachine_read  1
+    1277     708       0       0  ManagerStateMachine_read  1
+    1269     724       0       0  ManagerStateMachine_read  1
+     474      82       0       0  MappedElementSwitch       1
+     436    1007       5       0  MappedMemoriesController  1
+     146     138       0       0  MappedRegistersControlle  1
+   23233   89249    1165       0  MemoryControllerPro       1
+    1674     932       6       0  PCIeBase                  1
+     976    1234      28       0  PCIeSlaveStreaming        1
+     271     393       0       0  PerfMonitor               1
+      16      24       0       0  ResetControl              2
+      88     186       0       0  SanityBlock               1
+      91      84       0       0  SignalForwardingAdapter   1
+   46330   51935     151       0  StratixVDDR3              6
+       8       4       0       0  StreamPullPushAdapter     4
+       0       0       0       0  Memory Controller         --
+       0       0       0       0  Other InterFPGA           --
+    1045    1310       8       0  Other MappedElements      --
+    2422    3480      36       0  Other PCIe                --
+
+Kernel breakdown
+-----------------------------------------------------------------
+    LUTs     FFs   BRAMs    DSPs  category
+   93853  142972     960     192  total for all kernels
+  17.88%  13.62%  37.40%   9.78%  % of total available
+
+Totals for each kernel
+    LUTs     FFs   BRAMs    DSPs  Kernel name
+   27994   39879     133      64  computeKernel0 (total)
+   5.33%   3.80%   5.18%   3.26%  % of total available
+   27835   37341     128      64  computeKernel0 (user)
+   5.30%   3.56%   4.99%   3.26%  % of total available
+      50    1986       5       0  computeKernel0 (scheduling)
+   0.01%   0.19%   0.19%   0.00%  % of total available
+     109     552       0       0  computeKernel0 (other Kernel resources)
+   0.02%   0.05%   0.00%   0.00%  % of total available
+   27779   40058     118      64  computeKernel1 (total)
+   5.29%   3.82%   4.60%   3.26%  % of total available
+   27628   37494     113      64  computeKernel1 (user)
+   5.26%   3.57%   4.40%   3.26%  % of total available
+      51    2016       5       0  computeKernel1 (scheduling)
+   0.01%   0.19%   0.19%   0.00%  % of total available
+     100     548       0       0  computeKernel1 (other Kernel resources)
+   0.02%   0.05%   0.00%   0.00%  % of total available
+   27777   40106     118      64  computeKernel2 (total)
+   5.29%   3.82%   4.60%   3.26%  % of total available
+   27625   37517     113      64  computeKernel2 (user)
+   5.26%   3.57%   4.40%   3.26%  % of total available
+      51    2044       5       0  computeKernel2 (scheduling)
+   0.01%   0.19%   0.19%   0.00%  % of total available
+     101     545       0       0  computeKernel2 (other Kernel resources)
+   0.02%   0.05%   0.00%   0.00%  % of total available
+     413     977       0       0  paddingKernel0 (total)
+   0.08%   0.09%   0.00%   0.00%  % of total available
+     362     523       0       0  paddingKernel0 (user)
+   0.07%   0.05%   0.00%   0.00%  % of total available
+       0       5       0       0  paddingKernel0 (scheduling)
+   0.00%   0.00%   0.00%   0.00%  % of total available
+      51     449       0       0  paddingKernel0 (other Kernel resources)
+   0.01%   0.04%   0.00%   0.00%  % of total available
+     412     985       0       0  paddingKernel1 (total)
+   0.08%   0.09%   0.00%   0.00%  % of total available
+     360     528       0       0  paddingKernel1 (user)
+   0.07%   0.05%   0.00%   0.00%  % of total available
+       0       5       0       0  paddingKernel1 (scheduling)
+   0.00%   0.00%   0.00%   0.00%  % of total available
+      52     452       0       0  paddingKernel1 (other Kernel resources)
+   0.01%   0.04%   0.00%   0.00%  % of total available
+     405     982       0       0  paddingKernel2 (total)
+   0.08%   0.09%   0.00%   0.00%  % of total available
+     353     526       0       0  paddingKernel2 (user)
+   0.07%   0.05%   0.00%   0.00%  % of total available
+       0       5       0       0  paddingKernel2 (scheduling)
+   0.00%   0.00%   0.00%   0.00%  % of total available
+      52     451       0       0  paddingKernel2 (other Kernel resources)
+   0.01%   0.04%   0.00%   0.00%  % of total available
+    1712    2820     197       0  reductionKernel0 (total)
+   0.33%   0.27%   7.67%   0.00%  % of total available
+    1614    2130     197       0  reductionKernel0 (user)
+   0.31%   0.20%   7.67%   0.00%  % of total available
+      33     200       0       0  reductionKernel0 (scheduling)
+   0.01%   0.02%   0.00%   0.00%  % of total available
+      65     490       0       0  reductionKernel0 (other Kernel resources)
+   0.01%   0.05%   0.00%   0.00%  % of total available
+    1710    2819     197       0  reductionKernel1 (total)
+   0.33%   0.27%   7.67%   0.00%  % of total available
+    1612    2128     197       0  reductionKernel1 (user)
+   0.31%   0.20%   7.67%   0.00%  % of total available
+      33     199       0       0  reductionKernel1 (scheduling)
+   0.01%   0.02%   0.00%   0.00%  % of total available
+      65     492       0       0  reductionKernel1 (other Kernel resources)
+   0.01%   0.05%   0.00%   0.00%  % of total available
+    1696    2829     197       0  reductionKernel2 (total)
+   0.32%   0.27%   7.67%   0.00%  % of total available
+    1598    2138     197       0  reductionKernel2 (user)
+   0.30%   0.20%   7.67%   0.00%  % of total available
+      33     203       0       0  reductionKernel2 (scheduling)
+   0.01%   0.02%   0.00%   0.00%  % of total available
+      65     488       0       0  reductionKernel2 (other Kernel resources)
+   0.01%   0.05%   0.00%   0.00%  % of total available
+     397     881       0       0  unpaddingColptr0 (total)
+   0.08%   0.08%   0.00%   0.00%  % of total available
+     357     458       0       0  unpaddingColptr0 (user)
+   0.07%   0.04%   0.00%   0.00%  % of total available
+       0       0       0       0  unpaddingColptr0 (scheduling)
+   0.00%   0.00%   0.00%   0.00%  % of total available
+      40     423       0       0  unpaddingColptr0 (other Kernel resources)
+   0.01%   0.04%   0.00%   0.00%  % of total available
+     398     883       0       0  unpaddingColptr1 (total)
+   0.08%   0.08%   0.00%   0.00%  % of total available
+     359     462       0       0  unpaddingColptr1 (user)
+   0.07%   0.04%   0.00%   0.00%  % of total available
+       0       0       0       0  unpaddingColptr1 (scheduling)
+   0.00%   0.00%   0.00%   0.00%  % of total available
+      39     421       0       0  unpaddingColptr1 (other Kernel resources)
+   0.01%   0.04%   0.00%   0.00%  % of total available
+     393     882       0       0  unpaddingColptr2 (total)
+   0.07%   0.08%   0.00%   0.00%  % of total available
+     354     459       0       0  unpaddingColptr2 (user)
+   0.07%   0.04%   0.00%   0.00%  % of total available
+       0       0       0       0  unpaddingColptr2 (scheduling)
+   0.00%   0.00%   0.00%   0.00%  % of total available
+      39     423       0       0  unpaddingColptr2 (other Kernel resources)
+   0.01%   0.04%   0.00%   0.00%  % of total available
+     540    2046       0       0  unpaddingValues0 (total)
+   0.10%   0.19%   0.00%   0.00%  % of total available
+     364     459       0       0  unpaddingValues0 (user)
+   0.07%   0.04%   0.00%   0.00%  % of total available
+       0       0       0       0  unpaddingValues0 (scheduling)
+   0.00%   0.00%   0.00%   0.00%  % of total available
+     176    1587       0       0  unpaddingValues0 (other Kernel resources)
+   0.03%   0.15%   0.00%   0.00%  % of total available
+     534    2039       0       0  unpaddingValues1 (total)
+   0.10%   0.19%   0.00%   0.00%  % of total available
+     358     456       0       0  unpaddingValues1 (user)
+   0.07%   0.04%   0.00%   0.00%  % of total available
+       0       0       0       0  unpaddingValues1 (scheduling)
+   0.00%   0.00%   0.00%   0.00%  % of total available
+     176    1583       0       0  unpaddingValues1 (other Kernel resources)
+   0.03%   0.15%   0.00%   0.00%  % of total available
+     540    2050       0       0  unpaddingValues2 (total)
+   0.10%   0.20%   0.00%   0.00%  % of total available
+     365     468       0       0  unpaddingValues2 (user)
+   0.07%   0.04%   0.00%   0.00%  % of total available
+       0       0       0       0  unpaddingValues2 (scheduling)
+   0.00%   0.00%   0.00%   0.00%  % of total available
+     175    1582       0       0  unpaddingValues2 (other Kernel resources)
+   0.03%   0.15%   0.00%   0.00%  % of total available
+     385     921       0       0  unpaddingVromLoad0 (total)
+   0.07%   0.09%   0.00%   0.00%  % of total available
+     347     468       0       0  unpaddingVromLoad0 (user)
+   0.07%   0.04%   0.00%   0.00%  % of total available
+       0       0       0       0  unpaddingVromLoad0 (scheduling)
+   0.00%   0.00%   0.00%   0.00%  % of total available
+      38     453       0       0  unpaddingVromLoad0 (other Kernel resources)
+   0.01%   0.04%   0.00%   0.00%  % of total available
+     384     910       0       0  unpaddingVromLoad1 (total)
+   0.07%   0.09%   0.00%   0.00%  % of total available
+     346     461       0       0  unpaddingVromLoad1 (user)
+   0.07%   0.04%   0.00%   0.00%  % of total available
+       0       0       0       0  unpaddingVromLoad1 (scheduling)
+   0.00%   0.00%   0.00%   0.00%  % of total available
+      38     449       0       0  unpaddingVromLoad1 (other Kernel resources)
+   0.01%   0.04%   0.00%   0.00%  % of total available
+     384     905       0       0  unpaddingVromLoad2 (total)
+   0.07%   0.09%   0.00%   0.00%  % of total available
+     346     458       0       0  unpaddingVromLoad2 (user)
+   0.07%   0.04%   0.00%   0.00%  % of total available
+       0       0       0       0  unpaddingVromLoad2 (scheduling)
+   0.00%   0.00%   0.00%   0.00%  % of total available
+      38     447       0       0  unpaddingVromLoad2 (other Kernel resources)
+   0.01%   0.04%   0.00%   0.00%  % of total available
+
+
+Manager breakdown
+-----------------------------------------------------------------
+    LUTs     FFs   BRAMs    DSPs  Type                      Instance
+    1018    1079       0       0  DualAspectMux             Stream_100
+      39      35       1       0  Fifo                      Stream_107
+    1206    1204       0       0  DualAspectMux             Stream_111
+      43      36      30       0  Fifo                      Stream_118
+    1049    1040       0       0  DualAspectMux             Stream_121
+      43      34       2       0  Fifo                      Stream_128
+      43      39       3       0  Fifo                      Stream_130
+      43      34       2       0  Fifo                      Stream_133
+      43      35       1       0  Fifo                      Stream_135
+      43      35       2       0  Fifo                      Stream_138
+    1206    1204       0       0  DualAspectMux             Stream_13
+      14    3130       0       0  DualAspectReg             Stream_145
+      14    3062       0       0  DualAspectReg             Stream_152
+     919    1167       0       0  DualAspectMux             Stream_156
+      44      33       1       0  Fifo                      Stream_166
+      42      33      30       0  Fifo                      Stream_170
+      44      37       2       0  Fifo                      Stream_174
+      44      35       1       0  Fifo                      Stream_178
+      42      36      30       0  Fifo                      Stream_182
+      44      35       2       0  Fifo                      Stream_186
+      44      38       1       0  Fifo                      Stream_190
+      42      34      30       0  Fifo                      Stream_194
+      44      33       2       0  Fifo                      Stream_198
+      77     122       4       0  Fifo                      Stream_200
+       2       1       0       0  StreamPullPushAdapter     Stream_202
+      72     120       4       0  Fifo                      Stream_206
+      40      34       2       0  Fifo                      Stream_208
+      43      33      30       0  Fifo                      Stream_20
+       2       1       0       0  StreamPullPushAdapter     Stream_210
+      40      33       2       0  Fifo                      Stream_212
+       2       1       0       0  StreamPullPushAdapter     Stream_214
+      40      32       2       0  Fifo                      Stream_216
+       2       1       0       0  StreamPullPushAdapter     Stream_218
+    1049    1045       0       0  DualAspectMux             Stream_23
+    1018    1078       0       0  DualAspectMux             Stream_2
+      43      35       2       0  Fifo                      Stream_30
+      43      38       3       0  Fifo                      Stream_32
+      43      34       2       0  Fifo                      Stream_35
+      43      33       1       0  Fifo                      Stream_37
+      43      34       2       0  Fifo                      Stream_40
+      13    3155       0       0  DualAspectReg             Stream_47
+    1018    1078       0       0  DualAspectMux             Stream_51
+      39      32       1       0  Fifo                      Stream_58
+    1206    1203       0       0  DualAspectMux             Stream_62
+      43      33      30       0  Fifo                      Stream_69
+    1049    1041       0       0  DualAspectMux             Stream_72
+      43      34       2       0  Fifo                      Stream_79
+      43      37       3       0  Fifo                      Stream_81
+      43      33       2       0  Fifo                      Stream_84
+      43      35       1       0  Fifo                      Stream_86
+      43      34       2       0  Fifo                      Stream_89
+      13    3172       0       0  DualAspectReg             Stream_96
+      39      34       1       0  Fifo                      Stream_9
+     231     409       0       0  AddrGen                   addrgen_cmd_colptr0
+     231     409       0       0  AddrGen                   addrgen_cmd_colptr1
+     230     411       0       0  AddrGen                   addrgen_cmd_colptr2
+     236     411       0       0  AddrGen                   addrgen_cmd_cpu2lmem
+     231     414       0       0  AddrGen                   addrgen_cmd_indptr_values0
+     231     411       0       0  AddrGen                   addrgen_cmd_indptr_values1
+     232     410       0       0  AddrGen                   addrgen_cmd_indptr_values2
+     231     411       0       0  AddrGen                   addrgen_cmd_lmem2cpu
+     231     417       0       0  AddrGen                   addrgen_cmd_paddingOut0
+     231     406       0       0  AddrGen                   addrgen_cmd_paddingOut1
+     232     417       0       0  AddrGen                   addrgen_cmd_paddingOut2
+     231     407       0       0  AddrGen                   addrgen_cmd_vromLoad0
+     232     405       0       0  AddrGen                   addrgen_cmd_vromLoad1
+     198     410       0       0  AddrGen                   addrgen_cmd_vromLoad2
+   27994   39879     133      64  Kernel                    computeKernel0
+   27779   40058     118      64  Kernel                    computeKernel1
+   27777   40106     118      64  Kernel                    computeKernel2
+     413     977       0       0  Kernel                    paddingKernel0
+     412     985       0       0  Kernel                    paddingKernel1
+     405     982       0       0  Kernel                    paddingKernel2
+    1294     717       0       0  ManagerStateMachine_read  readControl0
+    1277     708       0       0  ManagerStateMachine_read  readControl1
+    1269     724       0       0  ManagerStateMachine_read  readControl2
+    1712    2820     197       0  Kernel                    reductionKernel0
+    1710    2819     197       0  Kernel                    reductionKernel1
+    1696    2829     197       0  Kernel                    reductionKernel2
+     397     881       0       0  Kernel                    unpaddingColptr0
+     398     883       0       0  Kernel                    unpaddingColptr1
+     393     882       0       0  Kernel                    unpaddingColptr2
+     540    2046       0       0  Kernel                    unpaddingValues0
+     534    2039       0       0  Kernel                    unpaddingValues1
+     540    2050       0       0  Kernel                    unpaddingValues2
+     385     921       0       0  Kernel                    unpaddingVromLoad0
+     384     910       0       0  Kernel                    unpaddingVromLoad1
+     384     905       0       0  Kernel                    unpaddingVromLoad2
+     783    1037       2       0  MAX4PCIeSlaveInterface    MAX4PCIeSlaveInterface_i
+       8      13       0       0  ResetControl              control_streams_rst_ctl
+     474      82       0       0  MappedElementSwitch       MappedElementSwitch_i
+     436    1007       5       0  MappedMemoriesController  MappedMemoriesController_i
+     146     138       0       0  MappedRegistersControlle  MappedRegistersController_i
+     271     393       0       0  PerfMonitor               perfm
+      88     186       0       0  SanityBlock               SanityBlock_i
+      91      84       0       0  SignalForwardingAdapter   SignalForwardingAdapter_i
+      39      37       1       0  ChecksumMappedDRP         checksum_mem_drp
+     976    1234      28       0  PCIeSlaveStreaming        dynpcie
+       8      11       0       0  ResetControl              reset_controller
+   23233   89249    1165       0  MemoryControllerPro       memctrlpro_maia_sodimms
+    1674     932       6       0  PCIeBase                  PCIeBase_i
+     163     218       0       0  MAX4CPLD                  cpld_io_ext_inst
+      34      54       0       0  MAXEvents                 max_events
+    7717    8622      25       0  StratixVDDR3              ddr3_core
+    7735    8703      26       0  StratixVDDR3              ddr3_core
+    7698    8642      25       0  StratixVDDR3              ddr3_core
+    7709    8646      26       0  StratixVDDR3              ddr3_core
+    7736    8678      24       0  StratixVDDR3              ddr3_core
+    7735    8644      25       0  StratixVDDR3              ddr3_core
+
+Source files annotation report
+-----------------------------------------------------------------
+
+% of total used for each file (note: multiple files may share the same resources)
+    LUTs     FFs   BRAMs    DSPs  filename
+  46.58%  36.37%  36.81% 100.00%  SpmvKernel.maxj
+  48.89%  40.42%  37.40% 100.00%  SpmvManager.maxj
+  89.38%  65.33%  37.40% 100.00%  [ missing source files ]
