@@ -15,7 +15,7 @@ namespace spark {
     using EigenSparseMatrix = std::unique_ptr<Eigen::SparseMatrix<double, Eigen::RowMajor, int32_t>>;
 
     // convert a Spark COO matrix to an Eigen Sparse Matrix
-    EigenSparseMatrix tripletToEigen(spark::sparse::SparkCooMatrix<double> mat) {
+    inline EigenSparseMatrix tripletToEigen(spark::sparse::SparkCooMatrix<double> mat) {
       auto coo = mat.data;
       EigenSparseMatrix m(new Eigen::SparseMatrix<double, Eigen::RowMajor, int32_t>(mat.n, mat.m));
       std::vector<Eigen::Triplet<double>> trips;
@@ -29,14 +29,14 @@ namespace spark {
       return m;
     }
 
-    Eigen::VectorXd stdvectorToEigen(std::vector<double> v) {
+    inline Eigen::VectorXd stdvectorToEigen(std::vector<double> v) {
       Eigen::VectorXd m(v.size());
       for (size_t i = 0; i < v.size(); i++)
         m[i] = v[i];
       return m;
     }
 
-    std::vector<double> eigenVectorToStdVector(const Eigen::VectorXd& v) {
+    inline std::vector<double> eigenVectorToStdVector(const Eigen::VectorXd& v) {
       std::vector<double> m(v.size());
       for (int i = 0; i < v.size(); i++)
         m[i] = v[i];

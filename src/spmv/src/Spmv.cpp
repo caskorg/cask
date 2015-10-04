@@ -7,7 +7,36 @@
 
 #include <dfesnippets/VectorUtils.hpp>
 #include <dfesnippets/Timing.hpp>
+
+#ifndef CPUONLY
 #include <Maxfiles.h>
+#else
+#define Spmv_numPipes 2
+#define Spmv_cacheSize 1024
+#define Spmv_inputWidth 16
+
+void  Spmv_dramWrite(int size, long address, uint8_t* src) {}
+void  Spmv_dramRead(int size, long address, uint8_t* src) {}
+
+void Spmv(
+    int64_t param_nIterations,
+    int64_t param_nPartitions,
+    int64_t param_vectorLoadCycles,
+    int64_t param_vectorSize,
+    const int64_t *param_colPtrStartAddresses,
+    const int32_t *param_colptrSizes,
+    const int32_t *param_colptrUnpaddedlengths,
+    const int64_t *param_indptrValuesAddresses,
+    const int32_t *param_indptrValuesSizes,
+    const int32_t *param_indptrValuesUnpaddedLengths,
+    const int32_t *param_nrows,
+    const int32_t *param_outResultSizes,
+    const int64_t *param_outStartAddresses,
+    const int32_t *param_paddingCycles,
+    const int32_t *param_reductionCycles,
+    const int32_t *param_totalCycles,
+    const int64_t *param_vStartAddresses) {}
+#endif
 
 using namespace spark::spmv;
 using ssarch = spark::spmv::SimpleSpmvArchitecture;
@@ -249,6 +278,14 @@ Eigen::VectorXd ssarch::dfespmv(Eigen::VectorXd x)
       &totalCycles[0],
       &vStartAddresses[0]
       );
+  std::cout << "Total cycles = ";
+  dfesnippets::vectorutils::print_vector(totalCycles);
+  std::cout << "Padding cycles = ";
+  dfesnippets::vectorutils::print_vector(paddingCycles);
+  std::cout << "Reduction cycles = ";
+  dfesnippets::vectorutils::print_vector(reductionCycles);
+  std::cout << "Values sizes = " << std::endl;
+
   double took = dfesnippets::timing::clock_diff(start) / nIterations;
   std::cout << "Done on DFE" << std::endl;
   double est =(double) totalCycles[0] / (100.0 * 1e6);

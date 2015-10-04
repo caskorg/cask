@@ -1,0 +1,299 @@
+    LUTs     FFs   BRAMs    DSPs : SpmvManager.maxj
+   59228   80398    1149      96 : resources used by this file
+  11.29%   7.66%  44.76%   4.89% : % of available
+  38.16%  29.52%  44.76% 100.00% : % of total used
+  97.13%  88.92% 100.00% 100.00% : % of user resources
+
+                                 : import com.maxeler.maxcompiler.v2.build.EngineParameters;
+                                 : import com.maxeler.maxcompiler.v2.managers.custom.CustomManager;
+                                 : import com.maxeler.maxcompiler.v2.managers.custom.blocks.*;
+                                 : import com.maxeler.maxcompiler.v2.managers.custom.stdlib.MemoryControlGroup;
+                                 : import com.maxeler.maxcompiler.v2.managers.engine_interfaces.*;
+                                 : import com.maxeler.maxcompiler.v2.managers.BuildConfig;
+                                 : import com.maxeler.maxcompiler.v2.statemachine.manager.ManagerStateMachine;
+                                 : 
+                                 : import com.custom_computing_ic.dfe_snippets.manager.*;
+                                 : 
+                                 : public class SpmvManager extends CustomManager{
+                                 : 
+                                 :     private static final int cacheSize = 1024 * 2;
+                                 :     private static final int INPUT_WIDTH = 8;
+                                 :     private static final int MAX_ROWS = 70000;
+                                 :     private static final int NUM_PIPES = 3;
+                                 : 
+                                 :     // parameters of CSR format used: float64 values, int32 index.
+                                 :     private static final int mantissaWidth = 53;
+                                 :     private static final int indexWidth = 32;
+                                 : 
+                                 :     private static final int FLOATING_POINT_LATENCY = 16;
+                                 : 
+                                 :     private static final boolean DBG_PAR_CSR_CTL = false;
+                                 :     private static final boolean DBG_SPMV_KERNEL = false;
+                                 :     private static final boolean DBG_REDUCTION_KERNEL = false;
+                                 : 
+                                 :     SpmvManager(EngineParameters ep) {
+                                 :         super(ep);
+                                 :         addMaxFileConstant("inputWidth", INPUT_WIDTH);
+                                 :         addMaxFileConstant("cacheSize", cacheSize);
+                                 :         addMaxFileConstant("maxRows", MAX_ROWS);
+                                 :         addMaxFileConstant("numPipes", NUM_PIPES);
+                                 : 
+                                 :         System.out.println("Max rows = " + MAX_ROWS);
+                                 :         System.out.println("Input width" + INPUT_WIDTH);
+                                 :         System.out.println("Num Pipes" + NUM_PIPES);
+                                 :         System.out.println("Cache Size" + cacheSize);
+                                 : 
+                                 :         config.setDefaultStreamClockFrequency(120);
+                                 : 
+                                 :         ManagerUtils.setDRAMFreq(this, ep, 666);
+                                 :         //ManagerUtils.setDRAMMaxDeviceFrequency(this, ep);
+                                 :         //config.setAllowNonMultipleTransitions(true);
+                                 : 
+                                 :         for (int i = 0; i < NUM_PIPES; i++)
+   58982   76617    1128      96 :           addComputePipe(i, INPUT_WIDTH);
+                                 :     }
+                                 : 
+                                 :     void addComputePipe(int id, int inputWidth) {
+                                 :         ManagerStateMachine readControl = new ParallelCsrReadControl(this, inputWidth, DBG_PAR_CSR_CTL);
+                                 :         StateMachineBlock readControlBlock = addStateMachine(getReadControl(id), readControl);
+                                 : 
+    1074    1377       0       0 :         KernelBlock unpaddingColptr = addKernel(new
+                                 :             UnpaddingKernel(makeKernelParameters(getUnpaddingColptr(id)), 32, id * 10 + 1));
+                                 :         unpaddingColptr.getInput("paddingIn") <== addStreamFromOnCardMemory("colptr" + id,
+                                 :             MemoryControlGroup.MemoryAccessPattern.LINEAR_1D);
+                                 :         readControlBlock.getInput("length") <== unpaddingColptr.getOutput("pout");
+                                 : 
+     690    1077       0       0 :         KernelBlock k = addKernel(new SpmvKernel(
+                                 :               makeKernelParameters(getComputeKernel(id)),
+                                 :               inputWidth,
+                                 :               cacheSize,
+                                 :               indexWidth,
+                                 :               mantissaWidth,
+   48973   63426     258      96 :               DBG_SPMV_KERNEL
+                                 :               ));
+                                 : 
+    1074    1388       0       0 :         KernelBlock unpaddingValues = addKernel(new
+                                 :             UnpaddingKernel(makeKernelParameters(getUnpaddingValues(id)), inputWidth * 96, id * 10 + 2));
+                                 :         unpaddingValues.getInput("paddingIn") <== addStreamFromOnCardMemory("indptr_values" + id,
+                                 :             MemoryControlGroup.MemoryAccessPattern.LINEAR_1D);
+                                 :         k.getInput("indptr_values") <== unpaddingValues.getOutput("pout");
+                                 : 
+    1026    1385       0       0 :         KernelBlock unpadddingVrom = addKernel(new
+                                 :             UnpaddingKernel(makeKernelParameters(getUnpaddingVromLoad(id)), 64, id * 10 + 3));
+                                 :         unpadddingVrom.getInput("paddingIn") <== addStreamFromOnCardMemory("vromLoad" + id,
+                                 :             MemoryControlGroup.MemoryAccessPattern.LINEAR_1D);
+                                 : 
+                                 :         k.getInput("vromLoad") <== unpadddingVrom.getOutput("pout");
+                                 : 
+                                 :         k.getInput("control") <== readControlBlock.getOutput("control");
+                                 : 
+                                 :         // flush control is shared between all kernels
+                                 :         //k.getInput("flush") <== readControlBlock.getOutput("flush");
+                                 : 
+     693    1079       0       0 :         KernelBlock r = addKernel(new BramSpmvReductionKernel(
+                                 :               makeKernelParameters(getReductionKernel(id)),
+                                 :               FLOATING_POINT_LATENCY,
+                                 :               MAX_ROWS,
+    4360    5297     870       0 :               DBG_REDUCTION_KERNEL
+                                 :               ));
+                                 :         r.getInput("reductionIn") <== k.getOutput("output");
+                                 :         //r.getInput("flush") <== k.getOutput("flushTriggerOut");
+                                 :         r.getInput("skipCount") <== k.getOutput("skipCount");
+                                 : 
+     687    1090       0       0 :         KernelBlock p = addKernel(new PaddingKernel(
+     405     498       0       0 :               makeKernelParameters(getPaddingKernel(id))));
+                                 : 
+                                 :         p.getInput("paddingIn") <== r.getOutput("reductionOut");
+                                 :         addStreamToOnCardMemory("paddingOut" + id,
+                                 :             MemoryControlGroup.MemoryAccessPattern.LINEAR_1D) <== p.getOutput("paddingOut");
+                                 :     }
+                                 : 
+                                 :     String getComputeKernel(int id) {
+                                 :       return "computeKernel" + id;
+                                 :     }
+                                 : 
+                                 :     String getReductionKernel(int id) {
+                                 :       return "reductionKernel" + id;
+                                 :     }
+                                 : 
+                                 :     String getPaddingKernel(int id) {
+                                 :       return "paddingKernel" + id;
+                                 :     }
+                                 : 
+                                 :     String getReadControl(int id) {
+                                 :       return "readControl" + id;
+                                 :     }
+                                 : 
+                                 :     String getFanoutName(int id) {
+                                 :       return "flush" + id;
+                                 :     }
+                                 : 
+                                 :     String getUnpaddingVromLoad(int id) {
+                                 :       return "unpaddingVromLoad" + id;
+                                 :     }
+                                 : 
+                                 :     String getUnpaddingColptr(int id) {
+                                 :       return "unpaddingColptr" + id;
+                                 :     }
+                                 : 
+                                 :     String getUnpaddingValues(int id) {
+                                 :       return "unpaddingValues" + id;
+                                 :     }
+                                 : 
+                                 :     void setUpComputePipe(
+                                 :         EngineInterface ei, int id,
+                                 :         InterfaceParam vectorSize,
+                                 :         InterfaceParam vectorLoadCycles,
+                                 :         InterfaceParam nPartitions,
+                                 :         InterfaceParam n,
+                                 :         InterfaceParam outResultStartAddress,
+                                 :         InterfaceParam outResultSize,
+                                 :         InterfaceParam vStartAddress,
+                                 :         InterfaceParam colPtrStartAddress,
+                                 :         InterfaceParam colptrSize,
+                                 :         InterfaceParam colptrUnpaddedlength,
+                                 :         InterfaceParam indptrValuesStartAddress,
+                                 :         InterfaceParam indptrValuesSize,
+                                 :         InterfaceParam valuesUnpaddedLength,
+                                 :         InterfaceParam totalCycles,
+                                 :         InterfaceParam reductionCycles,
+                                 :         InterfaceParam nIterations,
+                                 :         InterfaceParam paddingCycles) {
+                                 : 
+                                 :       String computeKernel = getComputeKernel(id);
+                                 :       String reductionKernel = getReductionKernel(id);
+                                 :       String paddingKernel = getPaddingKernel(id);
+                                 :       String readControl = getReadControl(id);
+                                 : 
+                                 :       ei.setTicks(computeKernel, totalCycles * nIterations);
+                                 : 
+                                 :       ei.setScalar(computeKernel, "vectorLoadCycles", vectorLoadCycles);
+                                 : 
+                                 :       ei.setTicks(reductionKernel, reductionCycles * nIterations);
+                                 :       ei.setScalar(reductionKernel, "nRows", n);
+                                 :       ei.setScalar(reductionKernel, "totalCycles", reductionCycles);
+                                 : 
+                                 :       ei.setTicks(paddingKernel, (n + paddingCycles) * nIterations);
+                                 :       ei.setScalar(paddingKernel, "nInputs", n);
+                                 :       ei.setScalar(paddingKernel, "totalCycles", n + paddingCycles);
+                                 : 
+                                 : 
+                                 :       String vromUnpaddingKernel = getUnpaddingVromLoad(id);
+                                 :       ei.setTicks(vromUnpaddingKernel, vectorSize * nIterations);
+                                 :       ei.setScalar(vromUnpaddingKernel, "nInputs", vectorLoadCycles * nPartitions );
+                                 :       ei.setScalar(vromUnpaddingKernel, "totalCycles", vectorSize);
+                                 : 
+                                 :       String unpaddingColptr = getUnpaddingColptr(id);
+                                 :       InterfaceParam colptrEntries = colptrSize / CPUTypes.INT32.sizeInBytes();
+                                 :       ei.setTicks(unpaddingColptr, colptrEntries * nIterations);
+                                 :       ei.setScalar(unpaddingColptr, "nInputs", colptrUnpaddedlength);
+                                 :       ei.setScalar(unpaddingColptr, "totalCycles", colptrEntries);
+                                 : 
+                                 :       String unpaddingValues = getUnpaddingValues(id);
+                                 :       InterfaceParam valueEntries = indptrValuesSize / (8 + 4) / INPUT_WIDTH; // 12 bytes per entry
+                                 :       ei.setTicks(unpaddingValues, valueEntries * nIterations);
+                                 :       ei.setScalar(unpaddingValues, "nInputs", valuesUnpaddedLength / INPUT_WIDTH);
+                                 :       ei.setScalar(unpaddingValues, "totalCycles", valueEntries);
+                                 : 
+                                 :       InterfaceParam zero = ei.addConstant(0l);
+                                 : 
+                                 :       ei.setLMemLinearWrapped("colptr" + id,
+                                 :           colPtrStartAddress,
+                                 :           colptrSize,
+                                 :           colptrSize * nIterations,
+                                 :           zero);
+                                 : 
+                                 :       ei.setLMemLinearWrapped("vromLoad" + id,
+                                 :           vStartAddress,
+                                 :           vectorSize * CPUTypes.DOUBLE.sizeInBytes(),
+                                 :           vectorSize * CPUTypes.DOUBLE.sizeInBytes() * nIterations,
+                                 :           zero);
+                                 : 
+                                 :       ei.setScalar(readControl, "nrows", n);
+                                 :       ei.setScalar(readControl, "vectorLoadCycles", vectorLoadCycles);
+                                 :       ei.setScalar(readControl, "nPartitions", nPartitions);
+                                 :       ei.setScalar(readControl, "nIterations", nIterations);
+                                 : 
+                                 :       ei.setLMemLinearWrapped(
+                                 :           "indptr_values" + id,
+                                 :           indptrValuesStartAddress,
+                                 :           indptrValuesSize,
+                                 :           indptrValuesSize * nIterations,
+                                 :           zero);
+                                 : 
+                                 :       ei.setLMemLinearWrapped(
+                                 :           "paddingOut" + id,
+                                 :           outResultStartAddress,
+                                 :           outResultSize,
+                                 :           outResultSize * nIterations,
+                                 :           zero
+                                 :           );
+                                 :     }
+                                 : 
+                                 :     private EngineInterface interfaceDefault() {
+                                 :       EngineInterface ei = new EngineInterface();
+                                 : 
+                                 :       InterfaceParam vectorSize = ei.addParam("vectorSize", CPUTypes.INT);
+                                 :       InterfaceParam vectorLoadCycles = ei.addParam("vectorLoadCycles", CPUTypes.INT);
+                                 :       InterfaceParam nPartitions = ei.addParam("nPartitions", CPUTypes.INT);
+                                 :       InterfaceParam nIterations = ei.addParam("nIterations", CPUTypes.INT);
+                                 :       InterfaceParamArray nrows = ei.addParamArray("nrows", CPUTypes.INT32);
+                                 :       InterfaceParamArray paddingCycles = ei.addParamArray("paddingCycles", CPUTypes.INT32);
+                                 : 
+                                 :       InterfaceParamArray outStartAddresses = ei.addParamArray("outStartAddresses", CPUTypes.INT64);
+                                 :       InterfaceParamArray outResultSizes = ei.addParamArray("outResultSizes", CPUTypes.INT32);
+                                 : 
+                                 :       InterfaceParamArray totalCycles = ei.addParamArray("totalCycles", CPUTypes.INT32);
+                                 :       InterfaceParamArray vStartAddresses = ei.addParamArray("vStartAddresses", CPUTypes.INT64);
+                                 : 
+                                 :       InterfaceParamArray indptrValuesAddresses = ei.addParamArray("indptrValuesAddresses", CPUTypes.INT64);
+                                 :       InterfaceParamArray indptrValuesSizes = ei.addParamArray("indptrValuesSizes", CPUTypes.INT32);
+                                 :       InterfaceParamArray indptrValuesUnpaddedLengths = ei.addParamArray("indptrValuesUnpaddedLengths", CPUTypes.INT32);
+                                 : 
+                                 :       InterfaceParamArray colptrStartAddresses = ei.addParamArray("colPtrStartAddresses", CPUTypes.INT64);
+                                 :       InterfaceParamArray colptrSizes = ei.addParamArray("colptrSizes", CPUTypes.INT32);
+                                 :       InterfaceParamArray colptrUnpaddedlengths = ei.addParamArray("colptrUnpaddedlengths", CPUTypes.INT32);
+                                 : 
+                                 :       InterfaceParamArray reductionCycles = ei.addParamArray("reductionCycles", CPUTypes.INT32);
+                                 : 
+                                 :       for (int i = 0; i < NUM_PIPES; i++)
+                                 :         setUpComputePipe(ei, i,
+                                 :             vectorSize,
+                                 :             vectorLoadCycles,
+                                 :             nPartitions,
+                                 :             nrows.get(i),
+                                 :             outStartAddresses.get(i),
+                                 :             outResultSizes.get(i),
+                                 :             vStartAddresses.get(i),
+                                 :             colptrStartAddresses.get(i),
+                                 :             colptrSizes.get(i),
+                                 :             colptrUnpaddedlengths.get(i),
+                                 :             indptrValuesAddresses.get(i),
+                                 :             indptrValuesSizes.get(i),
+                                 :             indptrValuesUnpaddedLengths.get(i),
+                                 :             totalCycles.get(i),
+                                 :             reductionCycles.get(i),
+                                 :             nIterations,
+                                 :             paddingCycles.get(i));
+                                 : 
+                                 :       ei.ignoreLMem("cpu2lmem");
+                                 :       ei.ignoreStream("fromcpu");
+                                 :       ei.ignoreStream("tocpu");
+                                 :       ei.ignoreLMem("lmem2cpu");
+                                 :       return ei;
+                                 :     }
+                                 : 
+                                 :     public static void main(String[] args) {
+                                 :       if (384 % INPUT_WIDTH != 0) {
+                                 :         throw new RuntimeException("Error! 384 is not a multiple of INPUT WIDTH: " +
+                                 :             "This may lead to stalls due to padding / unpadding ");
+                                 :       }
+   58982   76617    1128      96 :       SpmvManager manager = new SpmvManager(new EngineParameters(args));
+                                 :       //ManagerUtils.debug(manager);
+                                 :       manager.createSLiCinterface(ManagerUtils.dramWrite(manager));
+                                 :       manager.createSLiCinterface(ManagerUtils.dramRead(manager));
+                                 :       manager.createSLiCinterface(manager.interfaceDefault());
+                                 :       ManagerUtils.setFullBuild(manager, BuildConfig.Effort.HIGH, 2, 2);
+     246    3781      21       0 :       manager.build();
+                                 :     }
+                                 : }
