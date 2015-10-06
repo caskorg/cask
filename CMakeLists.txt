@@ -225,6 +225,13 @@ if (DEFINED ENV{MAXCOMPILERDIR} AND DEFINED ENV{MAXELEROSDIR})
     AddSpmvTestRunHw("test_wa")
     AddSpmvTestRunHw("TSOPF_RS_b39_c7")
 
+    include_directories(unit-tests)
+    add_executable(spmv_test unit-tests/spmv_test.cpp)
+    target_link_libraries(spmv_test boost_unit_test_framework)
+    add_test(
+      NAME unit_test_spmv
+      COMMAND spmv_test)
+
   endif()
 else()
 
