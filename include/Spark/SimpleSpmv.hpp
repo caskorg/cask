@@ -69,8 +69,6 @@ namespace spark {
           inputWidth(_inputWidth),
           numPipes(_numPipes) {}
 
-        virtual ~SimpleSpmvArchitecture() {}
-
         virtual double getEstimatedClockCycles() {
           auto res = std::max_element(partitions.begin(), partitions.end(),
               [](const Partition& a, const Partition& b) {

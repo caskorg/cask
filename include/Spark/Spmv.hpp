@@ -112,6 +112,8 @@ namespace spark {
                 getImplementationParameters().ru < other.getImplementationParameters().ru);
         }
 
+        virtual ~SpmvArchitecture() {}
+
       protected:
         virtual spark::sparse::CsrMatrix preprocessBlock(
             const spark::sparse::CsrMatrix& in,

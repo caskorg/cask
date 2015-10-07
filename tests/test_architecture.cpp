@@ -99,8 +99,8 @@ int run (
     }
   }
 
-  delete(factories[0]);
-  delete(factories[1]);
+  for (int i = 0; i < factories.size(); i++)
+    delete(factories[i]);
 
   if (!bestOverall)
     return 1;
@@ -125,10 +125,12 @@ int main(int argc, char** argv) {
   std::string cacheSize = "cacheSize";
   std::string inputWidth = "inputWidth";
   std::string gflopsOnly = "gflopsOnly";
+  std::string help = "help";
+  std::string help_m = "produce help message";
 
   po::options_description desc("Allowed options");
   desc.add_options()
-    ("help", "produce help message")
+    (help.c_str(), help_m.c_str())
     (numPipes.c_str(), po::value<std::string>(), "range for number of pipes: start,end,step")
     (cacheSize.c_str(), po::value<std::string>(), "range for cache size")
     (inputWidth.c_str(), po::value<std::string>(), "range for input width")
