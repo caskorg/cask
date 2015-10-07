@@ -1,86 +1,14 @@
 cmake_minimum_required(VERSION 2.6)
 
+include(scripts/CMakeFunctions.txt)
+
 OPTION(SparseLib_DisableTesting "Disable execution of SparseLib tests" OFF)
 
 include_directories(include)
 
 # ---- Useful functions and macros
 
-# Adds a maxeler implementation
-function(AddMaxelerImpl path stem target)
-  set(DfeBuild "${CMAKE_CURRENT_LIST_DIR}/src/${path}/build")
-  set(Src
-    include/Spark/SparseLinearSolvers.hpp
-    include/Spark/Utils.hpp
-    include/Spark/Spmv.hpp
-    include/Spark/SimpleSpmv.hpp
-    src/${path}/src/${stem}Kernel.maxj
-    src/${path}/src/${stem}Manager.maxj
-    src/${path}/src/${stem}.cpp)
-  add_custom_target(
-    ${target}
-    WORKING_DIRECTORY .
-    COMMAND make -C ${DfeBuild} simlib
-    COMMAND cp ${DfeBuild}/lib* ${CMAKE_BINARY_DIR}
-    DEPENDS ${Src})
-  add_custom_target(
-    ${target}_dfe
-    WORKING_DIRECTORY .
-    COMMAND make -C ${DfeBuild} dfelib
-    COMMAND cp ${DfeBuild}/lib* ${CMAKE_BINARY_DIR}
-    DEPENDS ${Src})
-endfunction()
 
-function(AddMaxelerImplTest name libtarget lib args)
-    add_executable(
-      test_${name}
-      tests/test_${name}.cpp)
-    add_dependencies(test_${name} ${libtarget})
-    target_link_libraries(
-      test_${name}
-      -L. -l${lib}
-      SparkCpuLib
-      #-lumfpack -lsuitesparseconfig -lopenblas -lcholmod
-      -lboost_program_options
-      #-lcolamd -lklu -lbtf -lamd
-      -lrt -lpthread)
-endfunction()
-
-function(AddMaxelerImplTestHw name libtarget lib args)
-  add_executable(
-    test_${name}_hw
-    tests/test_${name}.cpp)
-  add_dependencies(test_${name}_hw ${libtarget})
-  target_link_libraries(
-    test_${name}_hw
-    -L. -l${lib}
-    SparkCpuLib
-    #-lumfpack -lsuitesparseconfig -lopenblas -lcholmod
-    #-lboost_program_options
-    #-lcolamd -lklu -lbtf -lamd
-    -lrt -lpthread)
-endfunction()
-
-function(AddMaxelerImplTestRun binary name args)
-    add_test(
-      NAME test_sim_${name}
-      WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-      COMMAND ../scripts/simrunner ./${binary} ${args})
-endfunction()
-
-function(AddMaxelerImplTestRunHw binary name args)
-    add_test(
-      NAME test_hw_${name}
-      WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-      COMMAND ../scripts/hwrun ./${binary} ${args})
-endfunction()
-
-function(AddSpmvTestRunHw matrix)
-    add_test(
-      NAME test_hw_${matrix}
-      WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-      COMMAND ../scripts/hwrun ./test_spmv_hw ../test-matrices/${matrix}.mtx)
-endfunction()
 
 # ---- Project wide configuration ----
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")

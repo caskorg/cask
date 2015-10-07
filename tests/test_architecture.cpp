@@ -5,6 +5,7 @@
 
 #include <Eigen/Sparse>
 #include <Spark/io.hpp>
+#include <Spark/Model.hpp>
 #include <dfesnippets/Timing.hpp>
 
 #include <chrono>
@@ -12,6 +13,7 @@
 
 using namespace spark::spmv;
 using namespace spark::utils;
+using namespace spark::model;
 
 struct Params {
   bool gflopsOnly;

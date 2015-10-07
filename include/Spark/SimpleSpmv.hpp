@@ -5,6 +5,7 @@
 
 #include <Spark/Spmv.hpp>
 #include <Spark/Utils.hpp>
+#include <Spark/Model.hpp>
 
 
 namespace spark {
@@ -82,9 +83,10 @@ namespace spark {
         }
 
         // NOTE: only call this after a call to preprocessMatrix
-        virtual ImplementationParameters getImplementationParameters() {
+        virtual spark::model::ImplementationParameters getImplementationParameters() {
           // XXX bram usage for altera in double precision only (512 deep, 40 bits wide, so need 2 BRAMs)
           //int brams = (double)cacheSize * (double)inputWidth / 512.0 * 2.0;
+          using namespace spark::model;
 
           // XXX these should be architecture params
           int maxRows = (this->mat.rows() / 512) * 512;
