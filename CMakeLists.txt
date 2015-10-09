@@ -1,14 +1,11 @@
 cmake_minimum_required(VERSION 2.6)
 
+# ---- Useful functions and macros
 include(scripts/CMakeFunctions.txt)
 
 OPTION(SparseLib_DisableTesting "Disable execution of SparseLib tests" OFF)
 
 include_directories(include)
-
-# ---- Useful functions and macros
-
-
 
 # ---- Project wide configuration ----
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
@@ -32,6 +29,7 @@ if (EIGEN_HEADER)
   set(SparkCpu_src
     "${SparkCpu_src}"
     src/SparseLinearSolvers.cpp
+    src/dse/Spark.cpp
     )
 endif()
 
@@ -159,6 +157,12 @@ if (DEFINED ENV{MAXCOMPILERDIR} AND DEFINED ENV{MAXELEROSDIR})
     add_test(
       NAME unit_test_spmv
       COMMAND spmv_test)
+
+    add_executable(test_dse tests/test_dse.cpp )
+    target_link_libraries(test_dse SparkCpuLib)
+    add_test(
+      NAME test_dse
+      COMMAND test_dse)
 
   endif()
 else()
