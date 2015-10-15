@@ -113,12 +113,6 @@ if (DEFINED ENV{MAXCOMPILERDIR} AND DEFINED ENV{MAXELEROSDIR})
     AddMaxelerImplTestHw("spmv" spmvlib_dfe "Spmv_dfe" "")
     AddMaxelerImplTestRunHw("test_spmv_hw" "test_spmv_hw_dense_8" "../test-matrices/test_dense_8.mtx")
 
-    # Add hardware tests
-    foreach(infileName ${files})
-      get_filename_component(bleah "${infileName}" NAME)
-      AddSpmvTestRunHw("${bleah}")
-    endforeach()
-
     include_directories(unit-tests)
     add_executable(spmv_test unit-tests/spmv_test.cpp)
     target_link_libraries(spmv_test boost_unit_test_framework)
