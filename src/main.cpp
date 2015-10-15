@@ -1,3 +1,4 @@
+#include <boost/filesystem.hpp>
 #include <boost/program_options.hpp>
 #include <iostream>
 #include <string>
@@ -20,14 +21,16 @@ class DseParameters {
 };
 
 
-DseParameters loadParams() {
+DseParameters loadParams(const boost::filesystem::path& parf) {
+  std::cout << "Using " << parf << " as param file" << std::endl;
   return DseParameters{};
 }
 
 
-Benchmark loadBenchmark(string directory) {
+Benchmark loadBenchmark(const boost::filesystem::path& directory) {
   // include all matrices in directory in the benchmark
   std::cout << "Using " << directory << " as benchmark directory" << std::endl;
+  // TODO build benchmark from directory
   return Benchmark{};
 }
 
@@ -45,11 +48,11 @@ int main(int argc, char** argv) {
     ("help", "Print this help message");
 
   // required options, not displayed in help message
-  string path, dseparams;
+  string benchPath, dseparams;
   po::options_description required_options("Required arguments");
   required_options.add_options()
     (opt_bench_path.c_str(),
-     po::value<string>(&path),
+     po::value<string>(&benchPath),
      "Path to the directory containing benchmarks"
     )
     (opt_dse_params.c_str(),
@@ -69,7 +72,6 @@ int main(int argc, char** argv) {
       options(cmdline_options).positional(p).run(), vm);
   po::notify(vm);
 
-
   if (vm.count("help")) {
     cout << "Usage: ./main bench-path dse-params-file [options]" << endl << endl;
     std::cout << required_options << std::endl;
@@ -77,12 +79,22 @@ int main(int argc, char** argv) {
     return 0;
   }
 
-  std::cout << "Bench Path = " << path << std::endl;
-  std::cout << "Dse params path = " << dseparams << std::endl;
+  // validate command line args
+  namespace bfs = boost::filesystem;
+  bfs::path dirp{benchPath};
+  if (!bfs::is_directory(dirp)) {
+    std::cout << "Error: '" << benchPath << "' not a directory" << std::endl;
+    return 1;
+  }
 
+  bfs::path parf{dseparams};
+  if (!bfs::is_regular_file(parf)) {
+    std::cout << "Error: '" << dseparams << "' is not a file" << std::endl;
+    return 1;
+  }
 
-  // Params params = loadParams()
-   Benchmark benchmark = loadBenchmark("directory");
+  DseParameters params = loadParams(parf);
+  Benchmark benchmark = loadBenchmark(dirp);
   // HardwareDesigns = dseTool.runDse(benchmark);
   // Executables exes = buildTool.buildExecutables(Hardware Designs)
   // PerfResults results = perfTool.runDesigns(exes)
