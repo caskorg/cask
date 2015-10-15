@@ -8,7 +8,7 @@ OPTION(SparseLib_DisableTesting "Disable execution of SparseLib tests" OFF)
 SET (BOOST_ROOT "/opt/boost/boost_1_57_0")
 SET (BOOST_INCLUDEDIR "/opt/boost/boost-1.57.0/include")
 SET (BOOST_LIBRARYDIR "/opt/boost/boost-1.57.0/lib")
-SET (BOOST_MIN_VERSION "1.57.0")
+SET (BOOST_MIN_VERSION "1.55.0")
 set (Boost_NO_BOOST_CMAKE ON)
 FIND_PACKAGE(Boost ${BOOST_MIN_VERSION} REQUIRED)
 if (NOT Boost_FOUND)
@@ -20,7 +20,6 @@ else()
   include_directories(${Boost_INCLUDE_DIRS})
   link_directories(${Boost_LIBRARY_DIRS})
 endif (NOT Boost_FOUND)
-
 
 include_directories(include)
 
@@ -180,8 +179,6 @@ if (DEFINED ENV{MAXCOMPILERDIR} AND DEFINED ENV{MAXELEROSDIR})
     add_test(
       NAME test_dse
       COMMAND test_dse)
-    add_executable(main src/main.cpp)
-    target_link_libraries(main SparkCpuLib -lboost_program_options -lboost_filesystem)
 
   endif()
 else()
@@ -194,8 +191,9 @@ else()
   target_link_libraries(
     test_architecture
     -lboost_program_options)
-
-    include_directories(tests)
-    add_executable(test_spmv tests/test_spmv.cpp src/spmv/src/Spmv.cpp src/SparseLinearSolvers.cpp)
+  include_directories(tests)
+  add_executable(test_spmv tests/test_spmv.cpp src/spmv/src/Spmv.cpp src/SparseLinearSolvers.cpp)
 endif()
 
+add_executable(main src/main.cpp)
+target_link_libraries(main -lboost_program_options -lboost_filesystem -lboost_system SparkCpuLib)
