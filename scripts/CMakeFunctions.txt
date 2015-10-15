@@ -71,5 +71,5 @@ function(AddSpmvTestRunHw matrix)
     add_test(
       NAME test_hw_${matrix}
       WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-      COMMAND ../scripts/hwrun ./test_spmv_hw ../test-matrices/${matrix}.mtx)
+      COMMAND ../scripts/hwrun ./test_spmv_hw ../test-matrices/${matrix})
 endfunction()
