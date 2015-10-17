@@ -1,5 +1,7 @@
 #include <boost/filesystem.hpp>
 #include <boost/program_options.hpp>
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/json_parser.hpp>
 #include <iostream>
 #include <string>
 
@@ -16,24 +18,35 @@ class Benchmark {
 // the parameters and ranges to use for DSE
 class DseParameters {
   public:
+    int numPipes;
     DseParameters() {
     }
 };
 
+inline std::ostream& operator<<(std::ostream& s, DseParameters& d) {
+  s << "DseParams(" << endl;
+  s << "  numPipes = " << d.numPipes << endl;
+  s << ")" << endl;
+  return s;
+}
 
 DseParameters loadParams(const boost::filesystem::path& parf) {
   std::cout << "Using " << parf << " as param file" << std::endl;
-  return DseParameters{};
+  namespace pt = boost::property_tree;
+  pt::ptree tree;
+  pt::read_json(parf.filename().string(), tree);
+  DseParameters dsep;
+  dsep.numPipes = tree.get<int>("dse_params.num_pipes.start");
+  return dsep;
 }
-
 
 Benchmark loadBenchmark(const boost::filesystem::path& directory) {
   // include all matrices in directory in the benchmark
+
   std::cout << "Using " << directory << " as benchmark directory" << std::endl;
   // TODO build benchmark from directory
   return Benchmark{};
 }
-
 
 int main(int argc, char** argv) {
 
@@ -94,6 +107,7 @@ int main(int argc, char** argv) {
   }
 
   DseParameters params = loadParams(parf);
+  std::cout << params << std::endl;
   Benchmark benchmark = loadBenchmark(dirp);
   // HardwareDesigns = dseTool.runDse(benchmark);
   // Executables exes = buildTool.buildExecutables(Hardware Designs)
