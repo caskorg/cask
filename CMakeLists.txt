@@ -136,7 +136,9 @@ else()
   add_executable(test_architecture tests/test_architecture.cpp src/spmv/src/Spmv.cpp)
   target_link_libraries(
     test_architecture
-    -lboost_program_options)
+    -lboost_program_options
+    SparkCpuLib
+    )
   include_directories(tests)
   add_executable(test_spmv tests/test_spmv.cpp src/spmv/src/Spmv.cpp src/SparseLinearSolvers.cpp)
 endif()

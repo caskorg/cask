@@ -1,123 +1,10 @@
-#include <string>
-#include <Spark/Spmv.hpp>
-#include <Spark/SimpleSpmv.hpp>
+#include <Spark/Dse.hpp>
 #include <Spark/Utils.hpp>
-
-#include <Eigen/Sparse>
-#include <Spark/io.hpp>
-#include <Spark/Model.hpp>
-#include <dfesnippets/Timing.hpp>
-
-#include <chrono>
 #include <boost/program_options.hpp>
+#include <chrono>
+#include <string>
 
-using namespace spark::spmv;
 using namespace spark::utils;
-using namespace spark::model;
-
-struct Params {
-  bool gflopsOnly;
-  Params(bool _gflopsOnly) : gflopsOnly(_gflopsOnly) {}
-};
-
-// returns the best architecture
-std::shared_ptr<SpmvArchitecture> dse(
-    std::string basename,
-    SpmvArchitectureSpace* af,
-    const Eigen::SparseMatrix<double, Eigen::RowMajor>& mat,
-    const Params& params) {
-  int it = 0;
-
-  // for virtex 6
-  double alpha = 0.9; // aim to fit about 90% of the chip
-  const LogicResourceUsage maxResources(LogicResourceUsage{297600, 297600, 1064, 2016} * alpha);
-
-  const ImplementationParameters maxParams{maxResources, 39};
-
-  std::shared_ptr<SpmvArchitecture> bestArchitecture, a;
-
-  while (a = af->next()) {
-    auto start = std::chrono::high_resolution_clock::now();
-    a->preprocess(mat); // do spmv?
-    //dfesnippets::timing::print_clock_diff("Took: ", start);
-    if (!(a->getImplementationParameters() < maxParams))
-      continue;
-
-    std::cout << basename << " " << a->to_string() << " " << a->getImplementationParameters().to_string() << std::endl;
-    if (bestArchitecture == nullptr ||
-        *a < *bestArchitecture) {
-        bestArchitecture = a;
-    }
-  }
-
-  if (!bestArchitecture)
-    return nullptr;
-
-  std::cout << basename << " ";
-  if (params.gflopsOnly) {
-    std::cout << bestArchitecture->getEstimatedGFlops();
-    std::cout << bestArchitecture->getEstimatedClockCycles();
-  } else {
-    std::cout << bestArchitecture->to_string();
-    std::cout << " " << bestArchitecture->getImplementationParameters().to_string();
-  }
-  std::cout << " Best " << std::endl;
-  return bestArchitecture;
-}
-
-int run (
-    std::string path,
-    Range numPipesRange, Range inputWidthRange, Range cacheSizeRange,
-    const Params& params
-    ) {
-
-  std::size_t pos = path.find_last_of("/");
-  std::string basename(path.substr(pos, path.size() - pos));
-  std::cout << basename << std::endl;
-
-  spark::io::MmReader<double> m(path);
-  auto start = std::chrono::high_resolution_clock::now();
-  auto eigenMatrix = spark::converters::tripletToEigen(m.mmreadMatrix(path));
-  dfesnippets::timing::print_clock_diff("Reading took: ", start);
-
-  // XXX memory leak
-  std::vector<SpmvArchitectureSpace*> factories{
-    new SimpleSpmvArchitectureSpace<SimpleSpmvArchitecture>(numPipesRange, inputWidthRange, cacheSizeRange),
-    new SimpleSpmvArchitectureSpace<FstSpmvArchitecture>(numPipesRange, inputWidthRange, cacheSizeRange),
-    new SimpleSpmvArchitectureSpace<SkipEmptyRowsArchitecture>(numPipesRange, inputWidthRange, cacheSizeRange),
-    //new SimpleSpmvArchitectureSpace<PrefetchingArchitecture>(numPipesRange, inputWidthRange, cacheSizeRange)
-  };
-
-  std::cout << "File Architecture CacheSize InputWidth NumPipes EstClockCycles EstGflops LUTS FFs DSPs BRAMs MemBandwidth Observation" << std::endl;
-  std::shared_ptr<SpmvArchitecture> bestOverall;
-  for (auto sas : factories) {
-    std::shared_ptr<SpmvArchitecture> best = dse(basename, sas, *eigenMatrix, params);
-    if (!bestOverall) {
-      bestOverall = best;
-    } else {
-      if (best && *best < *bestOverall) {
-        bestOverall = best;
-      }
-    }
-  }
-
-  for (int i = 0; i < factories.size(); i++)
-    delete(factories[i]);
-
-  if (!bestOverall)
-    return 1;
-
-  std::cout  << basename << " ";
-  if (params.gflopsOnly) {
-    std::cout << bestOverall->getEstimatedGFlops();
-    std::cout << bestOverall->getEstimatedClockCycles();
-  } else {
-    std::cout << bestOverall->to_string();
-    std::cout << " "  << bestOverall->getImplementationParameters().to_string();
-  }
-  std::cout << " BestOverall " << std::endl;
-}
-
 
 int main(int argc, char** argv) {
 
@@ -176,8 +63,12 @@ int main(int argc, char** argv) {
 
   auto start = std::chrono::high_resolution_clock::now();
 
-  Params params{gflopsOnlyV};
-  int status = run(path, numPipesRange, inputWidthRange, cacheSizeRange, params);
+  spark::dse::Params params{gflopsOnlyV};
+
+  spark::dse::SparkDse dseTool;
+  dseTool.runDse();
+
+  int status = dseTool.run(path, numPipesRange, inputWidthRange, cacheSizeRange, params);
 
   dfesnippets::timing::print_clock_diff("Test took: ", start);
   if (status == 0)
