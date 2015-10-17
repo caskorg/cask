@@ -17,7 +17,8 @@ std::shared_ptr<SpmvArchitecture> dse_run(
     std::string basename,
     SpmvArchitectureSpace* af,
     const Eigen::SparseMatrix<double, Eigen::RowMajor>& mat,
-    const spark::dse::Params& params) {
+    const DseParameters& params)
+{
   int it = 0;
 
   // for virtex 6
@@ -59,11 +60,8 @@ std::shared_ptr<SpmvArchitecture> dse_run(
 
 int spark::dse::SparkDse::run (
     std::string path,
-    spark::utils::Range numPipesRange,
-    spark::utils::Range inputWidthRange,
-    spark::utils::Range cacheSizeRange,
-    const spark::dse::Params& params
-    ) {
+    const spark::dse::DseParameters& params)
+{
 
   std::size_t pos = path.find_last_of("/");
   std::string basename(path.substr(pos, path.size() - pos));
@@ -76,9 +74,12 @@ int spark::dse::SparkDse::run (
 
   // XXX memory leak
   std::vector<SpmvArchitectureSpace*> factories{
-    new SimpleSpmvArchitectureSpace<SimpleSpmvArchitecture>(numPipesRange, inputWidthRange, cacheSizeRange),
-        new SimpleSpmvArchitectureSpace<FstSpmvArchitecture>(numPipesRange, inputWidthRange, cacheSizeRange),
-        new SimpleSpmvArchitectureSpace<SkipEmptyRowsArchitecture>(numPipesRange, inputWidthRange, cacheSizeRange),
+    new SimpleSpmvArchitectureSpace<SimpleSpmvArchitecture>(
+        params.numPipesRange, params.inputWidthRange, params.cacheSizeRange),
+        new SimpleSpmvArchitectureSpace<FstSpmvArchitecture>(
+            params.numPipesRange, params.inputWidthRange, params.cacheSizeRange),
+        new SimpleSpmvArchitectureSpace<SkipEmptyRowsArchitecture>(
+            params.numPipesRange, params.inputWidthRange, params.cacheSizeRange),
         //new SimpleSpmvArchitectureSpace<PrefetchingArchitecture>(numPipesRange, inputWidthRange, cacheSizeRange)
   };
 

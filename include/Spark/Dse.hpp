@@ -22,22 +22,20 @@ namespace spark {
     // the parameters and ranges to use for DSE
     class DseParameters {
       public:
-        int numPipes;
+        bool gflopsOnly;
+        spark::utils::Range numPipesRange{1, 4, 1};
+        spark::utils::Range inputWidthRange{1, 3, 1};
+        spark::utils::Range cacheSizeRange{1024, 2048, 1024};
         DseParameters() {
         }
     };
 
     inline std::ostream& operator<<(std::ostream& s, DseParameters& d) {
       s << "DseParams(" << std::endl;
-      s << "  numPipes = " << d.numPipes << std::endl;
+      //s << "  numPipes = " << d.numPipes << std::endl;
       s << ")" << std::endl;
       return s;
     }
-
-    struct Params {
-      bool gflopsOnly;
-      Params(bool _gflopsOnly) : gflopsOnly(_gflopsOnly) {}
-    };
 
     class SparkDse {
       public:
@@ -46,10 +44,7 @@ namespace spark {
         // returns the best architecture
         int run (
             std::string path,
-            spark::utils::Range numPipesRange,
-            spark::utils::Range inputWidthRange,
-            spark::utils::Range cacheSizeRange,
-            const Params& params);
+            const DseParameters& dseParams);
     };
   }
 }

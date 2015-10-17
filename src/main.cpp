@@ -14,7 +14,12 @@ spark::dse::DseParameters loadParams(const boost::filesystem::path& parf) {
   pt::ptree tree;
   pt::read_json(parf.filename().string(), tree);
   spark::dse::DseParameters dsep;
-  dsep.numPipes = tree.get<int>("dse_params.num_pipes.start");
+  dsep.numPipesRange =
+    spark::utils::Range{
+      tree.get<int>("dse_params.num_pipes.start"),
+      tree.get<int>("dse_params.num_pipes.stop"),
+      tree.get<int>("dse_params.num_pipes.step"),
+    };
   return dsep;
 }
 
@@ -72,10 +77,10 @@ int main(int argc, char** argv) {
   // validate command line args
   namespace bfs = boost::filesystem;
   bfs::path dirp{benchPath};
-  if (!bfs::is_directory(dirp)) {
-    std::cout << "Error: '" << benchPath << "' not a directory" << std::endl;
-    return 1;
-  }
+  //if (!bfs::is_directory(dirp)) {
+    //std::cout << "Error: '" << benchPath << "' not a directory" << std::endl;
+    //return 1;
+  //}
 
   bfs::path parf{dseparams};
   if (!bfs::is_regular_file(parf)) {
@@ -85,10 +90,13 @@ int main(int argc, char** argv) {
 
   spark::dse::DseParameters params = loadParams(parf);
   std::cout << params << std::endl;
+  params.gflopsOnly = true;
   spark::dse::Benchmark benchmark = loadBenchmark(dirp);
 
   spark::dse::SparkDse dseTool;
-  dseTool.runDse();
+  dseTool.run(
+      benchPath,
+      params);
   // Executables exes = buildTool.buildExecutables(Hardware Designs)
   // PerfResults results = perfTool.runDesigns(exes)
   // results.print()

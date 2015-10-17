@@ -63,12 +63,15 @@ int main(int argc, char** argv) {
 
   auto start = std::chrono::high_resolution_clock::now();
 
-  spark::dse::Params params{gflopsOnlyV};
-
   spark::dse::SparkDse dseTool;
   dseTool.runDse();
+  spark::dse::DseParameters params;
+  params.numPipesRange = numPipesRange;
+  params.inputWidthRange = inputWidthRange;
+  params.cacheSizeRange = cacheSizeRange;
+  params.gflopsOnly = true;
 
-  int status = dseTool.run(path, numPipesRange, inputWidthRange, cacheSizeRange, params);
+  int status = dseTool.run(path, params);
 
   dfesnippets::timing::print_clock_diff("Test took: ", start);
   if (status == 0)
