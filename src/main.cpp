@@ -1,53 +1,30 @@
+#include <Spark/Dse.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/program_options.hpp>
-#include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
+#include <boost/property_tree/ptree.hpp>
 #include <iostream>
 #include <string>
 
 using namespace std;
 
-// a benchmark to use for the DSE
-class Benchmark {
-  public:
-    Benchmark() {
-    }
-};
-
-
-// the parameters and ranges to use for DSE
-class DseParameters {
-  public:
-    int numPipes;
-    DseParameters() {
-    }
-};
-
-inline std::ostream& operator<<(std::ostream& s, DseParameters& d) {
-  s << "DseParams(" << endl;
-  s << "  numPipes = " << d.numPipes << endl;
-  s << ")" << endl;
-  return s;
-}
-
-DseParameters loadParams(const boost::filesystem::path& parf) {
+spark::dse::DseParameters loadParams(const boost::filesystem::path& parf) {
   std::cout << "Using " << parf << " as param file" << std::endl;
   namespace pt = boost::property_tree;
   pt::ptree tree;
   pt::read_json(parf.filename().string(), tree);
-  DseParameters dsep;
+  spark::dse::DseParameters dsep;
   dsep.numPipes = tree.get<int>("dse_params.num_pipes.start");
   return dsep;
 }
 
-Benchmark loadBenchmark(const boost::filesystem::path& directory) {
+spark::dse::Benchmark loadBenchmark(const boost::filesystem::path& directory) {
   // include all matrices in directory in the benchmark
 
   std::cout << "Using " << directory << " as benchmark directory" << std::endl;
   // TODO build benchmark from directory
-  return Benchmark{};
+  return spark::dse::Benchmark{};
 }
-
 int main(int argc, char** argv) {
 
   namespace po = boost::program_options;
@@ -106,10 +83,12 @@ int main(int argc, char** argv) {
     return 1;
   }
 
-  DseParameters params = loadParams(parf);
+  spark::dse::DseParameters params = loadParams(parf);
   std::cout << params << std::endl;
-  Benchmark benchmark = loadBenchmark(dirp);
-  // HardwareDesigns = dseTool.runDse(benchmark);
+  spark::dse::Benchmark benchmark = loadBenchmark(dirp);
+
+  spark::dse::SparkDse dseTool;
+  dseTool.runDse();
   // Executables exes = buildTool.buildExecutables(Hardware Designs)
   // PerfResults results = perfTool.runDesigns(exes)
   // results.print()

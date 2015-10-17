@@ -11,6 +11,29 @@
 namespace spark {
   namespace dse {
 
+    // a benchmark to use for the DSE
+    class Benchmark {
+      public:
+        Benchmark() {
+        }
+    };
+
+
+    // the parameters and ranges to use for DSE
+    class DseParameters {
+      public:
+        int numPipes;
+        DseParameters() {
+        }
+    };
+
+    inline std::ostream& operator<<(std::ostream& s, DseParameters& d) {
+      s << "DseParams(" << std::endl;
+      s << "  numPipes = " << d.numPipes << std::endl;
+      s << ")" << std::endl;
+      return s;
+    }
+
     struct Params {
       bool gflopsOnly;
       Params(bool _gflopsOnly) : gflopsOnly(_gflopsOnly) {}

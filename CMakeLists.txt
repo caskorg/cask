@@ -143,5 +143,5 @@ else()
   add_executable(test_spmv tests/test_spmv.cpp src/spmv/src/Spmv.cpp src/SparseLinearSolvers.cpp)
 endif()
 
-add_executable(main src/main.cpp)
+add_executable(main src/main.cpp src/spmv/src/Spmv.cpp)
 target_link_libraries(main -lboost_program_options -lboost_filesystem -lboost_system SparkCpuLib)
