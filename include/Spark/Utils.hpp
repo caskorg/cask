@@ -53,6 +53,12 @@ namespace spark {
         return crt;
       }
     };
+
+    inline std::ostream& operator<<(std::ostream& s, const Range& r) {
+      std::cout << "Range{";
+      std::cout << r.start << "," << r.end << "," << r.step << "}";
+      return s;
+    }
   }
 }
 
