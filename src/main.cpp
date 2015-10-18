@@ -23,13 +23,16 @@ spark::dse::DseParameters loadParams(const boost::filesystem::path& parf) {
   return dsep;
 }
 
-spark::dse::Benchmark loadBenchmark(const boost::filesystem::path& directory) {
-  // include all matrices in directory in the benchmark
-
-  std::cout << "Using " << directory << " as benchmark directory" << std::endl;
-  // TODO build benchmark from directory
-  return spark::dse::Benchmark{};
+spark::dse::Benchmark loadBenchmark(const boost::filesystem::path& p) {
+  using namespace boost::filesystem;
+  std::cout << "Using " << p << " as benchmark directory" << std::endl;
+  spark::dse::Benchmark benchmark{};
+  for (directory_iterator end, it = directory_iterator(p); it != end; it++) {
+    benchmark.add_matrix_path(it->path().string());
+  }
+  return benchmark;
 }
+
 int main(int argc, char** argv) {
 
   namespace po = boost::program_options;
@@ -77,10 +80,10 @@ int main(int argc, char** argv) {
   // validate command line args
   namespace bfs = boost::filesystem;
   bfs::path dirp{benchPath};
-  //if (!bfs::is_directory(dirp)) {
-    //std::cout << "Error: '" << benchPath << "' not a directory" << std::endl;
-    //return 1;
-  //}
+  if (!bfs::is_directory(dirp)) {
+    std::cout << "Error: '" << benchPath << "' not a directory" << std::endl;
+    return 1;
+  }
 
   bfs::path parf{dseparams};
   if (!bfs::is_regular_file(parf)) {
@@ -89,13 +92,14 @@ int main(int argc, char** argv) {
   }
 
   spark::dse::DseParameters params = loadParams(parf);
-  std::cout << params << std::endl;
   params.gflopsOnly = true;
+  std::cout << params << std::endl;
   spark::dse::Benchmark benchmark = loadBenchmark(dirp);
+  std::cout << benchmark << std::endl;
 
   spark::dse::SparkDse dseTool;
   dseTool.run(
-      benchPath,
+      benchmark,
       params);
   // Executables exes = buildTool.buildExecutables(Hardware Designs)
   // PerfResults results = perfTool.runDesigns(exes)

@@ -59,9 +59,11 @@ std::shared_ptr<SpmvArchitecture> dse_run(
 }
 
 int spark::dse::SparkDse::run (
-    std::string path,
+    const Benchmark& benchmark,
     const spark::dse::DseParameters& params)
 {
+
+  std::string path = benchmark.get_matrix_path(0);
 
   std::size_t pos = path.find_last_of("/");
   std::string basename(path.substr(pos, path.size() - pos));
