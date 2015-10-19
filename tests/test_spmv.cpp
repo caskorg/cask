@@ -1,6 +1,6 @@
 #include <Spark/Spmv.hpp>
 #include <Spark/SimpleSpmv.hpp>
-#include <Spark/io.hpp>
+#include <Spark/Io.hpp>
 #include <Spark/converters.hpp>
 #include <string>
 

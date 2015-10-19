@@ -5,7 +5,7 @@
 #include <Spark/Spmv.hpp>
 #include <Spark/SimpleSpmv.hpp>
 #include <Spark/Utils.hpp>
-#include <Spark/io.hpp>
+#include <Spark/Io.hpp>
 #include <chrono>
 #include <stdexcept>
 #include <sstream>

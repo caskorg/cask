@@ -129,19 +129,40 @@ include_directories(dfe-snippets/include)
 include_directories(tests)
 
 message(STATUS "Maxeler not found")
-add_executable(test_architecture tests/test_architecture.cpp)
-target_link_libraries(test_architecture -lboost_program_options SparkCpuLib)
+
+# For each application we use:
+# - a device library; this implements the low level device calls
+# - an implementation library; this uses the device
+#   library and adds CPU functions for pre/post-processing the data
+# - an interface (header) for the implementation library
+
+# SpMV Device library
+set(SpmvDeviceLib_src
+  src/device/SpmvDeviceInterfaceMock.cpp)
+add_library(SpmvDeviceLib ${SpmvDeviceLib_src})
+
+# SpMV Implementation Library
+set(SpmvImplLib_src
+  src/spmv/src/Spmv.cpp)
+add_library(SpmvImplLib ${SpmvImplLib_src})
 
 set(SparkCpu_src
   "${SparkCpu_src}"
-  src/device/spmv/SpmvDeviceInterfaceMock.cpp
-  src/spmv/src/Spmv.cpp
-  src/dse/Spark.cpp
+  src/dse/Dse.cpp
   )
 add_library(SparkCpuLib ${SparkCpu_src})
 
 add_executable(main src/main.cpp )
-target_link_libraries(main -lboost_program_options -lboost_filesystem -lboost_system SparkCpuLib)
+target_link_libraries(main
+  -lboost_program_options -lboost_filesystem -lboost_system
+  SparkCpuLib SpmvImplLib SpmvDeviceLib)
+
+add_executable(test_architecture tests/test_architecture.cpp)
+target_link_libraries(test_architecture
+  -lboost_program_options
+  SparkCpuLib SpmvImplLib SpmvDeviceLib)
 
 add_executable(test_spmv tests/test_spmv.cpp)
-target_link_libraries(test_spmv -lboost_program_options -lboost_filesystem -lboost_system SparkCpuLib)
+target_link_libraries(test_spmv
+  -lboost_program_options -lboost_filesystem -lboost_system
+  SparkCpuLib SparkCpuLib SpmvImplLib SpmvDeviceLib)

@@ -9,7 +9,7 @@
 
 #include <Spark/SparseLinearSolvers.hpp>
 #include <Spark/converters.hpp>
-#include <Spark/io.hpp>
+#include <Spark/Io.hpp>
 
 #include <dfesnippets/NumericUtils.hpp>
 
