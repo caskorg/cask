@@ -63,7 +63,7 @@ namespace spark {
         SparkDse() {}
         void runDse();
         // returns the best architecture
-        int run (
+        std::vector<std::shared_ptr<spark::spmv::SpmvArchitecture>> run (
             const Benchmark& benchmark,
             const DseParameters& dseParams);
     };

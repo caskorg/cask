@@ -96,11 +96,15 @@ int main(int argc, char** argv) {
   std::cout << params << std::endl;
   spark::dse::Benchmark benchmark = loadBenchmark(dirp);
   std::cout << benchmark << std::endl;
-
   spark::dse::SparkDse dseTool;
-  dseTool.run(
+  auto results = dseTool.run(
       benchmark,
       params);
+  for (const auto& arch : results) {
+    std::cout << arch->get_name() << std::endl;
+    // TODO write architectures to json file
+  }
+
   // Executables exes = buildTool.buildExecutables(Hardware Designs)
   // PerfResults results = perfTool.runDesigns(exes)
   // results.print()

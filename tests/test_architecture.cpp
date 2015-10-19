@@ -72,12 +72,7 @@ int main(int argc, char** argv) {
 
   spark::dse::Benchmark benchmark;
   benchmark.add_matrix_path(path);
-  int status = dseTool.run(benchmark, params);
-
+  dseTool.run(benchmark, params);
   dfesnippets::timing::print_clock_diff("Test took: ", start);
-  if (status == 0)
-    std::cout << "All tests passed!" << std::endl;
-  else
-    std::cout << "Tests failed!" << std::endl;
-  return status;
+  return 0;
 }

@@ -1,6 +1,3 @@
-#ifndef SPARK_H
-#define SPARK_H
-
 #include <iostream>
 #include <Spark/Dse.hpp>
 
@@ -58,10 +55,13 @@ std::shared_ptr<SpmvArchitecture> dse_run(
   return bestArchitecture;
 }
 
-int spark::dse::SparkDse::run (
+std::vector<std::shared_ptr<SpmvArchitecture>> spark::dse::SparkDse::run (
     const Benchmark& benchmark,
     const spark::dse::DseParameters& params)
 {
+
+  std::vector<std::shared_ptr<SpmvArchitecture>> bestArchitectures;
+
   for (int i = 0; i < benchmark.get_benchmark_size(); i++) {
 
     std::string path = benchmark.get_matrix_path(i);
@@ -102,9 +102,6 @@ int spark::dse::SparkDse::run (
     for (int i = 0; i < factories.size(); i++)
       delete(factories[i]);
 
-    if (!bestOverall)
-      return 1;
-
     std::cout  << basename << " ";
     if (params.gflopsOnly) {
       std::cout << bestOverall->getEstimatedGFlops();
@@ -114,7 +111,8 @@ int spark::dse::SparkDse::run (
       std::cout << " "  << bestOverall->getImplementationParameters().to_string();
     }
     std::cout << " BestOverall " << std::endl;
-  }
-}
 
-#endif /* end of include guard: SPARK_H */
+    bestArchitectures.push_back(bestOverall);
+  }
+  return bestArchitectures;
+}
