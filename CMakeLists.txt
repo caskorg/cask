@@ -148,8 +148,7 @@ add_library(SpmvImplLib ${SpmvImplLib_src})
 
 set(SparkCpu_src
   "${SparkCpu_src}"
-  src/dse/Dse.cpp
-  )
+  src/dse/Dse.cpp)
 add_library(SparkCpuLib ${SparkCpu_src})
 
 add_executable(main src/main.cpp )

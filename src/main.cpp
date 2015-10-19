@@ -5,12 +5,14 @@
 #include <boost/property_tree/ptree.hpp>
 #include <iostream>
 #include <string>
+#include <chrono>
+#include <sstream>
 
 using namespace std;
+namespace pt = boost::property_tree;
 
 spark::dse::DseParameters loadParams(const boost::filesystem::path& parf) {
   std::cout << "Using " << parf << " as param file" << std::endl;
-  namespace pt = boost::property_tree;
   pt::ptree tree;
   pt::read_json(parf.filename().string(), tree);
   spark::dse::DseParameters dsep;
@@ -31,6 +33,30 @@ spark::dse::Benchmark loadBenchmark(const boost::filesystem::path& p) {
     benchmark.add_matrix_path(it->path().string());
   }
   return benchmark;
+}
+
+void write_dse_results(const std::vector<std::shared_ptr<spark::spmv::SpmvArchitecture>>& results) {
+  pt::ptree tree, children;
+  stringstream ss;
+  auto end = std::chrono::system_clock::now();
+  auto end_time = std::chrono::system_clock::to_time_t(end);
+  ss << std::ctime(&end_time);
+  tree.put("date", ss.str());
+  for (const auto& arch : results) {
+    std::string arch_name = arch->get_name();
+    // TODO write architectures to json file
+
+    pt::ptree archJson;
+    archJson.put("name", arch_name);
+    archJson.put("estimated_gflops", arch->getEstimatedGFlops());
+    archJson.put("estimated_gflops", arch->getEstimatedGFlops());
+    archJson.add_child("architecture_params", arch->write_params());
+
+    children.push_back(std::make_pair("", archJson));
+
+  }
+  tree.add_child("best_architectures", children);
+  pt::write_json("test_out.json", tree);
 }
 
 int main(int argc, char** argv) {
@@ -100,10 +126,7 @@ int main(int argc, char** argv) {
   auto results = dseTool.run(
       benchmark,
       params);
-  for (const auto& arch : results) {
-    std::cout << arch->get_name() << std::endl;
-    // TODO write architectures to json file
-  }
+  write_dse_results(results);
 
   // Executables exes = buildTool.buildExecutables(Hardware Designs)
   // PerfResults results = perfTool.runDesigns(exes)

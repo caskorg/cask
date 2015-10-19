@@ -56,9 +56,18 @@ namespace spark {
       EigenSparseMatrix mat;
       std::vector<Partition> partitions;
 
+
       virtual int countComputeCycles(uint32_t* v, int size, int inputWidth);
 
       public:
+
+        virtual boost::property_tree::ptree write_params() override {
+          boost::property_tree::ptree tree;
+          tree.put("num_pipes", numPipes);
+          tree.put("cache_size", cacheSize);
+          tree.put("input_width", inputWidth);
+          return tree;
+        }
 
         SimpleSpmvArchitecture() :
           cacheSize(getPartitionSize()),

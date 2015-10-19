@@ -4,6 +4,7 @@
 #include <Spark/SparseMatrix.hpp>
 #include <Spark/converters.hpp>
 #include <Spark/Model.hpp>
+#include <boost/property_tree/ptree.hpp>
 #include <Eigen/Sparse>
 
 namespace spark {
@@ -28,6 +29,7 @@ namespace spark {
         virtual void preprocess(const Eigen::SparseMatrix<double, Eigen::RowMajor>& mat) = 0;
         virtual Eigen::VectorXd dfespmv(Eigen::VectorXd x) = 0;
         virtual std::string get_name() = 0;
+        virtual boost::property_tree::ptree write_params() = 0;
 
         const bool operator< (SpmvArchitecture& other) {
           return
