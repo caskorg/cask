@@ -29,7 +29,7 @@ namespace spark {
           paths.push_back(path);
         }
 
-        int get_benchmark_size() {
+        int get_benchmark_size() const {
           return paths.size();
         }
     };
