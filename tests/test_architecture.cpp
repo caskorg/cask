@@ -64,14 +64,15 @@ int main(int argc, char** argv) {
   auto start = std::chrono::high_resolution_clock::now();
 
   spark::dse::SparkDse dseTool;
-  dseTool.runDse();
   spark::dse::DseParameters params;
   params.numPipesRange = numPipesRange;
   params.inputWidthRange = inputWidthRange;
   params.cacheSizeRange = cacheSizeRange;
   params.gflopsOnly = true;
 
-  int status = dseTool.run(path, params);
+  spark::dse::Benchmark benchmark;
+  benchmark.add_matrix_path(path);
+  int status = dseTool.run(benchmark, params);
 
   dfesnippets::timing::print_clock_diff("Test took: ", start);
   if (status == 0)
