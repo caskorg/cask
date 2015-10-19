@@ -21,8 +21,6 @@ else()
   link_directories(${Boost_LIBRARY_DIRS})
 endif (NOT Boost_FOUND)
 
-include_directories(include)
-
 # ---- Project wide configuration ----
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -march=native")
@@ -45,7 +43,6 @@ if (EIGEN_HEADER)
   set(SparkCpu_src
     "${SparkCpu_src}"
     src/SparseLinearSolvers.cpp
-    src/dse/Spark.cpp
     )
 endif()
 
@@ -59,89 +56,92 @@ if (KLU_LIB)
 endif()
 
 include_directories(include)
-add_library(SparkCpuLib ${SparkCpu_src})
 
 file(GLOB files test-matrices/*.mtx)
 
-if (DEFINED ENV{MAXCOMPILERDIR} AND DEFINED ENV{MAXELEROSDIR})
-  set(DFE_LIB true)
-  add_definitions(-DUSEDFE)
-  message(STATUS "  --> DFE")
-  message(STATUS "         MAXCOMPILER --> $ENV{MAXCOMPILERDIR}")
-  message(STATUS "         MAXELEROS   --> $ENV{MAXELEROSDIR}")
-  include_directories ($ENV{MAXCOMPILERDIR}/include)
-  include_directories ($ENV{MAXCOMPILERDIR}/include/slic)
-  include_directories ($ENV{MAXELEROSDIR}/include)
-  link_directories($ENV{MAXCOMPILERDIR}/lib)
-  link_directories($ENV{MAXELEROSDIR}/lib)
+#if (DEFINED ENV{MAXCOMPILERDIR} AND DEFINED ENV{MAXELEROSDIR})
+  #set(DFE_LIB true)
+  #add_definitions(-DUSEDFE)
+  #message(STATUS "  --> DFE")
+  #message(STATUS "         MAXCOMPILER --> $ENV{MAXCOMPILERDIR}")
+  #message(STATUS "         MAXELEROS   --> $ENV{MAXELEROSDIR}")
+  #include_directories ($ENV{MAXCOMPILERDIR}/include)
+  #include_directories ($ENV{MAXCOMPILERDIR}/include/slic)
+  #include_directories ($ENV{MAXELEROSDIR}/include)
+  #link_directories($ENV{MAXCOMPILERDIR}/lib)
+  #link_directories($ENV{MAXELEROSDIR}/lib)
 
-  # --- Configuration for Maxeler libs
-  AddMaxelerImpl("cg" "ConjugateGradient" "simcglib")
-  AddMaxelerImpl("bicg" "BiConjugateGradient" "simbicglib")
-  AddMaxelerImpl("spmv" "Spmv" "spmvlib")
+  ## --- Configuration for Maxeler libs
+  #AddMaxelerImpl("cg" "ConjugateGradient" "simcglib")
+  #AddMaxelerImpl("bicg" "BiConjugateGradient" "simbicglib")
+  #AddMaxelerImpl("spmv" "Spmv" "spmvlib")
 
-  add_custom_target(
-    distclean
-    COMMAND make -C${CMAKE_CURRENT_LIST_DIR}/src/cg/build distclean
-    COMMAND make -C${CMAKE_CURRENT_LIST_DIR}/src/bicg/build distclean
-    )
+  #add_custom_target(
+    #distclean
+    #COMMAND make -C${CMAKE_CURRENT_LIST_DIR}/src/cg/build distclean
+    #COMMAND make -C${CMAKE_CURRENT_LIST_DIR}/src/bicg/build distclean
+    #)
 
-  if (NOT SparseLib_DisableTesting)
-    enable_testing()
+  #if (NOT SparseLib_DisableTesting)
+    #enable_testing()
 
-    # Should include dfe-snippets headers as they might be used in tests
-    include_directories(dfe-snippets/include)
-    include_directories(tests/)
+    ## Should include dfe-snippets headers as they might be used in tests
+    #include_directories(dfe-snippets/include)
+    #include_directories(tests/)
 
-    #AddMaxelerImplTest("cg" simcglib "ConjugateGradient_sim")
-    AddMaxelerImplTest("spmv" spmvlib "Spmv_sim" "")
+    ##AddMaxelerImplTest("cg" simcglib "ConjugateGradient_sim")
+    #AddMaxelerImplTest("spmv" spmvlib "Spmv_sim" "")
 
-    foreach(infileName ${files})
-      get_filename_component(bleah "${infileName}" NAME)
-      AddMaxelerImplTestRun("test_spmv" "${bleah}" "../test-matrices/${bleah}")
-      AddSpmvTestRunHw("${bleah}")
-    endforeach()
+    #foreach(infileName ${files})
+      #get_filename_component(bleah "${infileName}" NAME)
+      #AddMaxelerImplTestRun("test_spmv" "${bleah}" "../test-matrices/${bleah}")
+      #AddSpmvTestRunHw("${bleah}")
+    #endforeach()
 
-    AddMaxelerImplTest("bicg" simbicglib "BiConjugateGradient_sim" "")
-    AddMaxelerImplTestRun("test_bicg" "bicg" "")
-    add_dependencies(test_bicg smpvlib)
-    target_link_libraries(test_bicg -lSpmv_sim)
+    #AddMaxelerImplTest("bicg" simbicglib "BiConjugateGradient_sim" "")
+    #AddMaxelerImplTestRun("test_bicg" "bicg" "")
+    #add_dependencies(test_bicg smpvlib)
+    #target_link_libraries(test_bicg -lSpmv_sim)
 
-    AddMaxelerImplTest("architecture" spmvlib "Spmv_sim" "")
-    AddMaxelerImplTestRun("test_architecture" "spmv_architecture_test_small" "--filePath ../test-matrices/TSOPF_RS_b39_c7.mtx")
+    #AddMaxelerImplTest("architecture" spmvlib "Spmv_sim" "")
+    #AddMaxelerImplTestRun("test_architecture" "spmv_architecture_test_small" "--filePath ../test-matrices/TSOPF_RS_b39_c7.mtx")
 
-    AddMaxelerImplTestHw("spmv" spmvlib_dfe "Spmv_dfe" "")
-    AddMaxelerImplTestRunHw("test_spmv_hw" "test_spmv_hw_dense_8" "../test-matrices/test_dense_8.mtx")
+    #AddMaxelerImplTestHw("spmv" spmvlib_dfe "Spmv_dfe" "")
+    #AddMaxelerImplTestRunHw("test_spmv_hw" "test_spmv_hw_dense_8" "../test-matrices/test_dense_8.mtx")
 
-    include_directories(unit-tests)
-    add_executable(spmv_test unit-tests/spmv_test.cpp)
-    target_link_libraries(spmv_test boost_unit_test_framework)
-    add_test(
-      NAME unit_test_spmv
-      COMMAND spmv_test)
+    #include_directories(unit-tests)
+    #add_executable(spmv_test unit-tests/spmv_test.cpp)
+    #target_link_libraries(spmv_test boost_unit_test_framework)
+    #add_test(
+      #NAME unit_test_spmv
+      #COMMAND spmv_test)
 
-    add_executable(test_dse tests/test_dse.cpp )
-    target_link_libraries(test_dse SparkCpuLib)
-    add_test(
-      NAME test_dse
-      COMMAND test_dse)
+    #add_executable(test_dse tests/test_dse.cpp )
+    #target_link_libraries(test_dse SparkCpuLib)
+    #add_test(
+      #NAME test_dse
+      #COMMAND test_dse)
 
-  endif()
-else()
+  #endif()
+#else()
 
-  include_directories(dfe-snippets/include)
+include_directories(dfe-snippets/include)
+include_directories(tests)
 
-  message(STATUS "Maxeler not found")
-  add_definitions("-DCPUONLY")
-  add_executable(test_architecture tests/test_architecture.cpp src/spmv/src/Spmv.cpp)
-  target_link_libraries(
-    test_architecture
-    -lboost_program_options
-    SparkCpuLib
-    )
-  include_directories(tests)
-  add_executable(test_spmv tests/test_spmv.cpp src/spmv/src/Spmv.cpp src/SparseLinearSolvers.cpp)
-endif()
+message(STATUS "Maxeler not found")
+add_executable(test_architecture tests/test_architecture.cpp)
+target_link_libraries(test_architecture -lboost_program_options SparkCpuLib)
 
-add_executable(main src/main.cpp src/spmv/src/Spmv.cpp)
+set(SparkCpu_src
+  "${SparkCpu_src}"
+  src/device/spmv/SpmvDeviceInterfaceMock.cpp
+  src/spmv/src/Spmv.cpp
+  src/dse/Spark.cpp
+  )
+add_library(SparkCpuLib ${SparkCpu_src})
+
+add_executable(main src/main.cpp )
 target_link_libraries(main -lboost_program_options -lboost_filesystem -lboost_system SparkCpuLib)
+
+add_executable(test_spmv tests/test_spmv.cpp)
+target_link_libraries(test_spmv -lboost_program_options -lboost_filesystem -lboost_system SparkCpuLib)

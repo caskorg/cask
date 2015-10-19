@@ -8,35 +8,7 @@
 #include <dfesnippets/VectorUtils.hpp>
 #include <dfesnippets/Timing.hpp>
 
-#ifndef CPUONLY
-#include <Maxfiles.h>
-#else
-#define Spmv_numPipes 2
-#define Spmv_cacheSize 1024
-#define Spmv_inputWidth 16
-
-void  Spmv_dramWrite(int size, long address, uint8_t* src) {}
-void  Spmv_dramRead(int size, long address, uint8_t* src) {}
-
-void Spmv(
-    int64_t param_nIterations,
-    int64_t param_nPartitions,
-    int64_t param_vectorLoadCycles,
-    int64_t param_vectorSize,
-    const int64_t *param_colPtrStartAddresses,
-    const int32_t *param_colptrSizes,
-    const int32_t *param_colptrUnpaddedlengths,
-    const int64_t *param_indptrValuesAddresses,
-    const int32_t *param_indptrValuesSizes,
-    const int32_t *param_indptrValuesUnpaddedLengths,
-    const int32_t *param_nrows,
-    const int32_t *param_outResultSizes,
-    const int64_t *param_outStartAddresses,
-    const int32_t *param_paddingCycles,
-    const int32_t *param_reductionCycles,
-    const int32_t *param_totalCycles,
-    const int64_t *param_vStartAddresses) {}
-#endif
+#include <Spark/device/SpmvDeviceInterface.h>
 
 using namespace spark::spmv;
 using ssarch = spark::spmv::SimpleSpmvArchitecture;
