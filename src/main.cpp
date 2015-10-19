@@ -22,6 +22,18 @@ spark::dse::DseParameters loadParams(const boost::filesystem::path& parf) {
       tree.get<int>("dse_params.num_pipes.stop"),
       tree.get<int>("dse_params.num_pipes.step"),
     };
+  dsep.cacheSizeRange =
+    spark::utils::Range {
+      tree.get<int>("dse_params.cache_size.start"),
+      tree.get<int>("dse_params.cache_size.stop"),
+      tree.get<int>("dse_params.cache_size.step"),
+    };
+  dsep.inputWidthRange =
+    spark::utils::Range {
+      tree.get<int>("dse_params.input_width.start"),
+      tree.get<int>("dse_params.input_width.stop"),
+      tree.get<int>("dse_params.input_width.step"),
+    };
   return dsep;
 }
 
@@ -44,16 +56,11 @@ void write_dse_results(const std::vector<std::shared_ptr<spark::spmv::SpmvArchit
   tree.put("date", ss.str());
   for (const auto& arch : results) {
     std::string arch_name = arch->get_name();
-    // TODO write architectures to json file
-
     pt::ptree archJson;
     archJson.put("name", arch_name);
     archJson.put("estimated_gflops", arch->getEstimatedGFlops());
-    archJson.put("estimated_gflops", arch->getEstimatedGFlops());
     archJson.add_child("architecture_params", arch->write_params());
-
     children.push_back(std::make_pair("", archJson));
-
   }
   tree.add_child("best_architectures", children);
   pt::write_json("test_out.json", tree);

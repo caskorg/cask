@@ -4,6 +4,16 @@
       "start":1,
       "stop":3,
       "step":1
+    },
+    "cache_size": {
+      "start":1024,
+      "stop":4096,
+      "step":1024
+    },
+    "input_width": {
+      "start": 1,
+      "stop": 16,
+      "step": 1
     }
   }
 }
