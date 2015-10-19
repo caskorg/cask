@@ -47,13 +47,17 @@ spark::dse::Benchmark loadBenchmark(const boost::filesystem::path& p) {
   return benchmark;
 }
 
-void write_dse_results(const std::vector<std::shared_ptr<spark::spmv::SpmvArchitecture>>& results) {
+void write_dse_results(
+    const std::vector<std::shared_ptr<spark::spmv::SpmvArchitecture>>& results,
+    double took
+    ) {
   pt::ptree tree, children;
   stringstream ss;
   auto end = std::chrono::system_clock::now();
   auto end_time = std::chrono::system_clock::to_time_t(end);
   ss << std::ctime(&end_time);
   tree.put("date", ss.str());
+  tree.put("took", took);
   for (const auto& arch : results) {
     std::string arch_name = arch->get_name();
     pt::ptree archJson;
@@ -130,10 +134,13 @@ int main(int argc, char** argv) {
   spark::dse::Benchmark benchmark = loadBenchmark(dirp);
   std::cout << benchmark << std::endl;
   spark::dse::SparkDse dseTool;
+
+  auto start = std::chrono::high_resolution_clock::now();
   auto results = dseTool.run(
       benchmark,
       params);
-  write_dse_results(results);
+  auto diff = dfesnippets::timing::clock_diff(start);
+  write_dse_results(results, diff);
 
   // Executables exes = buildTool.buildExecutables(Hardware Designs)
   // PerfResults results = perfTool.runDesigns(exes)
