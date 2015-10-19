@@ -75,14 +75,13 @@ std::vector<std::shared_ptr<SpmvArchitecture>> spark::dse::SparkDse::run (
     auto eigenMatrix = spark::converters::tripletToEigen(m.mmreadMatrix(path));
     dfesnippets::timing::print_clock_diff("Reading took: ", start);
 
-    // XXX memory leak
     std::vector<SpmvArchitectureSpace*> factories{
       new SimpleSpmvArchitectureSpace<SimpleSpmvArchitecture>(
           params.numPipesRange, params.inputWidthRange, params.cacheSizeRange),
-          new SimpleSpmvArchitectureSpace<FstSpmvArchitecture>(
-              params.numPipesRange, params.inputWidthRange, params.cacheSizeRange),
-          new SimpleSpmvArchitectureSpace<SkipEmptyRowsArchitecture>(
-              params.numPipesRange, params.inputWidthRange, params.cacheSizeRange),
+          //new SimpleSpmvArchitectureSpace<FstSpmvArchitecture>(
+              //params.numPipesRange, params.inputWidthRange, params.cacheSizeRange),
+          //new SimpleSpmvArchitectureSpace<SkipEmptyRowsArchitecture>(
+              //params.numPipesRange, params.inputWidthRange, params.cacheSizeRange),
           //new SimpleSpmvArchitectureSpace<PrefetchingArchitecture>(numPipesRange, inputWidthRange, cacheSizeRange)
     };
 
