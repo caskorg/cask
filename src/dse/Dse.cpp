@@ -1,10 +1,30 @@
 #include <iostream>
 #include <Spark/Dse.hpp>
+#include <unordered_set>
 
 using namespace spark::spmv;
 using namespace spark::utils;
 using namespace spark::model;
 using namespace spark::dse;
+
+
+std::shared_ptr<SpmvArchitecture>
+better(
+    std::shared_ptr<SpmvArchitecture> a1,
+    std::shared_ptr<SpmvArchitecture> a2) {
+
+  if (a1 == nullptr)
+    return a2;
+
+  bool a1Better =
+    a1->getEstimatedGFlops() > a2->getEstimatedGFlops() ||
+    (a1->getEstimatedGFlops() == a2->getEstimatedGFlops() &&
+     a1->getImplementationParameters().ru < a2->getImplementationParameters().ru);
+
+  if (a1Better)
+    return a1;
+  return a2;
+}
 
 void spark::dse::SparkDse::runDse() {
   std::cout << "Running DSE" << std::endl;
@@ -34,10 +54,7 @@ std::shared_ptr<SpmvArchitecture> dse_run(
       continue;
 
     std::cout << basename << " " << a->to_string() << " " << a->getImplementationParameters().to_string() << std::endl;
-    if (bestArchitecture == nullptr ||
-        *a < *bestArchitecture) {
-      bestArchitecture = a;
-    }
+    bestArchitecture = better(bestArchitecture, a);
   }
 
   if (!bestArchitecture)
@@ -55,12 +72,23 @@ std::shared_ptr<SpmvArchitecture> dse_run(
   return bestArchitecture;
 }
 
+//struct SpmvHash {
+  //std::size_t operator()(const std::shared_ptr<SpmvArchitecture>& a) const {
+    //return a->hash_code();
+  //}
+//};
+
 std::vector<DseResult> spark::dse::SparkDse::run (
     const Benchmark& benchmark,
     const spark::dse::DseParameters& params)
 {
 
   std::vector<DseResult> bestArchitectures;
+
+  //std::unordered_set<
+    //std::shared_ptr<SpmvArchitecture>,
+    //SpmvHash
+    //> set;
 
   for (int i = 0; i < benchmark.get_benchmark_size(); i++) {
 
@@ -88,14 +116,9 @@ std::vector<DseResult> spark::dse::SparkDse::run (
     std::cout << "File Architecture CacheSize InputWidth NumPipes EstClockCycles EstGflops LUTS FFs DSPs BRAMs MemBandwidth Observation" << std::endl;
     std::shared_ptr<SpmvArchitecture> bestOverall;
     for (auto sas : factories) {
-      std::shared_ptr<SpmvArchitecture> best = dse_run(basename, sas, *eigenMatrix, params);
-      if (!bestOverall) {
-        bestOverall = best;
-      } else {
-        if (best && *best < *bestOverall) {
-          bestOverall = best;
-        }
-      }
+      bestOverall = better(
+          bestOverall,
+          dse_run(basename, sas, *eigenMatrix, params));
     }
 
     for (int i = 0; i < factories.size(); i++)
@@ -115,7 +138,5 @@ std::vector<DseResult> spark::dse::SparkDse::run (
         path,
         bestOverall});
   }
-
-  // post-process the results
   return bestArchitectures;
 }

@@ -31,13 +31,6 @@ namespace spark {
         virtual std::string get_name() = 0;
         virtual boost::property_tree::ptree write_params() = 0;
 
-        const bool operator< (SpmvArchitecture& other) {
-          return
-            getEstimatedGFlops() > other.getEstimatedGFlops() || (
-                getEstimatedGFlops() == other.getEstimatedGFlops() &&
-                getImplementationParameters().ru < other.getImplementationParameters().ru);
-        }
-
         virtual ~SpmvArchitecture() {}
 
       protected:
