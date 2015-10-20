@@ -58,12 +58,23 @@ namespace spark {
       return s;
     }
 
+    class DseResult {
+      public:
+        std::shared_ptr<spark::spmv::SpmvArchitecture> bestArchitecture;
+        std::vector<std::string> matrices;
+
+        DseResult(std::string path, std::shared_ptr<spark::spmv::SpmvArchitecture> arch) {
+          matrices.push_back(path);
+          bestArchitecture = arch;
+        }
+    };
+
     class SparkDse {
       public:
         SparkDse() {}
         void runDse();
         // returns the best architecture
-        std::vector<std::shared_ptr<spark::spmv::SpmvArchitecture>> run (
+        std::vector<DseResult> run (
             const Benchmark& benchmark,
             const DseParameters& dseParams);
     };

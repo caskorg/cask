@@ -48,7 +48,7 @@ spark::dse::Benchmark loadBenchmark(const boost::filesystem::path& p) {
 }
 
 void write_dse_results(
-    const std::vector<std::shared_ptr<spark::spmv::SpmvArchitecture>>& results,
+    const std::vector<spark::dse::DseResult>& results,
     double took
     ) {
   pt::ptree tree, children;
@@ -58,12 +58,22 @@ void write_dse_results(
   ss << std::ctime(&end_time);
   tree.put("date", ss.str());
   tree.put("took", took);
-  for (const auto& arch : results) {
+  for (const auto& dseResult : results) {
+    auto arch = dseResult.bestArchitecture;
     std::string arch_name = arch->get_name();
     pt::ptree archJson;
     archJson.put("name", arch_name);
     archJson.put("estimated_gflops", arch->getEstimatedGFlops());
     archJson.add_child("architecture_params", arch->write_params());
+
+    pt::ptree matrices;
+    for (int i = 0; i < dseResult.matrices.size(); i++) {
+      pt::ptree matrix;
+      matrix.put("", dseResult.matrices[i]);
+      matrices.push_back(std::make_pair("", matrix));
+    }
+    archJson.add_child("matrices", matrices);
+
     children.push_back(std::make_pair("", archJson));
   }
   tree.add_child("best_architectures", children);

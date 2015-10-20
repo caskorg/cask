@@ -55,12 +55,12 @@ std::shared_ptr<SpmvArchitecture> dse_run(
   return bestArchitecture;
 }
 
-std::vector<std::shared_ptr<SpmvArchitecture>> spark::dse::SparkDse::run (
+std::vector<DseResult> spark::dse::SparkDse::run (
     const Benchmark& benchmark,
     const spark::dse::DseParameters& params)
 {
 
-  std::vector<std::shared_ptr<SpmvArchitecture>> bestArchitectures;
+  std::vector<DseResult> bestArchitectures;
 
   for (int i = 0; i < benchmark.get_benchmark_size(); i++) {
 
@@ -111,7 +111,11 @@ std::vector<std::shared_ptr<SpmvArchitecture>> spark::dse::SparkDse::run (
     }
     std::cout << " BestOverall " << std::endl;
 
-    bestArchitectures.push_back(bestOverall);
+    bestArchitectures.push_back(DseResult{
+        path,
+        bestOverall});
   }
+
+  // post-process the results
   return bestArchitectures;
 }
