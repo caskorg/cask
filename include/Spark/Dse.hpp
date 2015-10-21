@@ -67,6 +67,9 @@ namespace spark {
           matrices.push_back(path);
           bestArchitecture = arch;
         }
+        DseResult(std::shared_ptr<spark::spmv::SpmvArchitecture> arch) {
+          bestArchitecture = arch;
+        }
     };
 
     class SparkDse {

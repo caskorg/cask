@@ -1,6 +1,7 @@
 #include <iostream>
 #include <Spark/Dse.hpp>
 #include <unordered_set>
+#include <unordered_map>
 
 using namespace spark::spmv;
 using namespace spark::utils;
@@ -72,11 +73,20 @@ std::shared_ptr<SpmvArchitecture> dse_run(
   return bestArchitecture;
 }
 
-//struct SpmvHash {
-  //std::size_t operator()(const std::shared_ptr<SpmvArchitecture>& a) const {
-    //return a->hash_code();
-  //}
-//};
+struct SpmvHash {
+  std::size_t operator()(const std::shared_ptr<SpmvArchitecture>& a) const {
+    return 1;
+  }
+};
+
+struct SpmvEqual {
+  bool operator()(
+      const std::shared_ptr<SpmvArchitecture>& a,
+      const std::shared_ptr<SpmvArchitecture>& b) const
+  {
+    return *a == *b;
+  }
+};
 
 std::vector<DseResult> spark::dse::SparkDse::run (
     const Benchmark& benchmark,
@@ -85,10 +95,12 @@ std::vector<DseResult> spark::dse::SparkDse::run (
 
   std::vector<DseResult> bestArchitectures;
 
-  //std::unordered_set<
-    //std::shared_ptr<SpmvArchitecture>,
-    //SpmvHash
-    //> set;
+  std::unordered_map<
+    std::shared_ptr<SpmvArchitecture>,
+    std::vector<std::string>,
+    SpmvHash,
+    SpmvEqual
+    > all_architectures;
 
   for (int i = 0; i < benchmark.get_benchmark_size(); i++) {
 
@@ -134,9 +146,21 @@ std::vector<DseResult> spark::dse::SparkDse::run (
     }
     std::cout << " BestOverall " << std::endl;
 
-    bestArchitectures.push_back(DseResult{
-        path,
-        bestOverall});
+
+    auto a = all_architectures.find(bestOverall);
+    if ( a != all_architectures.end()) {
+      a->second.push_back(path);
+    } else {
+      all_architectures.insert(
+          std::make_pair(bestOverall, std::vector<std::string>{path}));
+    }
   }
+
+  for (const auto& a : all_architectures) {
+    DseResult result{a.first};
+    result.matrices = a.second;
+    bestArchitectures.push_back(result);
+  }
+
   return bestArchitectures;
 }
