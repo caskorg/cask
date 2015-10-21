@@ -30,6 +30,9 @@ namespace spark {
         virtual Eigen::VectorXd dfespmv(Eigen::VectorXd x) = 0;
         virtual std::string get_name() = 0;
         virtual boost::property_tree::ptree write_params() = 0;
+        bool operator==(const SpmvArchitecture& other) {
+          return equals(other);
+        }
 
         virtual ~SpmvArchitecture() {}
 
@@ -40,6 +43,7 @@ namespace spark {
             int nBlocks) {
           return in;
         }
+        virtual bool equals(const SpmvArchitecture& a) const = 0;
     };
 
     inline std::ostream& operator<<(std::ostream& s, SpmvArchitecture& a) {

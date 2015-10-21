@@ -59,7 +59,19 @@ namespace spark {
 
       virtual int countComputeCycles(uint32_t* v, int size, int inputWidth);
 
+      virtual bool equals(const SpmvArchitecture& a) const override {
+        const SimpleSpmvArchitecture* other = dynamic_cast<const SimpleSpmvArchitecture*>(&a);
+        return other != nullptr && *other == *this;
+      }
+
       public:
+
+        bool operator==(const SimpleSpmvArchitecture& other) const {
+          return
+            cacheSize == other.cacheSize &&
+            inputWidth == other.inputWidth &&
+            numPipes == other.numPipes;
+        }
 
         virtual boost::property_tree::ptree write_params() override {
           boost::property_tree::ptree tree;
