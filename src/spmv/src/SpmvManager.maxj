@@ -10,10 +10,10 @@ import com.custom_computing_ic.dfe_snippets.manager.*;
 
 public class SpmvManager extends CustomManager{
 
-    private static final int cacheSize = 1024 * 2;
-    private static final int INPUT_WIDTH = 32;
-    private static final int MAX_ROWS = 200000;
-    private static final int NUM_PIPES = 1;
+    private final int cacheSize;
+    private final int inputWidth;
+    private final int maxRows;
+    private final int numPipes;
 
     // parameters of CSR format used: float64 values, int32 index.
     private static final int mantissaWidth = 53;
@@ -25,23 +25,29 @@ public class SpmvManager extends CustomManager{
     private static final boolean DBG_SPMV_KERNEL = false;
     private static final boolean DBG_REDUCTION_KERNEL = false;
 
-    SpmvManager(EngineParameters ep) {
+    SpmvManager(SpmvEngineParams ep) {
         super(ep);
-        addMaxFileConstant("inputWidth", INPUT_WIDTH);
-        addMaxFileConstant("cacheSize", cacheSize);
-        addMaxFileConstant("maxRows", MAX_ROWS);
-        addMaxFileConstant("numPipes", NUM_PIPES);
 
-        System.out.println("Max rows = " + MAX_ROWS);
-        System.out.println("Input width" + INPUT_WIDTH);
-        System.out.println("Num Pipes" + NUM_PIPES);
-        System.out.println("Cache Size" + cacheSize);
+        inputWidth = ep.getInputWidth();
+        cacheSize = ep.getVectorCacheSize();
+        maxRows = ep.getMaxRows();
+        numPipes = ep.getNumPipes();
+
+        if (384 % inputWidth != 0) {
+          throw new RuntimeException("Error! 384 is not a multiple of INPUT WIDTH: " +
+              "This may lead to stalls due to padding / unpadding ");
+        }
+
+        addMaxFileConstant("inputWidth", inputWidth);
+        addMaxFileConstant("cacheSize", cacheSize);
+        addMaxFileConstant("maxRows", maxRows);
+        addMaxFileConstant("numPipes", numPipes);
 
         ManagerUtils.setDRAMMaxDeviceFrequency(this, ep);
         //config.setAllowNonMultipleTransitions(true);
 
-        for (int i = 0; i < NUM_PIPES; i++)
-          addComputePipe(i, INPUT_WIDTH);
+        for (int i = 0; i < numPipes; i++)
+          addComputePipe(i, inputWidth);
     }
 
     void addComputePipe(int id, int inputWidth) {
@@ -84,7 +90,7 @@ public class SpmvManager extends CustomManager{
         KernelBlock r = addKernel(new BramSpmvReductionKernel(
               makeKernelParameters(getReductionKernel(id)),
               FLOATING_POINT_LATENCY,
-              MAX_ROWS,
+              maxRows,
               DBG_REDUCTION_KERNEL
               ));
         r.getInput("reductionIn") <== k.getOutput("output");
@@ -181,9 +187,9 @@ public class SpmvManager extends CustomManager{
       ei.setScalar(unpaddingColptr, "totalCycles", colptrEntries);
 
       String unpaddingValues = getUnpaddingValues(id);
-      InterfaceParam valueEntries = indptrValuesSize / (8 + 4) / INPUT_WIDTH; // 12 bytes per entry
+      InterfaceParam valueEntries = indptrValuesSize / (8 + 4) / inputWidth; // 12 bytes per entry
       ei.setTicks(unpaddingValues, valueEntries * nIterations);
-      ei.setScalar(unpaddingValues, "nInputs", valuesUnpaddedLength / INPUT_WIDTH);
+      ei.setScalar(unpaddingValues, "nInputs", valuesUnpaddedLength / inputWidth);
       ei.setScalar(unpaddingValues, "totalCycles", valueEntries);
 
       InterfaceParam zero = ei.addConstant(0l);
@@ -247,7 +253,7 @@ public class SpmvManager extends CustomManager{
 
       InterfaceParamArray reductionCycles = ei.addParamArray("reductionCycles", CPUTypes.INT32);
 
-      for (int i = 0; i < NUM_PIPES; i++)
+      for (int i = 0; i < numPipes; i++)
         setUpComputePipe(ei, i,
             vectorSize,
             vectorLoadCycles,
@@ -275,11 +281,8 @@ public class SpmvManager extends CustomManager{
     }
 
     public static void main(String[] args) {
-      if (384 % INPUT_WIDTH != 0) {
-        throw new RuntimeException("Error! 384 is not a multiple of INPUT WIDTH: " +
-            "This may lead to stalls due to padding / unpadding ");
-      }
-      SpmvManager manager = new SpmvManager(new EngineParameters(args));
+
+      SpmvManager manager = new SpmvManager(new SpmvEngineParams(args));
       //ManagerUtils.debug(manager);
       manager.createSLiCinterface(ManagerUtils.dramWrite(manager));
       manager.createSLiCinterface(ManagerUtils.dramRead(manager));
