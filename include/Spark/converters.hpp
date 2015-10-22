@@ -7,7 +7,6 @@
 #include <Spark/SparseMatrix.hpp>
 #include <Eigen/Sparse>
 #include <Spark/SparseMatrix.hpp>
-#include <boost/numeric/ublas/io.hpp>
 
 namespace spark {
   namespace converters {
