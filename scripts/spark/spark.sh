@@ -15,8 +15,6 @@ DSE_LOG_FILE=dse.log
 # TODO
 ${DSE_CMD} | tee ${DSE_LOG_FILE}
 
-exit 0
-
 # 2. Convert DSE output to a list of MAX_BUILDPARAMS
 sed -e '/"architecture_params"/,/}/!d' ${DSE_FILE} | xargs -n9 \
  | sed -e 's/architecture_params: //g' -e 's/{//g' -e 's/},//g' \
