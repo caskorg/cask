@@ -23,7 +23,7 @@ sed -e '/"architecture_params"/,/}/!d' ${DSE_FILE} | xargs -n9 \
 # 3. Start a build
 while read p; do
   echo "Starting build $p"
-  MAX_BUILDPARAMS="$p" make -C ${BUILD_DIR}
+  MAX_BUILDPARAMS="$p" make -C ${BUILD_DIR} build
 done < ${ARCH_CFG}
 
 echo $results
