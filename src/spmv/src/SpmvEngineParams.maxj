@@ -30,10 +30,10 @@ public class SpmvEngineParams extends EngineParameters {
         declareParam("debugDecoder", DataType.BOOL, debugDecoder);
         declareParam("debugOutputSm", DataType.BOOL, debugOutputSm);
 
-        declareParam("numPipes", DataType.INT, numPipes);
-        declareParam("inputWidth", DataType.INT, inputWidth);
-        declareParam("vectorCacheSize", DataType.INT, vectorCacheSize);
-        declareParam("maxRows", DataType.INT, maxRows);
+        declareParam("num_pipes", DataType.INT, numPipes);
+        declareParam("input_width", DataType.INT, inputWidth);
+        declareParam("cache_size", DataType.INT, vectorCacheSize);
+        declareParam("max_rows", DataType.INT, maxRows);
 
         declareParam("highEffort", DataType.BOOL, highEffort);
     }
@@ -55,19 +55,19 @@ public class SpmvEngineParams extends EngineParameters {
     }
 
     public int getNumPipes() {
-        return getParam("numPipes");
+        return getParam("num_pipes");
     }
 
     public int getVectorCacheSize() {
-        return getParam("vectorCacheSize");
+        return getParam("cache_size");
     }
 
     public int getMaxRows() {
-        return getParam("maxRows");
+        return getParam("max_rows");
     }
 
     public int getInputWidth() {
-        return getParam("inputWidth");
+        return getParam("input_width");
     }
 
     public boolean getDebugKernel() {
