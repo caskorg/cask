@@ -13,7 +13,7 @@ public class SpmvEngineParams extends EngineParameters {
     private static final int numPipes = 1;
     private static final int vectorCacheSize = 2 * 1024;
     private static final int inputWidth = 16;
-    private static final int maxRows = 200000;
+    private static final int maxRows = 50000;
 
     // -- Build params
     private static final boolean highEffort = true;
