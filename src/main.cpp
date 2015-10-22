@@ -14,7 +14,7 @@ namespace pt = boost::property_tree;
 spark::dse::DseParameters loadParams(const boost::filesystem::path& parf) {
   std::cout << "Using " << parf << " as param file" << std::endl;
   pt::ptree tree;
-  pt::read_json(parf.filename().string(), tree);
+  pt::read_json(parf.string(), tree);
   spark::dse::DseParameters dsep;
   dsep.numPipesRange =
     spark::utils::Range{
