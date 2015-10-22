@@ -54,7 +54,7 @@ while read p; do
   # run the benchmark
   cd ../../build/
   # TODO run all benchmarks
-  ../scripts/simrunner ./test_spmv_sim ../test-matrices/test_dense_48.mtx
+  MAX_BUILDPARAMS="${p}" ../scripts/simrunner ./test_spmv_sim ../test-matrices/test_dense_48.mtx
   cd ../scripts/spark
 
 done < ${SIM_CFG}

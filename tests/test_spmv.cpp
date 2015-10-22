@@ -3,6 +3,7 @@
 #include <Spark/Io.hpp>
 #include <Spark/converters.hpp>
 #include <string>
+#include <Spark/UserInput.hpp>
 
 #include <test_utils.hpp>
 
@@ -50,6 +51,7 @@ int main(int argc, char** argv) {
     cout << "   " << argv[i] << endl;
   // XXX Reasonable argument parsing
 
+  auto res = spark::userio::parseBuildParams(std::getenv("MAX_BUILDPARAMS"));
   if (argc > 1) {
     int status = test(argv[1]);
     if (status == 0)
