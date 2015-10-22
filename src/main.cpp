@@ -77,7 +77,7 @@ void write_dse_results(
     children.push_back(std::make_pair("", archJson));
   }
   tree.add_child("best_architectures", children);
-  pt::write_json("test_out.json", tree);
+  pt::write_json("dse_out.json", tree);
 }
 
 int main(int argc, char** argv) {
