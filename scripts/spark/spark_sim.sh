@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
 
+# Script to drive the DSE process
+# TODO compilation phase requires to update the Device header
+# TODO generate build name for simulation as for hardware
+# TODO provide flag to run hardware build / perf tests
+# TODO force compilation for builds with small timing failures
 
 # Run DSE
 
@@ -48,6 +53,7 @@ while read p; do
 
   # run the benchmark
   cd ../../build/
+  # TODO run all benchmarks
   ../scripts/simrunner ./test_spmv_sim ../test-matrices/test_dense_48.mtx
   cd ../scripts/spark
 
