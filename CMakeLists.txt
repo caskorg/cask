@@ -165,3 +165,12 @@ add_executable(test_spmv tests/test_spmv.cpp)
 target_link_libraries(test_spmv
   -lboost_program_options -lboost_filesystem -lboost_system
   SparkCpuLib SparkCpuLib SpmvImplLib SpmvDeviceLib)
+
+add_executable(test_spmv_sim tests/test_spmv.cpp)
+target_link_libraries(test_spmv_sim
+  -lboost_program_options -lboost_filesystem -lboost_system
+  SparkCpuLib SparkCpuLib SpmvImplLib
+  -L../lib-generated -lSpmv_sim
+  -L/vol/cc/opt/maxeler/maxcompiler-2014.1/lib/maxeleros-sim/lib/
+  -lmaxeleros
+  )
