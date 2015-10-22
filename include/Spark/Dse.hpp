@@ -53,7 +53,9 @@ namespace spark {
 
     inline std::ostream& operator<<(std::ostream& s, DseParameters& d) {
       s << "DseParams(" << std::endl;
-      s << "  numPipes = " << d.numPipesRange << std::endl;
+      s << "  numPipes   = " << d.numPipesRange << std::endl;
+      s << "  inputWidth = " << d.inputWidthRange << std::endl;
+      s << "  cacheSize  = " << d.cacheSizeRange << std::endl;
       s << ")" << std::endl;
       return s;
     }
