@@ -149,16 +149,22 @@ all: runsim build
 
 # ---- DFE ----
 
-$(DFEMAXDIR)/$(PRJ).max: $(ENGINEFILES)
+#$(DFEMAXDIR)/$(PRJ).max: $(ENGINEFILES)
 
 maxfile: $(ENGINEFILES)
 	$(MAXJC) $(JFLAGS) $(ENGINEFILES)
 	MAXAPPJCP=. MAXSOURCEDIRS='../src' $(MAXJAVARUN) -v -m 8192 $(MANAGER) DFEModel=$(DFEModel) maxFileName=$(PRJ) target='DFE' enableMPCX=$(MPCX)
+	#@echo "Old timing score"
+	#@grep TIMING_SCORE $(SIMMAXDIR)/$(PRJ).max
+	#sed  -i -e s/PARAM\(TIMING_SCORE\,.*\)/PARAM\(TIMING_SCORE,\ 0\)/ $(DFEMAXDIR)/$(PRJ).max
+	#@echo "New timing score"
+	#@grep TIMING_SCORE $(SIMMAXDIR)/$(PRJ).max
 	#cp $(DFEMAXDIR)/$(PRJ).h $(DFEMAXDIR)/Maxfiles.h
 
-simlib: $(DFEMAXDIR)/$(PRJ).max
-	$(SLICCOMPILE) $< "maxfile.o"
-	$(CPUCOMPILER) $(ALL_FLAGS) -shared -Wl,-soname,lib$(PRJ)_sim.so.0 -o lib$(PRJ)_sim.so "maxfile.o" $(LFLAGS)
+#simlib: $(SIMMAXDIR)/$(PRJ).max
+	#$(SLICCOMPILE) $< "maxfile.o"
+	#g++ -I$(SIMMAXDIR) $(ALL_FLAGS) -c ../src/SpmvDeviceInterface.cpp -o SpmvDeviceInterface.o
+	#$(CPUCOMPILER) $(ALL_FLAGS) -shared -Wl,-soname,lib$(PRJ)_sim.so.0 -o lib$(PRJ)_sim.so "maxfile.o" SpmvDeviceInterface.o $(LFLAGS)
 
 
 #$(PRJ)_dfe.o: $(DFEMAXDIR)/$(PRJ).max

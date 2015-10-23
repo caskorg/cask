@@ -3,11 +3,11 @@ extern "C" {
 #endif /* __cplusplus */
 #include <cstdint>
 
-#define Spmv_inputWidth (16)
-#define Spmv_numPipes (2)
-#define Spmv_PCIE_ALIGNMENT (16)
-#define Spmv_maxRows (50000)
-#define Spmv_cacheSize (2048)
+// access device parameters
+int getSpmv_PartitionSize();
+int getSpmv_InputWidth();
+int getSpmv_NumPipes();
+int getSpmv_MaxRows();
 
 
 /**

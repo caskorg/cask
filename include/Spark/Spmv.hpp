@@ -68,11 +68,6 @@ namespace spark {
         virtual SpmvArchitecture* doNext() = 0;
     };
 
-    // return the properties for the currently linked hardware design
-    int getPartitionSize();
-    int getNumPipes();
-    int getInputWidth();
-
     template<typename T>
       void align(std::vector<T>& v, int widthInBytes) {
         int limit = widthInBytes / sizeof(T);

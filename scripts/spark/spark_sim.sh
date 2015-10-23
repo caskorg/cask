@@ -29,11 +29,9 @@ SIM_CFG=sim_architecture_config.out
 head -n 1 ${ARCH_CFG} > ${SIM_CFG}
 
 # 3. Start a build
-  set -x
 while read p; do
   echo "Starting build $p"
   buildLocation=`MAX_BUILDPARAMS="${p} target=DFE_SIM" make -C ${BUILD_DIR} maxfile | grep 'Build location'`
-  set +x
 
   buildDir=`echo ${buildLocation} | grep -o '/.*'`
   echo "Build dir = ${buildDir}"
@@ -44,9 +42,13 @@ while read p; do
   # generate Spmv implementation
   PRJ=Spmv # TODO need a name?
   LIB=lib${PRJ}_sim.so
-	sliccompile ${maxFileLocation} "maxfile.o"
+	#sliccompile ${maxFileLocation} "maxfile.o" # change to use the lib not maxfile
+  CFLAGS="${COMPILER_CFLAGS} ${OPT_FLAGS} -Wall -I${MAXCOMPILERDIR}/include -I${MAXCOMPILERDIR}/include/slic -I${MAXELEROSDIR}/include -D_XOPEN_SOURCE=600 -I${WHEREISROOT}/include/ -I${DFESNIPPETS}/include -I../../include -std=c++11 -I${buildDir}/results/"
+  set -x
+	g++ -I${SIMMAXDIR} ${CFLAGS} -c ../../src/spmv/src/SpmvDeviceInterface.cpp -o SpmvDeviceInterface.o
+  set +x
   LFLAGS="-L${MAXCOMPILERDIR}/lib -L${MAXELEROSDIR}/lib -lmaxeleros -lslic -lm -lpthread"
-  g++ -fPIC --std=c++11 -shared -Wl,-soname,${LIB}.0 -o ${LIB} "maxfile.o" ${LFLAGS}
+  g++ -fPIC --std=c++11 -shared -Wl,-soname,${LIB}.0 -o ${LIB} "maxfile.o" SpmvDeviceInterface.o ${LFLAGS}
   cp ${LIB} ../../lib-generated
   cp ${LIB} ../../lib-generated/${LIB}.0
   make -C ../../build/ test_spmv_sim
