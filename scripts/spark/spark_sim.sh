@@ -1,17 +1,54 @@
 #!/usr/bin/env bash
 
 # Script to drive the DSE process
+#
 # TODO compilation phase requires to update the Device header
 # TODO provide flag to run hardware build / perf tests
 # TODO force compilation for builds with small timing failures
 
-# Run DSE
+
+function usage {
+  echo "Usage: $0 dfe|sim bench-path dse-params"
+  echo ""
+  echo "  where:"
+  echo "    dfe|sim     -- whether to build simulation or hardware"
+  echo "    bench-path  -- path to benchmark directory"
+  echo "    dse-params  -- path to a JSON dse param file"
+  echo ""
+  echo "  example:"
+  echo "    $0 sim ../../test-benchmark ../../dse_params.json"
+}
 
 DSE_FILE=dse_out.json
 ARCH_CFG=architecture_config.out
 BUILD_DIR=../../src/spmv/build
-JSON_PARAM_FILE=`readlink -e ../../params.json`
-BENCH_FILE=`readlink -e ../../test-benchmark-tiny`
+
+PARAM_TARGET=$1
+if [ "${PARAM_TARGET}" == "dfe" ]
+then
+  target="DFE"
+elif [ "${PARAM_TARGET}" == "sim" ]
+then
+  target="DFE_SIM"
+else
+  echo "Error: Target must be either 'dfe' or 'sim'"
+  exit 1
+fi
+
+BENCH_FILE=`readlink -e ${2}`
+if [ "$?" != "0" ]
+then
+  echo "Error: Benchmark directory not found!"
+  exit 1
+fi
+
+JSON_PARAM_FILE=`readlink -e ${3}`
+if [ "$?" != "0" ]
+then
+  echo "Error: JSON param file not found!"
+  exit 1
+fi
+
 DSE_CMD="./../../build/main ${BENCH_FILE} ${JSON_PARAM_FILE}"
 DSE_LOG_FILE=dse.log
 
@@ -28,7 +65,6 @@ SIM_CFG=sim_architecture_config.out
 head -n 1 ${ARCH_CFG} > ${SIM_CFG}
 
 # TODO choose target based on command param
-target="DFE_SIM"
 
 # 3. Start a build
 while read p; do
