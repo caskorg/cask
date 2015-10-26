@@ -1,21 +1,12 @@
 # ---- Source files ----
 ENGINEFILES?=$(wildcard ../src/*.maxj)
 
-# ---- Command alias ----
-MAXFILECOMPILE=maxfilecompile
-MAXJAVARUN=maxJavaRun
-MAXJC=maxjc
-MAXDEBUG=maxdebug
-MAXRENDERGRAPHS=maxRenderGraphs
-MAXCOMPILERSIM=maxcompilersim
 DFESNIPPETS?=$(WHEREISROOT)/dfe-snippets
 
 JFLAGS=-cp $(MAXCOMPILERDIR)/lib/MaxCompiler.jar:$(DFESNIPPETS)/src -1.6 -d .
 
-# Files to remove on clean
-TRASH=*~ ../src/*~ *.o
-DIST_TRASH=Maxfiles.h *.class *.o debug* *.dot *.png lib*
-
-maxfile: $(ENGINEFILES)
-	$(MAXJC) $(JFLAGS) $(ENGINEFILES)
-	MAXAPPJCP=. MAXSOURCEDIRS='../src' $(MAXJAVARUN) -v -m 8192 $(MANAGER) DFEModel=$(DFEModel) maxFileName=$(PRJ) target='DFE' enableMPCX=$(MPCX)
+# XXX A bit of a hack
+%.max: $(ENGINEFILES)
+	echo $(MXFILEPATH)
+	maxjc $(JFLAGS) $(ENGINEFILES)
+	MAXAPPJCP=. MAXSOURCEDIRS='../src' maxJavaRun -v -m 8192 $(MANAGER) DFEModel=$(DFEModel) enableMPCX=$(MPCX)

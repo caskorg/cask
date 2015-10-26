@@ -60,21 +60,25 @@ head -n 1 ${ARCH_CFG} > ${SIM_CFG}
 
 # 3. Start a build
 while read p; do
+  PRJ="Spmv"
   echo "Starting build $p"
-  buildLocation=`MAX_BUILDPARAMS="${p} target=${target}" make -C ${BUILD_DIR} maxfile | tee /dev/tty | grep 'Build location'`
-
-
-  buildDir=`echo ${buildLocation} | grep -o '/.*'`
-  echo "Build dir = ${buildDir}"
-
-  maxFileLocation=`grep "MaxFile:" ${buildDir}/_build.log | grep -o '/.*max'`
+  buildName="${PRJ}_"`echo "${p}" | sed 's/ /_/g' | sed 's/=//g'`
+  buildDir="${BUILD_DIR}/${buildName}"
+  maxFileLocation="${buildDir}/results/${PRJ}.max"
+  maxFileTarget="${buildName}/results/${PRJ}.max"
   echo "MaxFile Location = ${maxFileLocation}"
+
+  # Force make to always rebuilds, because the design parameters will change
+  # but are not being picked up by make. Set this to "" to avoid needless
+  # recompilation during development & testing
+  alwaysBuild="-B"
+  buildParams="${p} target=${target} buildName=${buildName} maxFileName=${PRJ}"
+  MAX_BUILDPARAMS="${buildParams}" make ${alwaysBuild} -C ${BUILD_DIR} ${maxFileTarget}
 
   # compile the maxfile
 	sliccompile ${maxFileLocation} "maxfile.o"
 
   # create the device library
-  PRJ=Spmv
   LIB=lib${PRJ}_sim.so
 
   # Ignore timinig score
