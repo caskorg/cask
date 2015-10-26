@@ -71,7 +71,7 @@ while read p; do
   # Force make to always rebuilds, because the design parameters will change
   # but are not being picked up by make. Set this to "" to avoid needless
   # recompilation during development & testing
-  alwaysBuild="-B"
+  #alwaysBuild="-B"
   buildParams="${p} target=${target} buildName=${buildName} maxFileName=${PRJ}"
   MAX_BUILDPARAMS="${buildParams}" make ${alwaysBuild} -C ${BUILD_DIR} ${maxFileTarget}
 
@@ -108,7 +108,7 @@ while read p; do
   resFile=`echo "${p}" | sed -e 's/ /_/g'`"_total.out"
   rm -f ${resFile} # cleanup previous results
   while read f; do
-     ../simrunner ../../build/test_spmv_sim ${f} > run.log
+     ../simrunner ../../build/test_spmv_sim ${f} | tee run.log
      # TODO log per partition results
 
      # log total results
