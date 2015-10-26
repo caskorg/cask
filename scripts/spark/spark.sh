@@ -1,10 +1,6 @@
 #!/usr/bin/env bash
 
 # Script to drive the DSE process
-#
-# TODO compilation phase requires to update the Device header
-# TODO provide flag to run hardware build / perf tests
-
 
 function usage {
   echo "Usage: $0 dfe|sim bench-path dse-params"
@@ -52,7 +48,6 @@ DSE_CMD="./../../build/main ${BENCH_FILE} ${JSON_PARAM_FILE}"
 DSE_LOG_FILE=dse.log
 
 # 1. Run DSE tool
-# TODO
 ${DSE_CMD} | tee ${DSE_LOG_FILE}
 
 # 2. Convert DSE output to a list of MAX_BUILDPARAMS
@@ -62,8 +57,6 @@ sed -e '/"architecture_params"/,/}/!d' ${DSE_FILE} | xargs -n9 \
 
 SIM_CFG=sim_architecture_config.out
 head -n 1 ${ARCH_CFG} > ${SIM_CFG}
-
-# TODO choose target based on command param
 
 # 3. Start a build
 while read p; do
@@ -106,13 +99,20 @@ while read p; do
   make -C ../../build/ test_spmv_sim
 
   # run the benchmark
-  cd ../../build/
   # TODO run all benchmarks
   find ${BENCH_FILE} -name "*.mtx" > benchmark_matrices.out
+  resFile=`echo "${p}" | sed -e 's/ /_/g'`"_total.out"
+  rm -f ${resFile} # cleanup previous results
   while read f; do
-     ../scripts/simrunner ./test_spmv_sim ${f}
-   done < benchmark_matrices.out
-  cd ../scripts/spark
+     ../simrunner ../../build/test_spmv_sim ${f} > run.log
+     # TODO log per partition results
+
+     # log total results
+     value=`grep Iterations run.log`
+     fileBase=`basename $f`
+     echo "Results file > ${resFile}"
+     echo "${fileBase},${value}" >> "${resFile}"
+  done < benchmark_matrices.out
 
 done < ${SIM_CFG}
 
