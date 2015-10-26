@@ -39,11 +39,6 @@ public class SpmvEngineParams extends EngineParameters {
     }
 
     public String getBuildName() {
-
-        // we don't label simulation builds
-        if (getTarget() == Target.DFE_SIM)
-            return super.getBuildName();
-
         String base =
           getMaxFileName() + "_" + getDFEModel() + "_" + getTarget() + "_";
         String params =
