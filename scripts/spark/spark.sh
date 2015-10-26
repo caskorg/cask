@@ -4,7 +4,6 @@
 #
 # TODO compilation phase requires to update the Device header
 # TODO provide flag to run hardware build / perf tests
-# TODO force compilation for builds with small timing failures
 
 
 function usage {
@@ -69,7 +68,8 @@ head -n 1 ${ARCH_CFG} > ${SIM_CFG}
 # 3. Start a build
 while read p; do
   echo "Starting build $p"
-  buildLocation=`MAX_BUILDPARAMS="${p} target=${target}" make -C ${BUILD_DIR} maxfile | grep 'Build location'`
+  buildLocation=`MAX_BUILDPARAMS="${p} target=${target}" make -C ${BUILD_DIR} maxfile | tee /dev/tty | grep 'Build location'`
+
 
   buildDir=`echo ${buildLocation} | grep -o '/.*'`
   echo "Build dir = ${buildDir}"
@@ -83,6 +83,14 @@ while read p; do
   # create the device library
   PRJ=Spmv
   LIB=lib${PRJ}_sim.so
+
+  # Ignore timinig score
+  echo "Old timing score"
+  grep TIMING_SCORE ${maxFileLocation}
+  sed  -i -e s/PARAM\(TIMING_SCORE\,.*\)/PARAM\(TIMING_SCORE,\ 0\)/ ${maxFileLocation}
+  echo "New timing score"
+  grep TIMING_SCORE ${maxFileLocation}
+
   MAX_INC="-I${MAXCOMPILERDIR}/include -I${MAXCOMPILERDIR}/include/slic -I${MAXELEROSDIR}/include"
   GEN_INC="-I${buildDir}/results/"
   CFLAGS="-Wall ${MAX_INC} -I${DFESNIPPETS}/include -I../../include -std=c++11 ${GEN_INC}"
