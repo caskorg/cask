@@ -108,7 +108,10 @@ while read p; do
   # run the benchmark
   cd ../../build/
   # TODO run all benchmarks
-  MAX_BUILDPARAMS="${p}" ../scripts/simrunner ./test_spmv_sim ../test-matrices/test_dense_48.mtx
+  find ${BENCH_FILE} -name "*.mtx" > benchmark_matrices.out
+  while read f; do
+     ../scripts/simrunner ./test_spmv_sim ${f}
+   done < benchmark_matrices.out
   cd ../scripts/spark
 
 done < ${SIM_CFG}
