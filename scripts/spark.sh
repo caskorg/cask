@@ -90,17 +90,17 @@ while read p; do
 
   MAX_INC="-I${MAXCOMPILERDIR}/include -I${MAXCOMPILERDIR}/include/slic -I${MAXELEROSDIR}/include"
   GEN_INC="-I${buildDir}/results/"
-  CFLAGS="-Wall ${MAX_INC} -I${DFESNIPPETS}/include -I../../include -std=c++11 ${GEN_INC}"
-	g++ -I${SIMMAXDIR} ${CFLAGS} -c ../../src/spmv/src/SpmvDeviceInterface.cpp -o SpmvDeviceInterface.o
+  CFLAGS="-Wall ${MAX_INC} -I${DFESNIPPETS}/include -I../include -std=c++11 ${GEN_INC}"
+	g++ -I${SIMMAXDIR} ${CFLAGS} -c ../src/spmv/src/SpmvDeviceInterface.cpp -o SpmvDeviceInterface.o
   LFLAGS="-L${MAXCOMPILERDIR}/lib -L${MAXELEROSDIR}/lib -lmaxeleros -lslic -lm -lpthread"
   g++ -fPIC --std=c++11 -shared -Wl,-soname,${LIB}.0 -o ${LIB} "maxfile.o" SpmvDeviceInterface.o ${LFLAGS}
 
   # copy the generated library
-  cp ${LIB} ../../lib-generated
-  cp ${LIB} ../../lib-generated/${LIB}.0
+  cp ${LIB} ../lib-generated
+  cp ${LIB} ../lib-generated/${LIB}.0
 
   # build the "client" code
-  make -C ../../build/ test_spmv_sim
+  make -C ../build/ test_spmv_sim
 
   # run the benchmark
   # TODO run all benchmarks
