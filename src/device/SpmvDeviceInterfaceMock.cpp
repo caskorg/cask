@@ -4,6 +4,22 @@
 extern "C" {
 #endif /* __cplusplus */
 
+int getSpmv_PartitionSize() {
+  return 2048;
+}
+
+int getSpmv_InputWidth() {
+  return 16;
+}
+
+int getSpmv_NumPipes() {
+  return 2;
+}
+
+int getSpmv_MaxRow() {
+  return 50000;
+}
+
 void Spmv_dramWrite(
 	int64_t param_size_bytes,
 	int64_t param_start_bytes,

@@ -6,6 +6,6 @@
 
 BOOST_AUTO_TEST_CASE(logic_resource_usage_test)
 {
-  spark::spmv::LogicResourceUsage ru{1, 1, 1, 1};
+  spark::model::LogicResourceUsage ru{1, 1, 1, 1};
   BOOST_CHECK_EQUAL(ru.luts, 1);
 }

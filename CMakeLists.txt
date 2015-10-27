@@ -59,72 +59,9 @@ include_directories(include)
 
 file(GLOB files test-matrices/*.mtx)
 
-#if (DEFINED ENV{MAXCOMPILERDIR} AND DEFINED ENV{MAXELEROSDIR})
-  #set(DFE_LIB true)
-  #add_definitions(-DUSEDFE)
-  #message(STATUS "  --> DFE")
-  #message(STATUS "         MAXCOMPILER --> $ENV{MAXCOMPILERDIR}")
-  #message(STATUS "         MAXELEROS   --> $ENV{MAXELEROSDIR}")
-  #include_directories ($ENV{MAXCOMPILERDIR}/include)
-  #include_directories ($ENV{MAXCOMPILERDIR}/include/slic)
-  #include_directories ($ENV{MAXELEROSDIR}/include)
-  #link_directories($ENV{MAXCOMPILERDIR}/lib)
-  #link_directories($ENV{MAXELEROSDIR}/lib)
-
-  ## --- Configuration for Maxeler libs
-  #AddMaxelerImpl("cg" "ConjugateGradient" "simcglib")
-  #AddMaxelerImpl("bicg" "BiConjugateGradient" "simbicglib")
-  #AddMaxelerImpl("spmv" "Spmv" "spmvlib")
-
-  #add_custom_target(
-    #distclean
-    #COMMAND make -C${CMAKE_CURRENT_LIST_DIR}/src/cg/build distclean
-    #COMMAND make -C${CMAKE_CURRENT_LIST_DIR}/src/bicg/build distclean
-    #)
-
-  #if (NOT SparseLib_DisableTesting)
-    #enable_testing()
-
-    ## Should include dfe-snippets headers as they might be used in tests
-    #include_directories(dfe-snippets/include)
-    #include_directories(tests/)
-
-    ##AddMaxelerImplTest("cg" simcglib "ConjugateGradient_sim")
-    #AddMaxelerImplTest("spmv" spmvlib "Spmv_sim" "")
-
-    #foreach(infileName ${files})
-      #get_filename_component(bleah "${infileName}" NAME)
-      #AddMaxelerImplTestRun("test_spmv" "${bleah}" "../test-matrices/${bleah}")
-      #AddSpmvTestRunHw("${bleah}")
-    #endforeach()
-
-    #AddMaxelerImplTest("bicg" simbicglib "BiConjugateGradient_sim" "")
-    #AddMaxelerImplTestRun("test_bicg" "bicg" "")
-    #add_dependencies(test_bicg smpvlib)
-    #target_link_libraries(test_bicg -lSpmv_sim)
-
-    #AddMaxelerImplTest("architecture" spmvlib "Spmv_sim" "")
-    #AddMaxelerImplTestRun("test_architecture" "spmv_architecture_test_small" "--filePath ../test-matrices/TSOPF_RS_b39_c7.mtx")
-
-    #AddMaxelerImplTestHw("spmv" spmvlib_dfe "Spmv_dfe" "")
-    #AddMaxelerImplTestRunHw("test_spmv_hw" "test_spmv_hw_dense_8" "../test-matrices/test_dense_8.mtx")
-
-    #include_directories(unit-tests)
-    #add_executable(spmv_test unit-tests/spmv_test.cpp)
-    #target_link_libraries(spmv_test boost_unit_test_framework)
-    #add_test(
-      #NAME unit_test_spmv
-      #COMMAND spmv_test)
-
-    #add_executable(test_dse tests/test_dse.cpp )
-    #target_link_libraries(test_dse SparkCpuLib)
-    #add_test(
-      #NAME test_dse
-      #COMMAND test_dse)
-
-  #endif()
-#else()
-
+#
+# -- Build targets
+#
 include_directories(dfe-snippets/include)
 include_directories(tests)
 
@@ -165,3 +102,92 @@ add_executable(test_spmv tests/test_spmv.cpp)
 target_link_libraries(test_spmv
   -lboost_program_options -lboost_filesystem -lboost_system
   SparkCpuLib SparkCpuLib SpmvImplLib SpmvDeviceLib)
+
+#
+# -- Test targets
+
+# -- Unit tests
+include_directories(unit-tests)
+add_executable(spmv_test unit-tests/spmv_test.cpp)
+target_link_libraries(spmv_test boost_unit_test_framework)
+add_test(
+  NAME unit_test_spmv
+  COMMAND spmv_test)
+
+# -- Maxeler tests
+if (DEFINED ENV{MAXCOMPILERDIR} AND DEFINED ENV{MAXELEROSDIR})
+  set(DFE_LIB true)
+  add_definitions(-DUSEDFE)
+  message(STATUS "  --> DFE")
+  message(STATUS "         MAXCOMPILER --> $ENV{MAXCOMPILERDIR}")
+  message(STATUS "         MAXELEROS   --> $ENV{MAXELEROSDIR}")
+  include_directories ($ENV{MAXCOMPILERDIR}/include)
+  include_directories ($ENV{MAXCOMPILERDIR}/include/slic)
+  include_directories ($ENV{MAXELEROSDIR}/include)
+  link_directories($ENV{MAXCOMPILERDIR}/lib)
+  link_directories($ENV{MAXELEROSDIR}/lib)
+
+  # --- Configuration for Maxeler libs
+  #AddMaxelerImpl("cg" "ConjugateGradient" "simcglib")
+  #AddMaxelerImpl("bicg" "BiConjugateGradient" "simbicglib")
+  #AddMaxelerImpl("spmv" "Spmv" "spmvlib")
+
+  add_executable(test_spmv_sim tests/test_spmv.cpp)
+  target_link_libraries(test_spmv_sim
+    -lboost_program_options -lboost_filesystem -lboost_system
+    SparkCpuLib SparkCpuLib SpmvImplLib
+    -L../lib-generated -lSpmv_sim
+    -L/vol/cc/opt/maxeler/maxcompiler-2014.1/lib/maxeleros-sim/lib/
+    -lmaxeleros
+    )
+
+  add_executable(test_spmv_dfe tests/test_spmv.cpp)
+  target_link_libraries(test_spmv_dfe
+    -lboost_program_options -lboost_filesystem -lboost_system
+    SparkCpuLib SparkCpuLib SpmvImplLib
+    -L../lib-generated -lSpmv_dfe
+    -L/vol/cc/opt/maxeler/maxcompiler-2014.1/lib/maxeleros-sim/lib/
+    -lmaxeleros
+    )
+
+  #add_custom_target(
+    #distclean
+    #COMMAND make -C${CMAKE_CURRENT_LIST_DIR}/src/cg/build distclean
+    #COMMAND make -C${CMAKE_CURRENT_LIST_DIR}/src/bicg/build distclean
+    #)
+
+  if (NOT SparseLib_DisableTesting)
+    enable_testing()
+
+    # Should include dfe-snippets headers as they might be used in tests
+    include_directories(dfe-snippets/include)
+    include_directories(tests/)
+
+    #AddMaxelerImplTest("cg" simcglib "ConjugateGradient_sim")
+    #AddMaxelerImplTest("spmv" spmvlib "Spmv_sim" "")
+
+    foreach(infileName ${files})
+      get_filename_component(matrix "${infileName}" NAME)
+      AddMaxelerSimTest("test_spmv_sim" "${matrix}" "../test-matrices/${matrix}")
+      AddMaxelerHwTest("test_spmv_dfe" "${matrix}" "../test-matrices/${matrix}")
+    endforeach()
+
+    #AddMaxelerImplTest("bicg" simbicglib "BiConjugateGradient_sim" "")
+    #AddMaxelerImplTestRun("test_bicg" "bicg" "")
+    #add_dependencies(test_bicg smpvlib)
+    #target_link_libraries(test_bicg -lSpmv_sim)
+
+    #AddMaxelerImplTest("architecture" spmvlib "Spmv_sim" "")
+    #AddMaxelerImplTestRun("test_architecture" "spmv_architecture_test_small" "--filePath ../test-matrices/TSOPF_RS_b39_c7.mtx")
+
+    #AddMaxelerImplTestHw("spmv" spmvlib_dfe "Spmv_dfe" "")
+    #AddMaxelerImplTestRunHw("test_spmv_hw" "test_spmv_hw_dense_8" "../test-matrices/test_dense_8.mtx")
+
+  endif()
+endif()
+
+#add_executable(test_dse tests/test_dse.cpp )
+ #target_link_libraries(test_dse SparkCpuLib)
+ #add_test(
+   #NAME test_dse
+   #COMMAND test_dse)

@@ -1,6 +1,6 @@
-HARDWARE_SO_DIR=../build
+HARDWARE_SO_DIR=../lib-generated
 MAXOS_SIM=${MAXCOMPILERDIR}/lib/maxeleros-sim/lib/libmaxeleros.so
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${HARDWARE_SO_DIR}
+export LD_LIBRARY_PATH=${HARDWARE_SO_DIR}:${LD_LIBRARY_PATH}
 
 maxcompilersim -n ${USER}a -cMAX3424A -d1 restart > /dev/null
 SLIC_CONF+="use_simulation=${USER}a" LD_PRELOAD=${MAXOS_SIM} $@

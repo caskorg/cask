@@ -1,4 +1,3 @@
-import com.maxeler.maxcompiler.v2.build.EngineParameters;
 import com.maxeler.maxcompiler.v2.managers.custom.CustomManager;
 import com.maxeler.maxcompiler.v2.managers.custom.blocks.*;
 import com.maxeler.maxcompiler.v2.managers.custom.stdlib.MemoryControlGroup;

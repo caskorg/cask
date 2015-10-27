@@ -1,0 +1,18 @@
+# Runs a binary in simluation
+# Usage:   bash run-hw.sh path/to/binary
+# Example: bash run-hw.sh build/bin/fpgaNaive_dfe
+
+HARDWARE_SO_DIR=../lib-generated
+
+MAXOS_HW=/opt/maxeler/maxeleros/lib/libmaxeleros.so
+
+# SLIC_CONF="default_engine_resource = pg1709^192.168.0.1; default_maxdebug_mode=2"
+SLIC_CONF="default_pcie_timeout=360"
+
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${HARDWARE_SO_DIR}
+
+prj=$1
+
+#set -o xtrace
+SLIC_CONF=${SLIC_CONF} LD_PRELOAD=${MAXOS_HW} $@
+#set +o xtrace

@@ -6,6 +6,7 @@
 #include <Spark/Spmv.hpp>
 #include <Spark/Utils.hpp>
 #include <Spark/Model.hpp>
+#include <Spark/device/SpmvDeviceInterface.h>
 
 
 namespace spark {
@@ -82,9 +83,9 @@ namespace spark {
         }
 
         SimpleSpmvArchitecture() :
-          cacheSize(getPartitionSize()),
-          inputWidth(getInputWidth()),
-          numPipes(getNumPipes()) {}
+          cacheSize(getSpmv_PartitionSize()),
+          inputWidth(getSpmv_InputWidth()),
+          numPipes(getSpmv_NumPipes()) {}
 
         SimpleSpmvArchitecture(int _cacheSize, int  _inputWidth, int _numPipes) :
           cacheSize(_cacheSize),

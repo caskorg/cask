@@ -15,6 +15,8 @@ public class SpmvEngineParams extends EngineParameters {
     private static final int inputWidth = 16;
     private static final int maxRows = 50000;
 
+    private static final String buildName = "Spmv";
+
     // -- Build params
     private static final boolean highEffort = true;
 
@@ -29,6 +31,7 @@ public class SpmvEngineParams extends EngineParameters {
         declareParam("debugKernel", DataType.BOOL, debugKernel);
         declareParam("debugDecoder", DataType.BOOL, debugDecoder);
         declareParam("debugOutputSm", DataType.BOOL, debugOutputSm);
+        declareParam("buildName", DataType.STRING, buildName);
 
         declareParam("num_pipes", DataType.INT, numPipes);
         declareParam("input_width", DataType.INT, inputWidth);
@@ -39,19 +42,7 @@ public class SpmvEngineParams extends EngineParameters {
     }
 
     public String getBuildName() {
-
-        // we don't label simulation builds
-        if (getTarget() == Target.DFE_SIM)
-            return super.getBuildName();
-
-        String base =
-          getMaxFileName() + "_" + getDFEModel() + "_" + getTarget() + "_";
-        String params =
-          getNumPipes() + "x" +
-          getInputWidth() + "p_" +
-          getMaxRows() / 1000 + "kmr_" +
-          getVectorCacheSize() + "cache";
-        return base + params;
+      return getParam("buildName");
     }
 
     public int getNumPipes() {

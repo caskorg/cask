@@ -283,18 +283,6 @@ Eigen::VectorXd ssarch::dfespmv(Eigen::VectorXd x)
   return spark::converters::stdvectorToEigen(total);
 }
 
-int spark::spmv::getPartitionSize() {
-  return Spmv_cacheSize;
-}
-
-int spark::spmv::getInputWidth() {
-  return Spmv_inputWidth;
-}
-
-int spark::spmv::getNumPipes() {
-  return Spmv_numPipes;
-}
-
 std::vector<EigenSparseMatrix> ssarch::do_partition(const EigenSparseMatrix& mat, int numPipes) {
   std::vector<EigenSparseMatrix> res;
   int rowsPerPartition = mat.rows() / numPipes;
