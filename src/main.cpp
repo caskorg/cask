@@ -82,7 +82,6 @@ void write_dse_results(
 
 int main(int argc, char** argv) {
 
-  std::cout << std::getenv("MAX_BUILDPARAMS") << std::endl;
   namespace po = boost::program_options;
 
   std::string opt_dse_params = "dse-params-file";
