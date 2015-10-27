@@ -114,13 +114,16 @@ while read p; do
        # Run remotely, assumes ssh keys set up
        # TODO support max4
        path="/mnt/data/scratch/pg1709/workspaces/spark/scripts"
-       ssh maxnode2 "cd ${path} && ./hwrunner ../build_test_spmv_${PARAM_TARGET} ${f} | tee run.log"
+       ssh maxnode2 /bin/bash << EOF
+         cd /mnt/data/scratch/pg1709/workspaces/spark/scripts
+         pwd
+         export LD_LIBRARY_PATH=/opt/gcc-4.9.2/lib64:${LD_LIBRARY_PATH}
+         ./hwrunner ../build/test_spmv_${PARAM_TARGET} ${f} | tee run.log
+EOF
      else
        # Run locally in simulation
        ./simrunner ../build/test_spmv_${PARAM_TARGET} ${f} | tee run.log
      fi
-
-     ${RUN_CMD} ../build/test_spmv_${PARAM_TARGET} ${f} | tee run.log
 
      # TODO log per partition results
 

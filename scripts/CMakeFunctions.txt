@@ -64,5 +64,5 @@ function(AddMaxelerHwTest binary name args)
     add_test(
       NAME test_hw_${name}
       WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-      COMMAND ../scripts/hwrun ./${binary} ${args})
+      COMMAND ../scripts/hwrunner ./${binary} ${args})
 endfunction()
