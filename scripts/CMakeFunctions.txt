@@ -53,23 +53,16 @@ function(AddMaxelerImplTestHw name libtarget lib args)
     -lrt -lpthread)
 endfunction()
 
-function(AddMaxelerImplTestRun binary name args)
+function(AddMaxelerSimTest binary name args)
     add_test(
       NAME test_sim_${name}
       WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
       COMMAND ../scripts/simrunner ./${binary} ${args})
 endfunction()
 
-function(AddMaxelerImplTestRunHw binary name args)
+function(AddMaxelerHwTest binary name args)
     add_test(
       NAME test_hw_${name}
       WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
       COMMAND ../scripts/hwrun ./${binary} ${args})
-endfunction()
-
-function(AddSpmvTestRunHw matrix)
-    add_test(
-      NAME test_hw_${matrix}
-      WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-      COMMAND ../scripts/hwrun ./test_spmv_hw ../test-matrices/${matrix})
 endfunction()
