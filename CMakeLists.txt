@@ -141,6 +141,15 @@ if (DEFINED ENV{MAXCOMPILERDIR} AND DEFINED ENV{MAXELEROSDIR})
     -lmaxeleros
     )
 
+  add_executable(test_spmv_dfe tests/test_spmv.cpp)
+  target_link_libraries(test_spmv_dfe
+    -lboost_program_options -lboost_filesystem -lboost_system
+    SparkCpuLib SparkCpuLib SpmvImplLib
+    -L../lib-generated -lSpmv_dfe
+    -L/vol/cc/opt/maxeler/maxcompiler-2014.1/lib/maxeleros-sim/lib/
+    -lmaxeleros
+    )
+
   #add_custom_target(
     #distclean
     #COMMAND make -C${CMAKE_CURRENT_LIST_DIR}/src/cg/build distclean
@@ -160,7 +169,7 @@ if (DEFINED ENV{MAXCOMPILERDIR} AND DEFINED ENV{MAXELEROSDIR})
     foreach(infileName ${files})
       get_filename_component(matrix "${infileName}" NAME)
       AddMaxelerSimTest("test_spmv_sim" "${matrix}" "../test-matrices/${matrix}")
-      AddMaxelerHwTest("test_spmv_hw" "${matrix}" "../test-matrices/${matrix}")
+      AddMaxelerHwTest("test_spmv_dfe" "${matrix}" "../test-matrices/${matrix}")
     endforeach()
 
     #AddMaxelerImplTest("bicg" simbicglib "BiConjugateGradient_sim" "")
@@ -177,10 +186,8 @@ if (DEFINED ENV{MAXCOMPILERDIR} AND DEFINED ENV{MAXELEROSDIR})
   endif()
 endif()
 
-
 #add_executable(test_dse tests/test_dse.cpp )
  #target_link_libraries(test_dse SparkCpuLib)
  #add_test(
    #NAME test_dse
    #COMMAND test_dse)
-

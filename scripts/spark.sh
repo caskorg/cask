@@ -55,14 +55,14 @@ sed -e '/"architecture_params"/,/}/!d' ${DSE_FILE} | xargs -n9 \
  | sed -e 's/architecture_params: //g' -e 's/{//g' -e 's/},//g' \
  | sed -e 's/:/=/g' -e 's/ //g' | sed -e 's/,/ /g' > ${ARCH_CFG}
 
-SIM_CFG=sim_architecture_config.out
+SIM_CFG=${PARAM_TARGET}_architecture_config.out
 head -n 1 ${ARCH_CFG} > ${SIM_CFG}
 
 # 3. Start a build
 while read p; do
   PRJ="Spmv"
   echo "Starting build $p"
-  buildName="${PRJ}_"`echo "${p}" | sed 's/ /_/g' | sed 's/=//g'`
+  buildName="${PRJ}_${PARAM_TARGET}_"`echo "${p}" | sed 's/_//g' | sed 's/ /_/g' | sed 's/=//g'`
   buildDir="${BUILD_DIR}/${buildName}"
   maxFileLocation="${buildDir}/results/${PRJ}.max"
   maxFileTarget="${buildName}/results/${PRJ}.max"
@@ -79,7 +79,7 @@ while read p; do
 	sliccompile ${maxFileLocation} "maxfile.o"
 
   # create the device library
-  LIB=lib${PRJ}_sim.so
+  LIB=lib${PRJ}_${PARAM_TARGET}.so
 
   # Ignore timinig score
   echo "Old timing score"
@@ -100,15 +100,28 @@ while read p; do
   cp ${LIB} ../lib-generated/${LIB}.0
 
   # build the "client" code
-  make -C ../build/ test_spmv_sim
+  make -C ../build/ test_spmv_${PARAM_TARGET}
 
   # run the benchmark
   # TODO run all benchmarks
   find ${BENCH_FILE} -name "*.mtx" > benchmark_matrices.out
-  resFile=`echo "${p}" | sed -e 's/ /_/g'`"_total.out"
+  resFile=`echo "${p}" | sed -e 's/ /_/g'`"_${PARAM_TARGET}_total.out"
   rm -f ${resFile} # cleanup previous results
   while read f; do
-     ./simrunner ../build/test_spmv_sim ${f} | tee run.log
+
+     if [ "${PARAM_TARGET}" == "dfe" ]
+     then
+       # Run remotely, assumes ssh keys set up
+       # TODO support max4
+       path="/mnt/data/scratch/pg1709/workspaces/spark/scripts"
+       ssh maxnode2 "cd ${path} && ./hwrunner ../build_test_spmv_${PARAM_TARGET} ${f} | tee run.log"
+     else
+       # Run locally in simulation
+       ./simrunner ../build/test_spmv_${PARAM_TARGET} ${f} | tee run.log
+     fi
+
+     ${RUN_CMD} ../build/test_spmv_${PARAM_TARGET} ${f} | tee run.log
+
      # TODO log per partition results
 
      # log total results
@@ -119,5 +132,3 @@ while read p; do
   done < benchmark_matrices.out
 
 done < ${SIM_CFG}
-
-echo $results
