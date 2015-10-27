@@ -105,8 +105,16 @@ target_link_libraries(test_spmv
 
 #
 # -- Test targets
-#
 
+# -- Unit tests
+include_directories(unit-tests)
+add_executable(spmv_test unit-tests/spmv_test.cpp)
+target_link_libraries(spmv_test boost_unit_test_framework)
+add_test(
+  NAME unit_test_spmv
+  COMMAND spmv_test)
+
+# -- Maxeler tests
 if (DEFINED ENV{MAXCOMPILERDIR} AND DEFINED ENV{MAXELEROSDIR})
   set(DFE_LIB true)
   add_definitions(-DUSEDFE)
@@ -169,12 +177,6 @@ if (DEFINED ENV{MAXCOMPILERDIR} AND DEFINED ENV{MAXELEROSDIR})
   endif()
 endif()
 
-#include_directories(unit-tests)
-#add_executable(spmv_test unit-tests/spmv_test.cpp)
-#target_link_libraries(spmv_test boost_unit_test_framework)
-#add_test(
-  #NAME unit_test_spmv
-  #COMMAND spmv_test)
 
 #add_executable(test_dse tests/test_dse.cpp )
  #target_link_libraries(test_dse SparkCpuLib)
