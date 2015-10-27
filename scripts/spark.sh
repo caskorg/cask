@@ -16,7 +16,7 @@ function usage {
 
 DSE_FILE=dse_out.json
 ARCH_CFG=architecture_config.out
-BUILD_DIR=../../src/spmv/build
+BUILD_DIR=../src/spmv/build
 
 PARAM_TARGET=$1
 if [ "${PARAM_TARGET}" == "dfe" ]
@@ -44,7 +44,7 @@ then
   exit 1
 fi
 
-DSE_CMD="./../../build/main ${BENCH_FILE} ${JSON_PARAM_FILE}"
+DSE_CMD="./../build/main ${BENCH_FILE} ${JSON_PARAM_FILE}"
 DSE_LOG_FILE=dse.log
 
 # 1. Run DSE tool
@@ -108,7 +108,7 @@ while read p; do
   resFile=`echo "${p}" | sed -e 's/ /_/g'`"_total.out"
   rm -f ${resFile} # cleanup previous results
   while read f; do
-     ../simrunner ../../build/test_spmv_sim ${f} | tee run.log
+     ./simrunner ../build/test_spmv_sim ${f} | tee run.log
      # TODO log per partition results
 
      # log total results
