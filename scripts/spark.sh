@@ -15,7 +15,6 @@ function usage {
 }
 
 DSE_FILE=dse_out.json
-ARCH_CFG=architecture_config.out
 BUILD_DIR=../src/spmv/build
 
 PARAM_TARGET=$1
@@ -44,6 +43,7 @@ then
   exit 1
 fi
 
+ARCH_CFG=${PARAM_TARGET}_architecture_config.out
 DSE_CMD="./../build/main ${BENCH_FILE} ${JSON_PARAM_FILE}"
 DSE_LOG_FILE=dse.log
 
@@ -54,9 +54,6 @@ ${DSE_CMD} | tee ${DSE_LOG_FILE}
 sed -e '/"architecture_params"/,/}/!d' ${DSE_FILE} | xargs -n9 \
  | sed -e 's/architecture_params: //g' -e 's/{//g' -e 's/},//g' \
  | sed -e 's/:/=/g' -e 's/ //g' | sed -e 's/,/ /g' > ${ARCH_CFG}
-
-SIM_CFG=${PARAM_TARGET}_architecture_config.out
-head -n 1 ${ARCH_CFG} > ${SIM_CFG}
 
 # 3. Start a build
 while read p; do
@@ -134,4 +131,4 @@ EOF
      echo "${fileBase},${value}" >> "${resFile}"
   done < benchmark_matrices.out
 
-done < ${SIM_CFG}
+done < ${ARCH_CFG}
