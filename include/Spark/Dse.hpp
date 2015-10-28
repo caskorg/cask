@@ -77,7 +77,6 @@ namespace spark {
     class SparkDse {
       public:
         SparkDse() {}
-        void runDse();
         // returns the best architecture
         std::vector<DseResult> run (
             const Benchmark& benchmark,

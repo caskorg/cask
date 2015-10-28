@@ -27,10 +27,6 @@ better(
   return a2;
 }
 
-void spark::dse::SparkDse::runDse() {
-  std::cout << "Running DSE" << std::endl;
-}
-
 std::shared_ptr<SpmvArchitecture> dse_run(
     std::string basename,
     SpmvArchitectureSpace* af,
@@ -115,9 +111,14 @@ std::vector<DseResult> spark::dse::SparkDse::run (
     auto eigenMatrix = spark::converters::tripletToEigen(m.mmreadMatrix(path));
     dfesnippets::timing::print_clock_diff("Reading took: ", start);
 
+    // XXX this assumes a virtex device with 512 entries per BRAM
+    int maxRows = eigenMatrix->rows();
+    if (maxRows % 512 != 0)
+      maxRows = (maxRows / 512 + 1) * 512;
+
     std::vector<SpmvArchitectureSpace*> factories{
       new SimpleSpmvArchitectureSpace<SimpleSpmvArchitecture>(
-          params.numPipesRange, params.inputWidthRange, params.cacheSizeRange),
+          params.numPipesRange, params.inputWidthRange, params.cacheSizeRange, maxRows),
           //new SimpleSpmvArchitectureSpace<FstSpmvArchitecture>(
               //params.numPipesRange, params.inputWidthRange, params.cacheSizeRange),
           //new SimpleSpmvArchitectureSpace<SkipEmptyRowsArchitecture>(

@@ -53,10 +53,12 @@ namespace spark {
     class SimpleSpmvArchitecture : public SpmvArchitecture {
       // architecture specific properties
       protected:
-      int cacheSize, inputWidth, numPipes;
+
+      // design parameters
+      const int cacheSize, inputWidth, numPipes, maxRows;
+
       EigenSparseMatrix mat;
       std::vector<Partition> partitions;
-
 
       virtual int countComputeCycles(uint32_t* v, int size, int inputWidth);
 
@@ -71,7 +73,8 @@ namespace spark {
           return
             cacheSize == other.cacheSize &&
             inputWidth == other.inputWidth &&
-            numPipes == other.numPipes;
+            numPipes == other.numPipes &&
+            maxRows == other.maxRows;
         }
 
         virtual boost::property_tree::ptree write_params() override {
@@ -79,18 +82,21 @@ namespace spark {
           tree.put("num_pipes", numPipes);
           tree.put("cache_size", cacheSize);
           tree.put("input_width", inputWidth);
+          tree.put("max_rows", maxRows);
           return tree;
         }
 
         SimpleSpmvArchitecture() :
           cacheSize(getSpmv_PartitionSize()),
           inputWidth(getSpmv_InputWidth()),
-          numPipes(getSpmv_NumPipes()) {}
+          numPipes(getSpmv_NumPipes()),
+          maxRows(getSpmv_MaxRows()) {}
 
-        SimpleSpmvArchitecture(int _cacheSize, int  _inputWidth, int _numPipes) :
+        SimpleSpmvArchitecture(int _cacheSize, int  _inputWidth, int _numPipes, int _maxRows) :
           cacheSize(_cacheSize),
           inputWidth(_inputWidth),
-          numPipes(_numPipes) {}
+          numPipes(_numPipes),
+          maxRows(_maxRows) {}
 
         virtual double getEstimatedClockCycles() {
           auto res = std::max_element(partitions.begin(), partitions.end(),
@@ -174,6 +180,7 @@ namespace spark {
       spark::utils::Range cacheSizeR{1024, 4096, 512};
       spark::utils::Range inputWidthR{8, 100, 8};
       spark::utils::Range numPipesR{1, 6, 1};
+      int maxRows;
 
       bool last = false;
 
@@ -182,10 +189,12 @@ namespace spark {
       SimpleSpmvArchitectureSpace(
           spark::utils::Range numPipesRange,
           spark::utils::Range inputWidthRange,
-          spark::utils::Range cacheSizeRange) {
+          spark::utils::Range cacheSizeRange,
+          int _maxRows) {
         cacheSizeR = cacheSizeRange;
         inputWidthR = inputWidthRange;
         numPipesR = numPipesRange;
+        maxRows = _maxRows;
       }
 
       SimpleSpmvArchitectureSpace() {
@@ -203,7 +212,7 @@ namespace spark {
         if (last)
           return nullptr;
 
-        T* result = new T(cacheSizeR.crt, inputWidthR.crt, numPipesR.crt);
+        T* result = new T(cacheSizeR.crt, inputWidthR.crt, numPipesR.crt, maxRows);
 
         ++cacheSizeR;
         if (cacheSizeR.at_start()) {
@@ -239,8 +248,8 @@ namespace spark {
       public:
       FstSpmvArchitecture() : SimpleSpmvArchitecture() {}
 
-      FstSpmvArchitecture(int _cacheSize, int  _inputWidth, int _numPipes) :
-        SimpleSpmvArchitecture(_cacheSize, _inputWidth, _numPipes) {}
+      FstSpmvArchitecture(int _cacheSize, int  _inputWidth, int _numPipes, int _maxRows) :
+        SimpleSpmvArchitecture(_cacheSize, _inputWidth, _numPipes, _maxRows) {}
 
       virtual std::string get_name() override {
         return std::string("Fst");
@@ -293,8 +302,8 @@ namespace spark {
       public:
       SkipEmptyRowsArchitecture() : SimpleSpmvArchitecture(){}
 
-      SkipEmptyRowsArchitecture(int _cacheSize, int  _inputWidth, int _numPipes) :
-        SimpleSpmvArchitecture(_cacheSize, _inputWidth, _numPipes) {}
+      SkipEmptyRowsArchitecture(int _cacheSize, int  _inputWidth, int _numPipes, int _maxRows) :
+        SimpleSpmvArchitecture(_cacheSize, _inputWidth, _numPipes, maxRows) {}
 
       virtual std::string get_name() override {
         return std::string("SkipEmpty");
@@ -307,8 +316,8 @@ namespace spark {
       public:
       PrefetchingArchitecture() : SkipEmptyRowsArchitecture(){}
 
-      PrefetchingArchitecture(int _cacheSize, int  _inputWidth, int _numPipes) :
-        SkipEmptyRowsArchitecture(_cacheSize, _inputWidth, _numPipes) {}
+      PrefetchingArchitecture(int _cacheSize, int  _inputWidth, int _numPipes, int _maxRows) :
+        SkipEmptyRowsArchitecture(_cacheSize, _inputWidth, _numPipes, _maxRows) {}
 
       virtual std::string get_name() override {
         return std::string("PrefetchingArchitecture");

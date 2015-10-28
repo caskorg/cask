@@ -181,6 +181,14 @@ Eigen::VectorXd ssarch::dfespmv(Eigen::VectorXd x)
 {
   using namespace std;
 
+  if (maxRows < mat.rows()) {
+    stringstream ss;
+    ss << "Matrix is too large! Maximum supported rows: ";
+    ss << maxRows;
+    ss << " actual rows: " << mat.rows();
+    throw invalid_argument(ss.str());
+  }
+
   int cacheSize = this->cacheSize;
 
   vector<double> v = spark::converters::eigenVectorToStdVector(x);
