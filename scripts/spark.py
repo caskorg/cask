@@ -3,6 +3,7 @@ import json
 import argparse
 import subprocess
 import os
+import sys
 
 from subprocess import call
 
@@ -59,7 +60,7 @@ def runBuild(prj):
   maxFileLocation = os.path.join(buildDir, 'results', prj.maxfileName())
   maxFileTarget = os.path.join(buildName, 'results', prj.maxfileName())
 
-  buildParams = "target={0} buildName={1} maxFileName={2}".format(
+  buildParams = "target={0} buildName={1} maxFileName={2} ".format(
       prj.buildTarget(), buildName, prj.name)
   maxBuildParams = prj.maxBuildParams()
 
@@ -73,16 +74,20 @@ def runBuild(prj):
 
   cmd = [
       'make',
-      'MAX_BUILDPARAMS="' + maxBuildParams + buildParams,
+      'MAX_BUILDPARAMS="' + maxBuildParams + buildParams + '"',
       "-C",
       buildRoot,
       maxFileTarget]
-  print cmd
   p = subprocess.Popen(cmd, stdout=subprocess.PIPE)
+  print '      ------'
   while p.poll() is None:
       l = p.stdout.readline()
-      print l,
-  print p.stdout.read()
+      sys.stdout.write('      ')
+      sys.stdout.write(l)
+  for l in p.stdout.read().split('\n'):
+    if l:
+      print '     ', l.rstrip()
+  print '      ------'
 
 
 def runBuilds(prjs):
@@ -115,7 +120,7 @@ def main():
     params = []
 
   print 'Running builds'
-  print prjs
+  # print prjs
 
   runBuilds(prjs)
 
