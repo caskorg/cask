@@ -4,6 +4,7 @@ import argparse
 import subprocess
 import os
 import sys
+import re
 
 from subprocess import call
 
@@ -12,6 +13,7 @@ class PrjConfig:
     self.params = p
     self.target = t
     self.name = n
+    self.buildRoot='../src/spmv/build/'
 
   def buildName(self):
     bn = self.name + '_' + self.target
@@ -40,6 +42,23 @@ class PrjConfig:
       return 'DFE_SIM'
     return 'DFE'
 
+  def buildDir(self):
+    return os.path.join(self.buildRoot, self.buildName())
+
+  def maxFileLocation(self):
+    return os.path.join(self.resultsDir(), self.maxfileName())
+
+  def maxFileTarget(self):
+    return os.path.join(self.buildName(), 'results', self.maxfileName())
+
+  def resultsDir(self):
+    return os.path.join(self.buildDir(), 'results')
+
+  def libName(self):
+    return 'lib{0}_{1}.so'.format(
+        self.name, self.target)
+
+
 
 def runDse(benchFile, paramsFile):
   dseLog = subprocess.check_output(
@@ -53,33 +72,21 @@ def runDse(benchFile, paramsFile):
   return params
 
 
-def runBuild(prj):
-  buildName = prj.buildName()
-  buildRoot='../src/spmv/build/'
-  buildDir = os.path.join(buildRoot, buildName)
-  maxFileLocation = os.path.join(buildDir, 'results', prj.maxfileName())
-  maxFileTarget = os.path.join(buildName, 'results', prj.maxfileName())
-
+def runMaxCompilerBuild(prj):
   buildParams = "target={0} buildName={1} maxFileName={2} ".format(
-      prj.buildTarget(), buildName, prj.name)
-  maxBuildParams = prj.maxBuildParams()
+      prj.buildTarget(), prj.buildName(), prj.name)
 
   print '  Running build'
-  print '    buildName        = ', buildName
-  print '    buildDir         = ', buildDir
-  print '    maxFileLocation  = ', maxFileLocation
-  print '    maxFileTarget    = ', maxFileTarget
-  print '    buildParams      = ', buildParams
-  print '    maxBuildParams   = ', maxBuildParams
 
   cmd = [
       'make',
-      'MAX_BUILDPARAMS="' + maxBuildParams + buildParams + '"',
+      'MAX_BUILDPARAMS="' + prj.maxBuildParams() + buildParams + '"',
       "-C",
-      buildRoot,
-      maxFileTarget]
+      prj.buildRoot,
+      prj.maxFileTarget()]
+
   p = subprocess.Popen(cmd, stdout=subprocess.PIPE)
-  print '      ------'
+  print '     ---- Building MaxFile ----'
   while p.poll() is None:
       l = p.stdout.readline()
       sys.stdout.write('      ')
@@ -87,12 +94,80 @@ def runBuild(prj):
   for l in p.stdout.read().split('\n'):
     if l:
       print '     ', l.rstrip()
-  print '      ------'
+  print ''
+
+  forceTimingScore(prj.maxFileLocation())
+
+
+def forceTimingScore(maxfile):
+  # Might want to find a way to do this in python...
+  oldts=subprocess.check_output(['grep', 'TIMING_SCORE', maxfile])
+  cmd= [
+    'sed', '-i', '-e',
+    r's/PARAM(TIMING_SCORE,.*)/PARAM(TIMING_SCORE, 0)/',
+    maxfile]
+  call(cmd)
+  newts = subprocess.check_output(['grep', 'TIMING_SCORE', maxfile])
+  print '      Changing timing score: {0} --> {1}'.format(oldts.strip(), newts.strip())
+
+
+def runLibraryBuild(prj):
+  print '     ---- Building Library ----'
+  out = subprocess.check_output([
+    'sliccompile',
+    prj.maxFileLocation(),
+    'maxfile.o'])
+  # print out
+
+  mcdir = os.getenv('MAXCOMPILERDIR')
+  maxosdir = os.getenv('MAXELEROSDIR')
+  interfaceFile = '../src/spmv/src/SpmvDeviceInterface.cpp'
+  cmd =[
+	  'g++',
+    '-c',
+    '-Wall',
+    '-std=c++11',
+    '-I../include',
+    '-I' + prj.resultsDir(),
+    '-I' + mcdir + '/include',
+    '-I' + mcdir + '/include/slic',
+    '-I' + maxosdir + '/include',
+    interfaceFile,
+    '-o',
+    'SpmvDeviceInterface.o'
+    ]
+  out = subprocess.check_output(cmd)
+  LFLAGS="-L${MAXCOMPILERDIR}/lib -L${MAXELEROSDIR}/lib -lmaxeleros -lslic -lm -lpthread"
+
+  cmd =[
+      'g++',
+      '-fPIC',
+      '--std=c++11',
+      '-shared',
+      '-Wl,-soname,{0}.0 -o {0}'.format(prj.libName()),
+      "maxfile.o",
+      'SpmvDeviceInterface.o',
+      LFLAGS]
+  out = subprocess.check_output(cmd)
+
+  # copy the generated library
+  call(['cp', prj.libName(), '../lib-generated'])
+  call(['cp', prj.libName(), '../lib-generated/{}.0'.format(prj.libName())])
+
+
+def buildClient(prj):
+  print '     ---- Building Client ----'
+  out = subprocess.check_output(['make',
+    '-C',
+    '../build/',
+    'test_spmv_' + prj.target])
 
 
 def runBuilds(prjs):
-  for p in  prjs:
-    runBuild(p)
+  for p in  prjs[:1]:
+    runMaxCompilerBuild(p)
+    runLibraryBuild(p)
+    buildClient(p)
 
 
 def main():
