@@ -6,6 +6,9 @@ import os
 import sys
 import re
 
+from os import listdir
+from os.path import isfile, join
+
 from subprocess import call
 
 class PrjConfig:
@@ -57,6 +60,10 @@ class PrjConfig:
   def libName(self):
     return 'lib{0}_{1}.so'.format(
         self.name, self.target)
+
+  def sim(self):
+    return self.target == 'sim'
+
 
 
 
@@ -163,11 +170,35 @@ def buildClient(prj):
     'test_spmv_' + prj.target])
 
 
-def runBuilds(prjs):
+def runClient(prj, benchmark):
+  print '     ---- Benchmarking Client ----'
+  for p in benchmark:
+    if prj.sim():
+      outF = 'run_sim_' + os.path.basename(p)
+      print '   -->', p, 'outFile =', outF
+      try:
+        out = subprocess.check_output(
+            ['bash',
+              'simrunner',
+              '../build/test_spmv_sim',
+              p])
+      except subprocess.CalledProcessError as e:
+        print '       ',e
+        out = e.output
+
+      with open(outF, 'w') as f:
+        for line in out:
+          f.write(line)
+    else:
+      print 'Hw run not supported yet'
+
+
+def runBuilds(prjs, benchmark):
   for p in  prjs[:1]:
     runMaxCompilerBuild(p)
     runLibraryBuild(p)
     buildClient(p)
+    runClient(p, benchmark)
 
 
 def main():
@@ -195,9 +226,9 @@ def main():
     params = []
 
   print 'Running builds'
-  # print prjs
-
-  runBuilds(prjs)
+  p = os.path.abspath(args.benchmark_dir)
+  benchmark = [ join(p, f) for f in listdir(p) if isfile(join(p,f)) ]
+  runBuilds(prjs, benchmark)
 
 
 if __name__ == '__main__':
