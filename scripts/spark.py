@@ -1,10 +1,11 @@
 """Implements the main DSE loop in spark."""
-import json
 import argparse
-import subprocess
+import json
 import os
-import sys
 import re
+import shutil
+import subprocess
+import sys
 
 from os import listdir
 from os.path import isfile, join
@@ -120,15 +121,18 @@ def forceTimingScore(maxfile):
 
 def runLibraryBuild(prj):
   print '     ---- Building Library ----'
+
+  interfaceFile = '../src/spmv/src/SpmvDeviceInterface.cpp'
+  deviceO = 'SmpvDeviceInterface.o'
+  maxfileO = 'maxfile.o'
+
   out = subprocess.check_output([
     'sliccompile',
     prj.maxFileLocation(),
-    'maxfile.o'])
-  # print out
+    maxfileO])
 
   mcdir = os.getenv('MAXCOMPILERDIR')
   maxosdir = os.getenv('MAXELEROSDIR')
-  interfaceFile = '../src/spmv/src/SpmvDeviceInterface.cpp'
   cmd =[
 	  'g++',
     '-c',
@@ -141,25 +145,39 @@ def runLibraryBuild(prj):
     '-I' + maxosdir + '/include',
     interfaceFile,
     '-o',
-    'SpmvDeviceInterface.o'
+    deviceO
     ]
   out = subprocess.check_output(cmd)
-  LFLAGS="-L${MAXCOMPILERDIR}/lib -L${MAXELEROSDIR}/lib -lmaxeleros -lslic -lm -lpthread"
 
+  print 'Generating lib'
   cmd =[
       'g++',
       '-fPIC',
       '--std=c++11',
       '-shared',
-      '-Wl,-soname,{0}.0 -o {0}'.format(prj.libName()),
-      "maxfile.o",
-      'SpmvDeviceInterface.o',
-      LFLAGS]
+      '-Wl,-soname,{0}.0'.format(prj.libName()),
+      '-o',
+      prj.libName(),
+      maxfileO,
+      deviceO,
+      '-L' + os.path.join(mcdir, 'lib'),
+      '-L' + os.path.join(maxosdir, 'lib'),
+      '-lmaxeleros',
+      '-lslic',
+      '-lm',
+      '-lpthread']
+  print cmd
   out = subprocess.check_output(cmd)
+  print out
 
   # copy the generated library
-  call(['cp', prj.libName(), '../lib-generated'])
-  call(['cp', prj.libName(), '../lib-generated/{}.0'.format(prj.libName())])
+  shutil.rmtree('../lib-generated')
+  shutil.copy(prj.libName(), '../lib-generated/{}.0'.format(prj.libName()))
+  shutil.move(prj.libName(), '../lib-generated')
+
+  # do a bit of cleanup
+  shutil.rmtree(maxfileObj)
+  shutil.rmtree(deviceOb)
 
 
 def buildClient(prj):
