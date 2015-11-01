@@ -171,13 +171,18 @@ def runLibraryBuild(prj):
   print out
 
   # copy the generated library
-  shutil.rmtree('../lib-generated')
-  shutil.copy(prj.libName(), '../lib-generated/{}.0'.format(prj.libName()))
-  shutil.move(prj.libName(), '../lib-generated')
+  libDir = '../lib-generated'
+  if os.path.exists(libDir):
+    shutil.rmtree(libDir)
+  os.makedirs(libDir)
+  shutil.copy(prj.libName(), libDir + '/{}.0'.format(prj.libName()))
+  shutil.move(prj.libName(), libDir)
 
   # do a bit of cleanup
-  shutil.rmtree(maxfileObj)
-  shutil.rmtree(deviceOb)
+  if os.path.exists(maxfileO):
+    os.remove(maxfileO)
+  if os.path.exists(deviceO):
+    os.remove(deviceO)
 
 
 def buildClient(prj):
