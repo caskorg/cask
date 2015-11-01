@@ -149,7 +149,6 @@ def runLibraryBuild(prj):
     ]
   out = subprocess.check_output(cmd)
 
-  print 'Generating lib'
   cmd =[
       'g++',
       '-fPIC',
@@ -166,7 +165,6 @@ def runLibraryBuild(prj):
       '-lslic',
       '-lm',
       '-lpthread']
-  print cmd
   out = subprocess.check_output(cmd)
   print out
 
@@ -198,7 +196,7 @@ def runClient(prj, benchmark):
   for p in benchmark:
     if prj.sim():
       outF = 'run_sim_' + os.path.basename(p)
-      print '   -->', p, 'outFile =', outF
+      print '      -->', p, 'outFile =', outF
       try:
         out = subprocess.check_output(
             ['bash',
@@ -217,8 +215,12 @@ def runClient(prj, benchmark):
 
 
 def runBuilds(prjs, benchmark):
-  for p in  prjs[:1]:
+  # TODO run MC builds in parallel
+  for p in  prjs:
     runMaxCompilerBuild(p)
+
+  # Client builds and benchmarking is sequential
+  for p in prjs:
     runLibraryBuild(p)
     buildClient(p)
     runClient(p, benchmark)
@@ -231,6 +233,7 @@ def main():
   parser.add_argument('-t', '--target', choices=['dfe', 'sim'], required=True)
   parser.add_argument('-p', '--param-file', required=True)
   parser.add_argument('-b', '--benchmark-dir', required=True)
+  parser.add_argument('-m', '--max-builds', type=int)
   args = parser.parse_args()
 
   PRJ = 'Spmv'
@@ -251,7 +254,11 @@ def main():
   print 'Running builds'
   p = os.path.abspath(args.benchmark_dir)
   benchmark = [ join(p, f) for f in listdir(p) if isfile(join(p,f)) ]
-  runBuilds(prjs, benchmark)
+
+
+  ps = prjs[:args.max_builds] if args.max_builds else prjs
+
+  runBuilds(ps, benchmark)
 
 
 if __name__ == '__main__':
