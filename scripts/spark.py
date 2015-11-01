@@ -6,9 +6,11 @@ import re
 import shutil
 import subprocess
 import sys
+import multiprocessing
 
 from os import listdir
 from os.path import isfile, join
+from multiprocessing import Pool
 
 from subprocess import call
 
@@ -64,8 +66,6 @@ class PrjConfig:
 
   def sim(self):
     return self.target == 'sim'
-
-
 
 
 def runDse(benchFile, paramsFile):
@@ -216,8 +216,10 @@ def runClient(prj, benchmark):
 
 def runBuilds(prjs, benchmark):
   # TODO run MC builds in parallel
-  for p in  prjs:
-    runMaxCompilerBuild(p)
+  pool = Pool(4)
+  pool.map(runMaxCompilerBuild, prjs)
+  pool.close()
+  pool.join()
 
   # Client builds and benchmarking is sequential
   for p in prjs:
