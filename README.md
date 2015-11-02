@@ -70,8 +70,9 @@ Tests are provided for both software, hardware simulation and hardware runs. The
 
 First, compile the test binaries (e.g.): `make -C build test_spmv_sim`
 Then you can:
+
 1. Run unit tests with `ctest -R unit`
 2. Run hardware simulation tests with `ctest -R sim`
 3. Run hardware tests with `ctest -R hw`
 
-__Note__ Some simulation tests may take a long time to run, particularly if a large architecture is simulated. A sample run is shown below, 
+__Note__ Some simulation tests may take a long time to run (`~60s), particularly if a large architecture is  simulated. 
