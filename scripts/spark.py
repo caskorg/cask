@@ -194,24 +194,23 @@ def buildClient(prj):
 def runClient(prj, benchmark):
   print '     ---- Benchmarking Client ----'
   for p in benchmark:
-    if prj.sim():
-      outF = 'run_sim_' + os.path.basename(p)
-      print '      -->', p, 'outFile =', outF
-      try:
-        out = subprocess.check_output(
-            ['bash',
-              'simrunner',
-              '../build/test_spmv_sim',
-              p])
-      except subprocess.CalledProcessError as e:
-        print '       ',e
-        out = e.output
-
-      with open(outF, 'w') as f:
-        for line in out:
-          f.write(line)
-    else:
-      print 'Hw run not supported yet'
+    outF = 'run_' + prj.target + '_' + os.path.basename(p)
+    print '      -->', p, 'outFile =', outF
+    try:
+      if prj.sim():
+          out = subprocess.check_output(
+              ['bash',
+                'simrunner',
+                '../build/test_spmv_sim',
+                p])
+      else:
+          out = subprocess.check_output(['bash', 'spark_dfe_run.sh'])
+    except subprocess.CalledProcessError as e:
+      print '       ',e
+      out = e.output
+    with open(outF, 'w') as f:
+      for line in out:
+        f.write(line)
 
 
 def runBuilds(prjs, benchmark):
