@@ -241,15 +241,21 @@ def main():
   prjs = []
 
   ## Run DSE pass
+  params = []
   if args.dse:
     print 'Running DSE flow'
     # the DSE tool produces a JSON file with architectures to be built
     params = runDse(args.benchmark_dir, args.param_file)
     # builds = [buildName + b for b in builds]
-    prjs = [PrjConfig(p, args.target, PRJ) for p  in params]
   else:
-    # TODO some default build
-    params = []
+    with open(args.param_file) as f:
+      data = json.load(f)
+      ps = {}
+      for k, v in data['dse_params'].iteritems():
+        ps[k] = str(v['default'])
+    params = [ps]
+
+  prjs = [PrjConfig(p, args.target, PRJ) for p  in params]
 
   print 'Running builds'
   p = os.path.abspath(args.benchmark_dir)
