@@ -6,6 +6,7 @@
 
 ```
 git clone https://github.com/paul-g/spark.git
+git submodule update --init
 cd spark && mkdir build && cd build && cmake ..
 make -C main
 ```
