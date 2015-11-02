@@ -51,3 +51,11 @@ From here you can use also CMake directly to rebuild the `client` targets, for e
 ```
 make -C build test_spmv_sim
 ```
+
+### Running tests
+
+Tests are provided for both software, hardware simulation and hardware runs. These should always pass on the `master` branch. Beware though that it's not practical to test every design parameter configuration, so awkward issues may be arise.
+
+1. Run unit tests with `ctest -R unit`
+2. Run hardware simulation tests with `ctest -R sim`
+3. Run hardware tests with `ctest -R hw`
