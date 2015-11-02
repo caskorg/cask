@@ -17,6 +17,9 @@
       "stop": 18,
       "step": 2,
       "default":  16
+    },
+    "max_rows": {
+      "default": 200000
     }
   }
 }
