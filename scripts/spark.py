@@ -194,17 +194,16 @@ def buildClient(prj):
 def runClient(prj, benchmark):
   print '     ---- Benchmarking Client ----'
   for p in benchmark:
-    outF = 'run_' + prj.target + '_' + os.path.basename(p)
+    outF = 'run_' + prj.buildName() + '_' + os.path.basename(p)
     print '      -->', p, 'outFile =', outF
+    cmd = ['bash', 'spark_dfe_run.sh', p]
+    if prj.sim():
+      cmd = ['bash',
+          'simrunner',
+          '../build/test_spmv_sim',
+          p]
     try:
-      if prj.sim():
-          out = subprocess.check_output(
-              ['bash',
-                'simrunner',
-                '../build/test_spmv_sim',
-                p])
-      else:
-          out = subprocess.check_output(['bash', 'spark_dfe_run.sh'])
+      out = subprocess.check_output(cmd)
     except subprocess.CalledProcessError as e:
       print '       ',e
       out = e.output

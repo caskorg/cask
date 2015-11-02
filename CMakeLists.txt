@@ -143,7 +143,6 @@ if (DEFINED ENV{MAXCOMPILERDIR} AND DEFINED ENV{MAXELEROSDIR})
 
   add_executable(test_spmv_dfe tests/test_spmv.cpp)
   target_link_libraries(test_spmv_dfe
-    -lboost_program_options -lboost_filesystem -lboost_system
     SparkCpuLib SparkCpuLib SpmvImplLib
     -L../lib-generated -lSpmv_dfe
     -L/vol/cc/opt/maxeler/maxcompiler-2014.1/lib/maxeleros-sim/lib/

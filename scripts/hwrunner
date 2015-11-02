@@ -11,8 +11,7 @@ SLIC_CONF="default_pcie_timeout=360"
 
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${HARDWARE_SO_DIR}
 
-prj=$1
-
 #set -o xtrace
-SLIC_CONF=${SLIC_CONF} LD_PRELOAD=${MAXOS_HW} $@
+#SLIC_CONF=${SLIC_CONF}
+LD_PRELOAD=${MAXOS_HW} $@
 #set +o xtrace

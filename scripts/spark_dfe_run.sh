@@ -2,7 +2,7 @@
 
 f=${1}
 path="/mnt/data/scratch/pg1709/workspaces/spark/scripts"
-machine="maxnode"
+machine="maxnode2"
 
 ssh ${machine} /bin/bash << EOF
  cd ${path}
