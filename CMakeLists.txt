@@ -1,10 +1,26 @@
 cmake_minimum_required(VERSION 2.6)
 
-# ---- Useful functions and macros
-include(scripts/CMakeFunctions.txt)
 
+# --- Project Options and Configurations
 OPTION(SparseLib_DisableTesting "Disable execution of SparseLib tests" OFF)
 
+
+# --- Useful functions and macros
+function(AddMaxelerSimTest binary name args)
+    add_test(
+      NAME test_sim_${name}
+      WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+      COMMAND ../scripts/simrunner ./${binary} ${args})
+endfunction()
+
+function(AddMaxelerHwTest binary name args)
+    add_test(
+      NAME test_hw_${name}
+      WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+      COMMAND ../scripts/hwrunner ./${binary} ${args})
+endfunction()
+
+# ---
 SET (BOOST_ROOT "/opt/boost/boost_1_57_0")
 SET (BOOST_INCLUDEDIR "/opt/boost/boost-1.57.0/include")
 SET (BOOST_LIBRARYDIR "/opt/boost/boost-1.57.0/lib")
@@ -25,18 +41,9 @@ endif (NOT Boost_FOUND)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -march=native")
 
-find_library(KLU_LIB klu)
 find_path(
   EIGEN_HEADER
   Eigen)
-
-message(STATUS "Found Implementations:")
-
-if (UMFPACK_LIB)
-  add_definitions(-DUSEUMFPACK)
-  message(STATUS "  --> UMFPACK ${UMFPACK_LIB}")
-endif()
-
 if (EIGEN_HEADER)
   message(STATUS "  --> EIGEN ${EIGEN_HEADER}")
   add_definitions(-DUSEEIGEN)
@@ -46,26 +53,12 @@ if (EIGEN_HEADER)
     )
 endif()
 
-if (KLU_LIB)
-  add_definitions(-DUSEKLU)
-  message(STATUS "  --> KLU ${KLU_LIB}")
-  #set(Stream_Grid_sources
-    #"${Stream_Grid_sources}"
-    #OneStepKluSolver.cpp
-  #)
-endif()
-
-include_directories(include)
-
-file(GLOB files test-matrices/*.mtx)
 
 #
-# -- Build targets
-#
+# --- Include directories
 include_directories(dfe-snippets/include)
 include_directories(tests)
-
-message(STATUS "Maxeler not found")
+include_directories(include)
 
 # For each application we use:
 # - a device library; this implements the low level device calls
@@ -98,15 +91,14 @@ target_link_libraries(test_architecture
   -lboost_program_options
   SparkCpuLib SpmvImplLib SpmvDeviceLib)
 
+# Mock implementation used for DSE
 add_executable(test_spmv tests/test_spmv.cpp)
 target_link_libraries(test_spmv
   -lboost_program_options -lboost_filesystem -lboost_system
   SparkCpuLib SparkCpuLib SpmvImplLib SpmvDeviceLib)
 
-#
-# -- Test targets
 
-# -- Unit tests
+# -- Test targets
 include_directories(unit-tests)
 add_executable(spmv_test unit-tests/spmv_test.cpp)
 target_link_libraries(spmv_test boost_unit_test_framework)
@@ -114,78 +106,36 @@ add_test(
   NAME unit_test_spmv
   COMMAND spmv_test)
 
+
 # -- Maxeler tests
 if (DEFINED ENV{MAXCOMPILERDIR} AND DEFINED ENV{MAXELEROSDIR})
-  set(DFE_LIB true)
-  add_definitions(-DUSEDFE)
-  message(STATUS "  --> DFE")
-  message(STATUS "         MAXCOMPILER --> $ENV{MAXCOMPILERDIR}")
-  message(STATUS "         MAXELEROS   --> $ENV{MAXELEROSDIR}")
-  include_directories ($ENV{MAXCOMPILERDIR}/include)
-  include_directories ($ENV{MAXCOMPILERDIR}/include/slic)
-  include_directories ($ENV{MAXELEROSDIR}/include)
+  message(STATUS "  MAXCOMPILER --> $ENV{MAXCOMPILERDIR}")
+  message(STATUS "  MAXELEROS   --> $ENV{MAXELEROSDIR}")
   link_directories($ENV{MAXCOMPILERDIR}/lib)
   link_directories($ENV{MAXELEROSDIR}/lib)
 
-  # --- Configuration for Maxeler libs
-  #AddMaxelerImpl("cg" "ConjugateGradient" "simcglib")
-  #AddMaxelerImpl("bicg" "BiConjugateGradient" "simbicglib")
-  #AddMaxelerImpl("spmv" "Spmv" "spmvlib")
-
+  # -- Simulation tests
   add_executable(test_spmv_sim tests/test_spmv.cpp)
   target_link_libraries(test_spmv_sim
     SparkCpuLib SparkCpuLib SpmvImplLib
     -L../lib-generated -lSpmv_sim
-    -L/vol/cc/opt/maxeler/maxcompiler-2014.1/lib/maxeleros-sim/lib/
-    -lmaxeleros
-    )
+    -lmaxeleros)
 
+  # -- Hardware tests
   add_executable(test_spmv_dfe tests/test_spmv.cpp)
   target_link_libraries(test_spmv_dfe
     SparkCpuLib SparkCpuLib SpmvImplLib
     -L../lib-generated -lSpmv_dfe
-    -L/vol/cc/opt/maxeler/maxcompiler-2014.1/lib/maxeleros-sim/lib/
-    -lmaxeleros
-    )
-
-  #add_custom_target(
-    #distclean
-    #COMMAND make -C${CMAKE_CURRENT_LIST_DIR}/src/cg/build distclean
-    #COMMAND make -C${CMAKE_CURRENT_LIST_DIR}/src/bicg/build distclean
-    #)
+    -lmaxeleros)
 
   if (NOT SparseLib_DisableTesting)
     enable_testing()
-
     # Should include dfe-snippets headers as they might be used in tests
-    include_directories(dfe-snippets/include)
-    include_directories(tests/)
-
-    #AddMaxelerImplTest("cg" simcglib "ConjugateGradient_sim")
-    #AddMaxelerImplTest("spmv" spmvlib "Spmv_sim" "")
-
+    file(GLOB files test-matrices/*.mtx)
     foreach(infileName ${files})
       get_filename_component(matrix "${infileName}" NAME)
       AddMaxelerSimTest("test_spmv_sim" "${matrix}" "../test-matrices/${matrix}")
       AddMaxelerHwTest("test_spmv_dfe" "${matrix}" "../test-matrices/${matrix}")
     endforeach()
-
-    #AddMaxelerImplTest("bicg" simbicglib "BiConjugateGradient_sim" "")
-    #AddMaxelerImplTestRun("test_bicg" "bicg" "")
-    #add_dependencies(test_bicg smpvlib)
-    #target_link_libraries(test_bicg -lSpmv_sim)
-
-    #AddMaxelerImplTest("architecture" spmvlib "Spmv_sim" "")
-    #AddMaxelerImplTestRun("test_architecture" "spmv_architecture_test_small" "--filePath ../test-matrices/TSOPF_RS_b39_c7.mtx")
-
-    #AddMaxelerImplTestHw("spmv" spmvlib_dfe "Spmv_dfe" "")
-    #AddMaxelerImplTestRunHw("test_spmv_hw" "test_spmv_hw_dense_8" "../test-matrices/test_dense_8.mtx")
-
   endif()
 endif()
-
-#add_executable(test_dse tests/test_dse.cpp )
- #target_link_libraries(test_dse SparkCpuLib)
- #add_test(
-   #NAME test_dse
-   #COMMAND test_dse)
