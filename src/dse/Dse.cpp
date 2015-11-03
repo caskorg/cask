@@ -1,7 +1,7 @@
 #include <iostream>
 #include <Spark/Dse.hpp>
-#include <unordered_set>
 #include <unordered_map>
+#include <Spark/Converters.hpp>
 
 using namespace spark::spmv;
 using namespace spark::utils;

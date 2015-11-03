@@ -2,7 +2,6 @@
 #define SPMV_H
 
 #include <Spark/SparseMatrix.hpp>
-#include <Spark/converters.hpp>
 #include <Spark/Model.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <Eigen/Sparse>

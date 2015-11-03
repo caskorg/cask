@@ -8,7 +8,7 @@
 #include <Eigen/Sparse>
 
 #include <Spark/SparseLinearSolvers.hpp>
-#include <Spark/converters.hpp>
+#include <Spark/Converters.hpp>
 #include <Spark/Io.hpp>
 
 #include <dfesnippets/NumericUtils.hpp>

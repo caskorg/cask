@@ -1,7 +1,7 @@
 #include <Spark/Spmv.hpp>
 #include <Spark/SimpleSpmv.hpp>
 
-#include <Spark/converters.hpp>
+#include <Spark/Converters.hpp>
 #include <iostream>
 #include <tuple>
 
