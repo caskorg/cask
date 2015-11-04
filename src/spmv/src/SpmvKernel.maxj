@@ -241,6 +241,25 @@ class SpmvReductionKernel extends Kernel {
 }
 
 
+// use for large matrices, does not support skiping of empty rows
+class DramSpmvReductionKernel extends Kernel {
+  protected DramSpmvReductionKernel(KernelParameters parameters) {
+    super(parameters);
+    DFEVar previous = io.input("prevb", dfeFloat(11, 53));
+    DFEVar current = io.input("reductionIn", dfeFloat(11, 53));
+
+    // Not actually used, but ncecessary to maintain interface compatibility
+    io.input("skipCount", dfeInt(32));
+    io.scalarInput("nRows", dfeUInt(32));
+    io.scalarInput("totalCycles", dfeUInt(32));
+
+    //DFEVar cycles = control.count.simpleCounter(32);
+    //DFEVar outputEnable = totalCycles - cycles <= n;
+    io.output("reductionOut", previous + current, dfeFloat(11, 53));
+  }
+}
+
+
 // uses BRAM storage instead of stream offsets, allows us to skip
 // empty rows to achieve better throughput on matrices with long
 // sequences of empty rows (e.g. banded matrices)
@@ -304,6 +323,7 @@ class BramSpmvReductionKernel extends Kernel {
     }
   }
 }
+
 
 // pads the inputs with 0 after nInputs have been processed
 class PaddingKernel extends Kernel {

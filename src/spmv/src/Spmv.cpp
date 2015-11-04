@@ -223,6 +223,9 @@ Eigen::VectorXd ssarch::dfespmv(Eigen::VectorXd x)
     indptrValuesStartAddresses.push_back(pr.indptrValuesStartAddress);
 
     offset = pr.outStartAddr + p.outSize;
+    //int sumAccStartAddress = pr.outStartAddr + p.outSize;
+    //int sumAccSize = mat.rows() * sizeof(double);
+    //offset = sumAccStartAddress + sumAccSize;
   }
 
   // npartitions and vector load cycles should be the same for all partitions
@@ -237,7 +240,7 @@ Eigen::VectorXd ssarch::dfespmv(Eigen::VectorXd x)
   //std::cout << "colptrSize " << colptrSizes[0] << std::endl;
   //std::cout << "colptrUnpaddedSizes " << colptrUnpaddedSizes[0] << std::endl;
 
-  int nIterations = 2;
+  int nIterations = 1;
   auto start = std::chrono::high_resolution_clock::now();
   Spmv(
       nIterations,

@@ -23,6 +23,7 @@ public class SpmvManager extends CustomManager{
     private static final boolean DBG_PAR_CSR_CTL = false;
     private static final boolean DBG_SPMV_KERNEL = false;
     private static final boolean DBG_REDUCTION_KERNEL = false;
+    private static final boolean dramReductionEnabled = false; //false;
 
     SpmvManager(SpmvEngineParams ep) {
         super(ep);
@@ -86,22 +87,37 @@ public class SpmvManager extends CustomManager{
         // flush control is shared between all kernels
         //k.getInput("flush") <== readControlBlock.getOutput("flush");
 
-        KernelBlock r = addKernel(new BramSpmvReductionKernel(
-              makeKernelParameters(getReductionKernel(id)),
-              FLOATING_POINT_LATENCY,
-              maxRows,
-              DBG_REDUCTION_KERNEL
-              ));
-        r.getInput("reductionIn") <== k.getOutput("output");
-        //r.getInput("flush") <== k.getOutput("flushTriggerOut");
-        r.getInput("skipCount") <== k.getOutput("skipCount");
+        KernelBlock r = null;
+        if (dramReductionEnabled) {
+          r = addKernel(new DramSpmvReductionKernel(makeKernelParameters(getReductionKernel(id))));
+          r.getInput("reductionIn") <== k.getOutput("output");
+          r.getInput("prevb") <== addStreamFromOnCardMemory("prevb" + id,
+            MemoryControlGroup.MemoryAccessPattern.LINEAR_1D);
+          //r.getInput("flush") <== k.getOutput("flushTriggerOut");
+          r.getInput("skipCount") <== k.getOutput("skipCount");
+          addStreamToOnCardMemory("reductionOut" + id,
+              MemoryControlGroup.MemoryAccessPattern.LINEAR_1D) <== r.getOutput("reductionOut");
+        }
+        else {
+          r = addKernel(new BramSpmvReductionKernel(
+                makeKernelParameters(getReductionKernel(id)),
 
-        KernelBlock p = addKernel(new PaddingKernel(
-              makeKernelParameters(getPaddingKernel(id))));
+                FLOATING_POINT_LATENCY,
+                maxRows,
+                DBG_REDUCTION_KERNEL
+                ));
+          r.getInput("reductionIn") <== k.getOutput("output");
+          //r.getInput("flush") <== k.getOutput("flushTriggerOut");
+          r.getInput("skipCount") <== k.getOutput("skipCount");
 
-        p.getInput("paddingIn") <== r.getOutput("reductionOut");
-        addStreamToOnCardMemory("paddingOut" + id,
-            MemoryControlGroup.MemoryAccessPattern.LINEAR_1D) <== p.getOutput("paddingOut");
+          KernelBlock p = addKernel(new PaddingKernel(
+                makeKernelParameters(getPaddingKernel(id))));
+
+          p.getInput("paddingIn") <== r.getOutput("reductionOut");
+          addStreamToOnCardMemory("paddingOut" + id,
+              MemoryControlGroup.MemoryAccessPattern.LINEAR_1D) <== p.getOutput("paddingOut");
+        }
+
     }
 
     String getComputeKernel(int id) {
@@ -169,10 +185,6 @@ public class SpmvManager extends CustomManager{
       ei.setScalar(reductionKernel, "nRows", n);
       ei.setScalar(reductionKernel, "totalCycles", reductionCycles);
 
-      ei.setTicks(paddingKernel, (n + paddingCycles) * nIterations);
-      ei.setScalar(paddingKernel, "nInputs", n);
-      ei.setScalar(paddingKernel, "totalCycles", n + paddingCycles);
-
 
       String vromUnpaddingKernel = getUnpaddingVromLoad(id);
       ei.setTicks(vromUnpaddingKernel, vectorSize * nIterations);
@@ -217,13 +229,40 @@ public class SpmvManager extends CustomManager{
           indptrValuesSize * nIterations,
           zero);
 
-      ei.setLMemLinearWrapped(
-          "paddingOut" + id,
-          outResultStartAddress,
-          outResultSize,
-          outResultSize * nIterations,
-          zero
-          );
+      if (dramReductionEnabled) {
+        ei.setLMemLinearWrapped(
+            "prevb" + id,
+            outResultStartAddress +
+            // need to force maxcompiler to include these numbers in the
+            // generated SLIC call, so that we have a single interface for both
+            // designs if the variables are not used, they are simply optimised
+            // and removed from the resulting SLIC interface
+            paddingCycles - paddingCycles + outResultSize - outResultSize,
+            n * CPUTypes.DOUBLE.sizeInBytes(),
+            n * CPUTypes.DOUBLE.sizeInBytes() * nPartitions * nIterations,
+            zero
+            );
+
+        ei.setLMemLinearWrapped(
+            "reductionOut" + id,
+            outResultStartAddress,
+            n * CPUTypes.DOUBLE.sizeInBytes(),
+            n * CPUTypes.DOUBLE.sizeInBytes() * nPartitions * nIterations,
+            zero
+            );
+      } else {
+        ei.setTicks(paddingKernel, (n + paddingCycles) * nIterations);
+        ei.setScalar(paddingKernel, "nInputs", n);
+        ei.setScalar(paddingKernel, "totalCycles", n + paddingCycles);
+
+        ei.setLMemLinearWrapped(
+            "paddingOut" + id,
+            outResultStartAddress,
+            outResultSize,
+            outResultSize * nIterations,
+            zero
+            );
+      }
     }
 
     private EngineInterface interfaceDefault() {
