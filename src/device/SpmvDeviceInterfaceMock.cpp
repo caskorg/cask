@@ -16,7 +16,7 @@ int getSpmv_NumPipes() {
   return 2;
 }
 
-int getSpmv_MaxRow() {
+int getSpmv_MaxRows() {
   return 50000;
 }
 
