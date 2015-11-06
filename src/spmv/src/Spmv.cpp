@@ -256,7 +256,6 @@ Eigen::VectorXd ssarch::dfespmv(Eigen::VectorXd x)
       &nrows[0],
       &outputResultSizes[0],
       &outputStartAddresses[0],
-      &paddingCycles[0],
       &reductionCycles[0],
       &totalCycles[0],
       &vStartAddresses[0]
