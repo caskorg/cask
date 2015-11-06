@@ -34,7 +34,6 @@ void Spmv(
     int64_t param_nIterations,
     int64_t param_nPartitions,
     int64_t param_vectorLoadCycles,
-    int64_t param_vectorSize,
     const int64_t *param_colPtrStartAddresses,
     const int32_t *param_colptrSizes,
     const int32_t *param_colptrUnpaddedlengths,
@@ -44,7 +43,6 @@ void Spmv(
     const int32_t *param_nrows,
     const int32_t *param_outResultSizes,
     const int64_t *param_outStartAddresses,
-    const int32_t *param_paddingCycles,
     const int32_t *param_reductionCycles,
     const int32_t *param_totalCycles,
     const int64_t *param_vStartAddresses) {}

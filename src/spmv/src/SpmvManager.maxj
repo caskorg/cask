@@ -181,9 +181,15 @@ public class SpmvManager extends CustomManager{
 
 
       String vromUnpaddingKernel = getUnpaddingVromLoad(id);
-      ei.setTicks(vromUnpaddingKernel, vectorSize * nIterations);
-      ei.setScalar(vromUnpaddingKernel, "nInputs", vectorLoadCycles * nPartitions );
-      ei.setScalar(vromUnpaddingKernel, "totalCycles", vectorSize);
+      setupUnpaddingKernel(
+          ei,
+          getUnpaddingVromLoad(id),
+          "vromLoad" + id,
+          vectorLoadCycles * nPartitions,
+          ei.addConstant(8), // XXX magic constant...
+          nIterations,
+          vStartAddress
+          );
 
       String unpaddingColptr = getUnpaddingColptr(id);
       InterfaceParam colptrEntries = colptrSize / CPUTypes.INT32.sizeInBytes();
@@ -203,12 +209,6 @@ public class SpmvManager extends CustomManager{
           colPtrStartAddress,
           colptrSize,
           colptrSize * nIterations,
-          zero);
-
-      ei.setLMemLinearWrapped("vromLoad" + id,
-          vStartAddress,
-          vectorSize * CPUTypes.DOUBLE.sizeInBytes(),
-          vectorSize * CPUTypes.DOUBLE.sizeInBytes() * nIterations,
           zero);
 
       ei.setScalar(readControl, "nrows", n);
@@ -263,13 +263,51 @@ public class SpmvManager extends CustomManager{
       }
     }
 
+    /**
+     * An unpadding kernel reads a stream from memory and discards the bytes
+     * which were added to pad the data to a multiple of BURST_SIZE_BYTES.
+     *
+     * @param size size in number of elements of the stream
+     * @param memoryStream the stream from memory to unpad
+     * @param inputWidthBytes the number of bytes the kernel should read (and
+     *                        write) every cycle
+     */
+    private void setupUnpaddingKernel(
+        EngineInterface ei,
+        String kernelId,
+        String memoryStream,
+        InterfaceParam size,
+        InterfaceParam inputWidthBytes,
+        InterfaceParam iterations,
+        InterfaceParam startAddress
+        ) {
+
+      InterfaceParam unpaddingCycles = getPaddingCycles(size * inputWidthBytes, inputWidthBytes);
+      InterfaceParam totalSize = unpaddingCycles + size;
+      ei.setTicks(kernelId, totalSize * iterations);
+      ei.setScalar(kernelId, "nInputs", size);
+      ei.setScalar(kernelId, "totalCycles", totalSize);
+
+      ei.setLMemLinearWrapped(memoryStream,
+          startAddress,
+          totalSize * inputWidthBytes,
+          totalSize * inputWidthBytes * iterations,
+          ei.addConstant(0));
+    }
+
+    private InterfaceParam smallestMultipleLargerThan(InterfaceParam x, long y) {
+      return
+        y * (x / y +
+          InterfaceMath.max(
+            0l, InterfaceMath.min(x % y, 1l)));
+    }
 
     private InterfaceParam getPaddingCycles(
         InterfaceParam outSizeBytes,
         InterfaceParam outWidthBytes)
     {
       final int burstSizeBytes = 384;
-      InterfaceParam writeSize = (outSizeBytes / burstSizeBytes + 1) * burstSizeBytes;
+      InterfaceParam writeSize = smallestMultipleLargerThan(outSizeBytes, burstSizeBytes);
       return (writeSize - outSizeBytes) / outWidthBytes;
     }
 

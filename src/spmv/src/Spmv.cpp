@@ -241,12 +241,20 @@ Eigen::VectorXd ssarch::dfespmv(Eigen::VectorXd x)
   //std::cout << "colptrUnpaddedSizes " << colptrUnpaddedSizes[0] << std::endl;
 
   int nIterations = 1;
+  std::cout << "Total cycles = ";
+  dfesnippets::vectorutils::print_vector(totalCycles);
+  std::cout << "Padding cycles = ";
+  dfesnippets::vectorutils::print_vector(paddingCycles);
+  std::cout << "Reduction cycles = ";
+  dfesnippets::vectorutils::print_vector(reductionCycles);
+  std::cout << "Values sizes = " << std::endl;
+  std::cout << "Vector size = " << v.size() << std::endl;
+
   auto start = std::chrono::high_resolution_clock::now();
   Spmv(
       nIterations,
       nBlocks,
       vector_load_cycles,
-      v.size(),
       &colptrStartAddresses[0],
       &colptrSizes[0],
       &colptrUnpaddedSizes[0],
@@ -260,14 +268,6 @@ Eigen::VectorXd ssarch::dfespmv(Eigen::VectorXd x)
       &totalCycles[0],
       &vStartAddresses[0]
       );
-  std::cout << "Total cycles = ";
-  dfesnippets::vectorutils::print_vector(totalCycles);
-  std::cout << "Padding cycles = ";
-  dfesnippets::vectorutils::print_vector(paddingCycles);
-  std::cout << "Reduction cycles = ";
-  dfesnippets::vectorutils::print_vector(reductionCycles);
-  std::cout << "Values sizes = " << std::endl;
-
   double took = dfesnippets::timing::clock_diff(start) / nIterations;
   std::cout << "Done on DFE" << std::endl;
   double est =(double) totalCycles[0] / (100.0 * 1e6);
