@@ -24,7 +24,7 @@ public class SpmvManager extends CustomManager{
     private static final boolean DBG_PAR_CSR_CTL = false;
     private static final boolean DBG_SPMV_KERNEL = false;
     private static final boolean DBG_REDUCTION_KERNEL = false;
-    private static final boolean dramReductionEnabled = false; //false;
+    private static final boolean dramReductionEnabled = true; //false;
 
     SpmvManager(SpmvEngineParams ep) {
         super(ep);
@@ -75,8 +75,10 @@ public class SpmvManager extends CustomManager{
         KernelBlock r = null;
         if (dramReductionEnabled) {
           r = addKernel(new DramSpmvReductionKernel(makeKernelParameters(getReductionKernel(id))));
-          r.getInput("prevb") <== addStreamFromOnCardMemory("prevb" + id,
-            MemoryControlGroup.MemoryAccessPattern.LINEAR_1D);
+
+          //r.getInput("prevb") <== addUnpaddingKernel("prevb" + id, 64, id * 10 + 5);
+          r.getInput("prevb") <== addStreamFromOnCardMemory("prevb" + id, MemoryControlGroup.MemoryAccessPattern.LINEAR_1D);
+
           addStreamToOnCardMemory("reductionOut" + id,
               MemoryControlGroup.MemoryAccessPattern.LINEAR_1D) <== r.getOutput("reductionOut");
         }
@@ -208,14 +210,21 @@ public class SpmvManager extends CustomManager{
       InterfaceParam spmvOutputWidthBytes = ei.addConstant(CPUTypes.DOUBLE.sizeInBytes());
       InterfaceParam spmvOutputSizeBytes = n * spmvOutputWidthBytes;
       if (dramReductionEnabled) {
+        //setupUnpaddingKernel(ei,
+            //getUnpaddingKernel("prevb" + id),
+            //"prevb" + id,
+            //n,
+            //ei.addConstant(8),
+            //nIterations,
+            //outResultStartAddress
+            //);
         ei.setLMemLinearWrapped(
             "prevb" + id,
-            outResultStartAddress +
+            outResultStartAddress,
             // need to force maxcompiler to include these numbers in the
             // generated SLIC call, so that we have a single interface for both
             // designs if the variables are not used, they are simply optimised
             // and removed from the resulting SLIC interface
-            outResultSize - outResultSize,
             spmvOutputSizeBytes,
             spmvOutputSizeBytes * nPartitions * nIterations,
             zero
