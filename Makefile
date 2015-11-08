@@ -2,6 +2,12 @@ TMP_PATH="/tmp/spark_html_doc"
 HTML_DIR="html"
 TRASH=latex
 
+clean-tags:
+	rm -f tags
+
+tags:
+	ctags include/ src/ -R *
+
 doc:
 	doxygen docs/doxygen.conf
 
@@ -20,4 +26,4 @@ doc:
 	#rm -rf ${TMP_PATH}
 	#git checkout master
 
-.PHONY: doc update-doc
+.PHONY: doc update-doc tags
