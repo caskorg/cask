@@ -223,6 +223,9 @@ Eigen::VectorXd ssarch::dfespmv(Eigen::VectorXd x)
     indptrValuesStartAddresses.push_back(pr.indptrValuesStartAddress);
 
     offset = pr.outStartAddr + p.outSize;
+    //int sumAccStartAddress = pr.outStartAddr + p.outSize;
+    //int sumAccSize = mat.rows() * sizeof(double);
+    //offset = sumAccStartAddress + sumAccSize;
   }
 
   // npartitions and vector load cycles should be the same for all partitions
@@ -237,27 +240,7 @@ Eigen::VectorXd ssarch::dfespmv(Eigen::VectorXd x)
   //std::cout << "colptrSize " << colptrSizes[0] << std::endl;
   //std::cout << "colptrUnpaddedSizes " << colptrUnpaddedSizes[0] << std::endl;
 
-  int nIterations = 2;
-  auto start = std::chrono::high_resolution_clock::now();
-  Spmv(
-      nIterations,
-      nBlocks,
-      vector_load_cycles,
-      v.size(),
-      &colptrStartAddresses[0],
-      &colptrSizes[0],
-      &colptrUnpaddedSizes[0],
-      &indptrValuesStartAddresses[0],
-      &indptrValuesSizes[0],
-      &indptrValuesUnpaddedLengths[0],
-      &nrows[0],
-      &outputResultSizes[0],
-      &outputStartAddresses[0],
-      &paddingCycles[0],
-      &reductionCycles[0],
-      &totalCycles[0],
-      &vStartAddresses[0]
-      );
+  int nIterations = 1;
   std::cout << "Total cycles = ";
   dfesnippets::vectorutils::print_vector(totalCycles);
   std::cout << "Padding cycles = ";
@@ -265,7 +248,24 @@ Eigen::VectorXd ssarch::dfespmv(Eigen::VectorXd x)
   std::cout << "Reduction cycles = ";
   dfesnippets::vectorutils::print_vector(reductionCycles);
   std::cout << "Values sizes = " << std::endl;
+  std::cout << "Vector size = " << v.size() << std::endl;
 
+  auto start = std::chrono::high_resolution_clock::now();
+  Spmv(
+      nIterations,
+      nBlocks,
+      vector_load_cycles,
+      &colptrStartAddresses[0],
+      &colptrSizes[0],
+      &indptrValuesStartAddresses[0],
+      &indptrValuesSizes[0],
+      &nrows[0],
+      //&outputResultSizes[0],
+      &outputStartAddresses[0],
+      &reductionCycles[0],
+      &totalCycles[0],
+      &vStartAddresses[0]
+      );
   double took = dfesnippets::timing::clock_diff(start) / nIterations;
   std::cout << "Done on DFE" << std::endl;
   double est =(double) totalCycles[0] / (100.0 * 1e6);
