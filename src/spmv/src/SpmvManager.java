@@ -26,6 +26,7 @@ public class SpmvManager extends CustomManager{
     private static final boolean DBG_REDUCTION_KERNEL = false;
     private static final boolean dramReductionEnabled = false;
 
+
     SpmvManager(SpmvEngineParams ep) {
         super(ep);
 
@@ -211,6 +212,8 @@ public class SpmvManager extends CustomManager{
 
       InterfaceParam spmvOutputWidthBytes = ei.addConstant(CPUTypes.DOUBLE.sizeInBytes());
       InterfaceParam spmvOutputSizeBytes = n * spmvOutputWidthBytes;
+
+      InterfaceParam size = nIterations;
       if (dramReductionEnabled) {
         setupUnpaddingKernel(ei,
             getUnpaddingKernel("prevb" + id),
@@ -220,30 +223,17 @@ public class SpmvManager extends CustomManager{
             nIterations * nPartitions,
             outResultStartAddress
             );
-
-        stream = "reductionOut" + id;
-        setupUnpaddingKernel(ei,
-            getPaddingKernel(stream),
-            stream,
-            n,
-            ei.addConstant(8),
-            nIterations * nPartitions,
-            outResultStartAddress);
-      } else {
-        InterfaceParam spmvPaddingCycles = getPaddingCycles(spmvOutputSizeBytes, spmvOutputWidthBytes);
-        InterfaceParam spmvTotalCyclesPerIteration = n + spmvPaddingCycles;
-        ei.setTicks(paddingKernel, spmvTotalCyclesPerIteration * nIterations);
-        ei.setScalar(paddingKernel, "nInputs", n);
-        ei.setScalar(paddingKernel, "totalCycles", spmvTotalCyclesPerIteration);
-
-        ei.setLMemLinearWrapped(
-            "paddingOut" + id,
-            outResultStartAddress,
-            outResultSize,
-            outResultSize * nIterations,
-            zero
-            );
+        size *= nPartitions;
       }
+
+      stream = "reductionOut" + id;
+      setupUnpaddingKernel(ei,
+          getPaddingKernel(stream),
+          stream,
+          n,
+          ei.addConstant(8),
+          size,
+          outResultStartAddress);
     }
 
     /**
