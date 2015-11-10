@@ -8,6 +8,7 @@ int getSpmv_PartitionSize();
 int getSpmv_InputWidth();
 int getSpmv_NumPipes();
 int getSpmv_MaxRows();
+bool getDramReductionEnabled();
 
 
 /**

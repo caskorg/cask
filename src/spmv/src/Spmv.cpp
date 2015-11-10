@@ -181,7 +181,7 @@ Eigen::VectorXd ssarch::dfespmv(Eigen::VectorXd x)
 {
   using namespace std;
 
-  if (maxRows < mat.rows()) {
+  if (maxRows < mat.rows() && !getDramReductionEnabled()) {
     stringstream ss;
     ss << "Matrix is too large! Maximum supported rows: ";
     ss << maxRows;

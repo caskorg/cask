@@ -20,6 +20,10 @@ int getSpmv_MaxRows() {
   return 50000;
 }
 
+bool getDramReductionEnabled() {
+  return false;
+}
+
 void Spmv_dramWrite(
 	int64_t param_size_bytes,
 	int64_t param_start_bytes,

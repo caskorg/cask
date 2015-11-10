@@ -18,3 +18,7 @@ int getSpmv_MaxRows() {
 int getSpmv_PartitionSize() {
   return Spmv_cacheSize;
 }
+
+bool getDramReductionEnabled() {
+  return Spmv_dramReductionEnabled == 1;
+}

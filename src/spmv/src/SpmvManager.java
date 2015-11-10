@@ -24,7 +24,7 @@ public class SpmvManager extends CustomManager{
     private static final boolean DBG_PAR_CSR_CTL = false;
     private static final boolean DBG_SPMV_KERNEL = false;
     private static final boolean DBG_REDUCTION_KERNEL = false;
-    private static final boolean dramReductionEnabled = false;
+    private static final boolean dramReductionEnabled = true;
 
 
     SpmvManager(SpmvEngineParams ep) {
@@ -44,6 +44,7 @@ public class SpmvManager extends CustomManager{
         addMaxFileConstant("cacheSize", cacheSize);
         addMaxFileConstant("maxRows", maxRows);
         addMaxFileConstant("numPipes", numPipes);
+        addMaxFileConstant("dramReductionEnabled", dramReductionEnabled ? 1 : 0);
 
         ManagerUtils.setDRAMMaxDeviceFrequency(this, ep);
         //config.setAllowNonMultipleTransitions(true);
