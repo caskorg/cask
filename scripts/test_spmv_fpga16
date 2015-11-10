@@ -5,11 +5,12 @@ txtgreen='\e[0;32m'
 txtrst='\e[0m'
 
 run_sim=./simrunner
-sim_bin=../build/test_spmv
-max_time=120
+sim_bin=../build/test_spmv_sim
+max_time=360
 
 files=`find /mnt/data/cccad3/pg1709/sparse-matrices/perf-tests/fpga16 -maxdepth 1 -name "*.mtx"`
 
+rm -f last_run.log
 for f in $files
 do
     if [[ $f != *"$1"* ]]; then
@@ -18,7 +19,7 @@ do
     abs_f=`readlink -f $f`
 
     start_time=`date +%s`
-    timeout --signal=KILL ${max_time} ${run_sim} ${sim_bin} ${abs_f} 1 > /dev/null
+    timeout --signal=KILL ${max_time} ${run_sim} ${sim_bin} ${abs_f} 1 >> last_run.log #> /dev/null
     status=$?
     end_time=`date +%s`
     exec_time=`expr $end_time - $start_time`
