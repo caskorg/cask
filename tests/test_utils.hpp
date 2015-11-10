@@ -4,6 +4,9 @@
 #include <vector>
 #include <tuple>
 #include <iostream>
+#include <iomanip>
+
+#include <boost/io/ios_state.hpp>
 
 #include <Eigen/Sparse>
 
@@ -30,7 +33,7 @@ namespace spark {
     {
       std::vector<std::tuple<int, double, double>> mismatches;
       for (int i = 0; i < got.size(); i++) {
-        if (!dfesnippets::numeric_utils::almost_equal(got[i], exp[i], 1E-10, 1E-15))
+        if (!dfesnippets::numeric_utils::almost_equal(got[i], exp[i], 1E-8, 1E-11))
           mismatches.push_back(std::make_tuple(i, got[i], exp[i]));
       }
 
@@ -47,9 +50,11 @@ namespace spark {
     }
 
     void print_mismatches(const MismatchT& mismatches) {
+      boost::io::ios_all_saver guard(std::cout);
       if (!mismatches.empty()) {
         std::cout << "Results didn't match" << std::endl;
         for (int i = 0; i < mismatches.size(); i++) {
+          std::cout << std::fixed << std::setprecision(10);
           std::cout << "At " << std::get<0>(mismatches[i]);
           std::cout << " got: " << std::get<1>(mismatches[i]);
           std::cout << " exp: "  << std::get<2>(mismatches[i]) << std::endl;
