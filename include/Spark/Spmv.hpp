@@ -29,6 +29,7 @@ namespace spark {
         virtual Eigen::VectorXd dfespmv(Eigen::VectorXd x) = 0;
         virtual std::string get_name() = 0;
         virtual boost::property_tree::ptree write_params() = 0;
+        virtual std::string getLibraryName() = 0;
         bool operator==(const SpmvArchitecture& other) {
           return equals(other);
         }

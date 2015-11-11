@@ -118,14 +118,14 @@ if (DEFINED ENV{MAXCOMPILERDIR} AND DEFINED ENV{MAXELEROSDIR})
   add_executable(test_spmv_sim tests/test_spmv.cpp)
   target_link_libraries(test_spmv_sim
     SparkCpuLib SparkCpuLib SpmvImplLib
-    -L../lib-generated -lSpmv_sim
+    -L../lib-generated -lSpmv_sim -ldl
     -lmaxeleros)
 
   # -- Hardware tests
   add_executable(test_spmv_dfe tests/test_spmv.cpp)
   target_link_libraries(test_spmv_dfe
     SparkCpuLib SparkCpuLib SpmvImplLib
-    -L../lib-generated -lSpmv_dfe
+    -L../lib-generated -lSpmv_dfe -ldl
     -lmaxeleros)
 
   if (NOT SparseLib_DisableTesting)

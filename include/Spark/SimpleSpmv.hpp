@@ -98,6 +98,13 @@ namespace spark {
           numPipes(_numPipes),
           maxRows(_maxRows) {}
 
+        virtual std::string getLibraryName() {
+          std::stringstream ss;
+          // XXX generate library name based on parameters
+          ss << "libSpmv_sim_cachesize4096_inputwidth16_numpipes1_maxrows200000.so";
+          return ss.str();
+        }
+
         virtual double getEstimatedClockCycles() {
           auto res = std::max_element(partitions.begin(), partitions.end(),
               [](const Partition& a, const Partition& b) {

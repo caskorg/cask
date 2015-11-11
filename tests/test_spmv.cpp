@@ -6,6 +6,7 @@
 #include <Spark/UserInput.hpp>
 
 #include <test_utils.hpp>
+#include <dlfcn.h>
 
 using namespace std;
 
@@ -23,6 +24,20 @@ int test(string path) {
 
   auto a = new spark::spmv::SimpleSpmvArchitecture();
   //auto a = new spark::spmv::SkipEmptyRowsArchitecture();
+
+  string libName = a->getLibraryName();
+  const char *libPath =  ("../lib-generated/" + libName).c_str();
+  void *handle = dlopen(
+      libPath,
+      RTLD_NOW | RTLD_GLOBAL);
+  char *err = dlerror();
+  if (err) {
+    cout << "There were errors loading the library" << endl;
+    std::cout << "Path was " << libPath << std::endl;
+    cout << dlerror();
+  } else {
+    std::cout << "Loading dynamic library succesful!" << std::endl;
+  }
 
   a->preprocess(*eigenMatrix);
   Eigen::VectorXd got = a->dfespmv(x);

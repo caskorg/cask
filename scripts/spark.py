@@ -61,8 +61,7 @@ class PrjConfig:
     return os.path.join(self.buildDir(), 'results')
 
   def libName(self):
-    return 'lib{0}_{1}.so'.format(
-        self.name, self.target)
+    return 'lib{0}.so'.format(self.buildName())
 
   def sim(self):
     return self.target == 'sim'
@@ -174,6 +173,7 @@ def runLibraryBuild(prj):
     shutil.rmtree(libDir)
   os.makedirs(libDir)
   shutil.copy(prj.libName(), libDir + '/{}.0'.format(prj.libName()))
+  shutil.copy(prj.libName(), libDir + '/libSpmv_sim.so')
   shutil.move(prj.libName(), libDir)
 
   # do a bit of cleanup
