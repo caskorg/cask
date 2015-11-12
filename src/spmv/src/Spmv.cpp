@@ -181,12 +181,26 @@ Eigen::VectorXd ssarch::dfespmv(Eigen::VectorXd x)
 {
   using namespace std;
 
-  if (maxRows < mat.rows() && !getDramReductionEnabled()) {
-    stringstream ss;
-    ss << "Matrix is too large! Maximum supported rows: ";
-    ss << maxRows;
-    ss << " actual rows: " << mat.rows();
-    throw invalid_argument(ss.str());
+  if (getDramReductionEnabled()) {
+    // because of DRAM read/write latency we can only hope to get correct
+    // answers for large matrices
+    // XXX figure out where to place this constant;
+    const int minRowsWithDramReduction = 35000;
+    if (mat.rows() < minRowsWithDramReduction ) {
+      stringstream ss;
+      ss << "Matrix is too small! Minimum supported rows with DRAM reduction: ";
+      ss << minRowsWithDramReduction;
+      ss << " actual rows: " << mat.rows();
+      throw invalid_argument(ss.str());
+    }
+  } else {
+    if (maxRows < mat.rows()) {
+      stringstream ss;
+      ss << "Matrix is too large! Maximum supported rows: ";
+      ss << maxRows;
+      ss << " actual rows: " << mat.rows();
+      throw invalid_argument(ss.str());
+    }
   }
 
   int cacheSize = this->cacheSize;
