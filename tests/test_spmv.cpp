@@ -26,9 +26,9 @@ int test(string path) {
   //auto a = new spark::spmv::SkipEmptyRowsArchitecture();
 
   string libName = a->getLibraryName();
-  const char *libPath =  ("../lib-generated/" + libName).c_str();
+  string libPath =  "../lib-generated/" + libName;
   void *handle = dlopen(
-      libPath,
+      libPath.c_str(),
       RTLD_NOW | RTLD_GLOBAL);
   char *err = dlerror();
   if (err) {

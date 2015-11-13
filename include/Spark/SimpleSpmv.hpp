@@ -100,8 +100,15 @@ namespace spark {
 
         virtual std::string getLibraryName() {
           std::stringstream ss;
-          // XXX generate library name based on parameters
-          ss << "libSpmv_sim_cachesize4096_inputwidth16_numpipes1_maxrows200000.so";
+          ss << "libSpmv_";
+          // XXX detect target from environment configuration?
+          const std::string target = "sim";
+          ss << target << "_";
+          ss << "cachesize" << cacheSize << "_";
+          ss << "inputwidth" << inputWidth << "_";
+          ss << "numpipes" << numPipes << "_";
+          ss << "maxrows" << maxRows;
+          ss << ".so";
           return ss.str();
         }
 
