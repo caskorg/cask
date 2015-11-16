@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Type" content="text/xhtml;charset=UTF-8"/>
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.8.3.1"/>
-<title>Spark: Main Page</title>
+<title>Spark: spark</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -36,8 +36,8 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 </script>
   <div id="navrow1" class="tabs">
     <ul class="tablist">
-      <li class="current"><a href="index.html"><span>Main&#160;Page</span></a></li>
-      <li><a href="pages.html"><span>Related&#160;Pages</span></a></li>
+      <li><a href="index.html"><span>Main&#160;Page</span></a></li>
+      <li class="current"><a href="pages.html"><span>Related&#160;Pages</span></a></li>
       <li><a href="namespaces.html"><span>Namespaces</span></a></li>
       <li><a href="annotated.html"><span>Classes</span></a></li>
       <li><a href="files.html"><span>Files</span></a></li>
@@ -59,7 +59,6 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
       </li>
     </ul>
   </div>
-</div><!-- top -->
 <!-- window showing the filter options -->
 <div id="MSearchSelectWindow"
      onmouseover="return searchBox.OnSearchSelectShow()"
@@ -74,15 +73,53 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 </iframe>
 </div>
 
+</div><!-- top -->
 <div class="header">
   <div class="headertitle">
-<div class="title">Spark Documentation</div>  </div>
+<div class="title">spark </div>  </div>
 </div><!--header-->
 <div class="contents">
-</div><!-- contents -->
+<div class="textblock"><p><code>spark</code> is a tool for exploring customised architectures for sparse linear algebra. It focuses on micro-architectural optimsations for iterative solvers and the sparse matrix vector multiplication kernel.</p>
+<h2>Installation</h2>
+<p>``` git clone <a href="https://github.com/paul-g/spark.git">https://github.com/paul-g/spark.git</a> git submodule update &ndash;init cd spark &amp;&amp; mkdir build &amp;&amp; cd build &amp;&amp; cmake .. make -C main ```</p>
+<h2>Requires</h2>
+<p>All builds are performed on the local machine which must have:</p>
+<ol type="1">
+<li><code>Maxeler MaxCompiler 2013.2.2</code> or higher</li>
+<li><code>g++ 4.9.2</code> or higher</li>
+<li><code>Boost 1.55</code> or higher</li>
+</ol>
+<h2>Usage</h2>
+<h3>DSE flow</h3>
+<p>First, compile the DSE program:</p>
+<p>```` mkdir build &amp;&amp; cd build &amp;&amp; cmake .. &amp;&amp; make main ````</p>
+<p>You can then use the DSE flow through <code>scripts/spark.py</code>.</p>
+<p>``` bash-4.1$ python spark.py -h usage: spark.py [-h] [-d] -t {dfe,sim} -p PARAM_FILE -b BENCHMARK_DIR [-m MAX_BUILDS]</p>
+<p>Run Spark DSE flow</p>
+<p>optional arguments: -h, &ndash;help show this help message and exit -d, &ndash;dse -t {dfe,sim}, &ndash;target {dfe,sim} -p PARAM_FILE, &ndash;param-file PARAM_FILE -b BENCHMARK_DIR, &ndash;benchmark-dir BENCHMARK_DIR -m MAX_BUILDS, &ndash;max-builds MAX_BUILDS ```</p>
+<p><code>spark.py</code> automates:</p>
+<ol type="1">
+<li>DSE process based on a set of benchmark matrices</li>
+<li>generating simulation and hardware configurations</li>
+<li>running and benchmarking simulation and hardware configurations</li>
+</ol>
+<h3>CMake Flow</h3>
+<p>Once a simulation / hardware library has been generated through the DSE flow, it will be available in <code>lib-generated</code>.</p>
+<p>From here you can use also CMake directly to rebuild the <code>client</code> targets, for example <code>test_spmv_sim</code>. Just build the corresponding Makefile target:</p>
+<p>``` make -C build test_spmv_sim ```</p>
+<h3>Running tests</h3>
+<p>Tests are provided for both software, hardware simulation and hardware runs. These should always pass on the <code>master</code> branch. Beware though that it's not practical to test every design parameter configuration, so awkward issues may arise.</p>
+<p>First, compile the test binaries (e.g.): <code>make -C build test_spmv_sim</code> Then you can:</p>
+<ol type="1">
+<li>Run unit tests with <code>ctest -R unit</code></li>
+<li>Run hardware simulation tests with <code>ctest -R sim</code></li>
+<li>Run hardware tests with <code>ctest -R hw</code></li>
+</ol>
+<p><b>Note</b> Some simulation tests may take a long time to run (`~60s), particularly if a large architecture is simulated. </p>
+</div></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Mon Nov 16 2015 12:06:50 for Spark by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Mon Nov 16 2015 12:06:47 for Spark by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.3.1
 </small></address>

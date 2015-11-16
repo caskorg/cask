@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Type" content="text/xhtml;charset=UTF-8"/>
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.8.3.1"/>
-<title>Spark: Main Page</title>
+<title>Spark: spark::sparse Namespace Reference</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -36,9 +36,9 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 </script>
   <div id="navrow1" class="tabs">
     <ul class="tablist">
-      <li class="current"><a href="index.html"><span>Main&#160;Page</span></a></li>
+      <li><a href="index.html"><span>Main&#160;Page</span></a></li>
       <li><a href="pages.html"><span>Related&#160;Pages</span></a></li>
-      <li><a href="namespaces.html"><span>Namespaces</span></a></li>
+      <li class="current"><a href="namespaces.html"><span>Namespaces</span></a></li>
       <li><a href="annotated.html"><span>Classes</span></a></li>
       <li><a href="files.html"><span>Files</span></a></li>
       <li>
@@ -59,7 +59,12 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
       </li>
     </ul>
   </div>
-</div><!-- top -->
+  <div id="navrow2" class="tabs2">
+    <ul class="tablist">
+      <li><a href="namespaces.html"><span>Namespace&#160;List</span></a></li>
+      <li><a href="namespacemembers.html"><span>Namespace&#160;Members</span></a></li>
+    </ul>
+  </div>
 <!-- window showing the filter options -->
 <div id="MSearchSelectWindow"
      onmouseover="return searchBox.OnSearchSelectShow()"
@@ -74,15 +79,61 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 </iframe>
 </div>
 
+<div id="nav-path" class="navpath">
+  <ul>
+<li class="navelem"><a class="el" href="namespacespark.html">spark</a></li><li class="navelem"><a class="el" href="namespacespark_1_1sparse.html">sparse</a></li>  </ul>
+</div>
+</div><!-- top -->
 <div class="header">
+  <div class="summary">
+<a href="#nested-classes">Classes</a> &#124;
+<a href="#typedef-members">Typedefs</a>  </div>
   <div class="headertitle">
-<div class="title">Spark Documentation</div>  </div>
+<div class="title">spark::sparse Namespace Reference</div>  </div>
 </div><!--header-->
 <div class="contents">
+<table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="nested-classes"></a>
+Classes</h2></td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classspark_1_1sparse_1_1SparkCooMatrix.html">SparkCooMatrix</a></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="typedef-members"></a>
+Typedefs</h2></td></tr>
+<tr class="memitem:a0f0d804dd8f37cb44a636bca7d03f016"><td class="memItemLeft" align="right" valign="top">using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacespark_1_1sparse.html#a0f0d804dd8f37cb44a636bca7d03f016">CsrMatrix</a> = std::tuple&lt; std::vector&lt; uint32_t &gt;, std::vector&lt; int &gt;, std::vector&lt; double &gt;&gt;</td></tr>
+<tr class="separator:a0f0d804dd8f37cb44a636bca7d03f016"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a15a8e3974007d1c440410bf83232f5dd"><td class="memItemLeft" align="right" valign="top">using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacespark_1_1sparse.html#a15a8e3974007d1c440410bf83232f5dd">PartitionedCsrMatrix</a> = std::vector&lt; <a class="el" href="namespacespark_1_1sparse.html#a0f0d804dd8f37cb44a636bca7d03f016">CsrMatrix</a> &gt;</td></tr>
+<tr class="separator:a15a8e3974007d1c440410bf83232f5dd"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table>
+<h2 class="groupheader">Typedef Documentation</h2>
+<a class="anchor" id="a0f0d804dd8f37cb44a636bca7d03f016"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">using <a class="el" href="namespacespark_1_1sparse.html#a0f0d804dd8f37cb44a636bca7d03f016">spark::sparse::CsrMatrix</a> = typedef std::tuple&lt;std::vector&lt;uint32_t&gt;, std::vector&lt;int&gt;, std::vector&lt;double&gt;&gt;</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a class="anchor" id="a15a8e3974007d1c440410bf83232f5dd"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">using <a class="el" href="namespacespark_1_1sparse.html#a15a8e3974007d1c440410bf83232f5dd">spark::sparse::PartitionedCsrMatrix</a> = typedef std::vector&lt;<a class="el" href="namespacespark_1_1sparse.html#a0f0d804dd8f37cb44a636bca7d03f016">CsrMatrix</a>&gt;</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Mon Nov 16 2015 12:06:50 for Spark by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Mon Nov 16 2015 12:06:49 for Spark by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.3.1
 </small></address>
