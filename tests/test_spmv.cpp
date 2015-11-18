@@ -2,9 +2,10 @@
 #include <Spark/SimpleSpmv.hpp>
 #include <Spark/Io.hpp>
 #include <Spark/Converters.hpp>
-#include <string>
+#include <Spark/Execution.hpp>
 #include <Spark/UserInput.hpp>
 
+#include <string>
 #include <boost/filesystem.hpp>
 
 #include <test_utils.hpp>
@@ -12,9 +13,10 @@
 // relative path to the library dir, this should probably not be hardcoded, but
 // it's fine for now, till we find a better solution (e.g. a env. variable
 // SPARK_LIB_PATH etc.)
-const string LIB_DIR = "../lib-generated/";
+const std::string LIB_DIR = "../lib-generated/";
 
 using namespace std;
+using namespace spark::execution;
 
 
 int test(string path) {
@@ -34,7 +36,7 @@ int test(string path) {
   auto a = new spark::spmv::SimpleSpmvArchitecture();
   //auto a = new spark::spmv::SkipEmptyRowsArchitecture();
 
-  // XXX loader.load_library(path)
+  loader.load_library(path);
 
   a->preprocess(*eigenMatrix);
   Eigen::VectorXd got = a->dfespmv(x);
