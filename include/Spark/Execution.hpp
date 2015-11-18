@@ -10,6 +10,9 @@ namespace spark {
     // loads and manages shared libraries at runtime
     class SharedLibLoader {
       std::string libPath;
+      // a handle to the currently loaded library, or NULL if no library is
+      // loaded.
+      void* handle;
       public:
       SharedLibLoader(std::string _libDirectoryPath);
 
@@ -17,6 +20,7 @@ namespace spark {
 
       bool load_library(std::string path);
 
+      bool unload_library();
     };
   }
 }

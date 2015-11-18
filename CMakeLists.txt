@@ -108,16 +108,17 @@ add_test(
   NAME unit_test_spmv
   COMMAND spmv_test)
 
-add_executable(test_loader tests/test_library_loader.cpp)
-add_test(NAME test_loader COMMAND test_loader)
-target_link_libraries(test_loader SparkCpuLib -lboost_filesystem)
-
 # -- Maxeler tests
 if (DEFINED ENV{MAXCOMPILERDIR} AND DEFINED ENV{MAXELEROSDIR})
   message(STATUS "  MAXCOMPILER --> $ENV{MAXCOMPILERDIR}")
   message(STATUS "  MAXELEROS   --> $ENV{MAXELEROSDIR}")
   link_directories($ENV{MAXCOMPILERDIR}/lib)
   link_directories($ENV{MAXELEROSDIR}/lib)
+
+  add_executable(test_loader tests/test_library_loader.cpp)
+  add_test(NAME test_loader COMMAND test_loader)
+  target_link_libraries(test_loader SparkCpuLib -lboost_filesystem -lmaxeleros -ldl)
+
 
   # -- Simulation tests
   add_executable(test_spmv_sim tests/test_spmv.cpp)

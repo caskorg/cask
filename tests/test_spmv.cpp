@@ -5,10 +5,17 @@
 #include <string>
 #include <Spark/UserInput.hpp>
 
+#include <boost/filesystem.hpp>
+
 #include <test_utils.hpp>
-#include <dlfcn.h>
+
+// relative path to the library dir, this should probably not be hardcoded, but
+// it's fine for now, till we find a better solution (e.g. a env. variable
+// SPARK_LIB_PATH etc.)
+const string LIB_DIR = "../lib-generated/";
 
 using namespace std;
+
 
 int test(string path) {
   std::cout << "File: " << path << std::endl;
@@ -22,22 +29,12 @@ int test(string path) {
   for (int i = 0; i < cols; i++)
     x[i] = (double)i * 0.25;
 
+  SharedLibLoader loader{LIB_DIR};
+
   auto a = new spark::spmv::SimpleSpmvArchitecture();
   //auto a = new spark::spmv::SkipEmptyRowsArchitecture();
 
-  string libName = a->getLibraryName();
-  string libPath =  "../lib-generated/" + libName;
-  void *handle = dlopen(
-      libPath.c_str(),
-      RTLD_NOW | RTLD_GLOBAL);
-  char *err = dlerror();
-  if (err) {
-    cout << "There were errors loading the library" << endl;
-    std::cout << "Path was " << libPath << std::endl;
-    cout << dlerror();
-  } else {
-    std::cout << "Loading dynamic library succesful!" << std::endl;
-  }
+  // XXX loader.load_library(path)
 
   a->preprocess(*eigenMatrix);
   Eigen::VectorXd got = a->dfespmv(x);
