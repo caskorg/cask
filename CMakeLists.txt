@@ -78,7 +78,9 @@ add_library(SpmvImplLib ${SpmvImplLib_src})
 
 set(SparkCpu_src
   "${SparkCpu_src}"
-  src/dse/Dse.cpp)
+  src/dse/Dse.cpp
+  src/execution/SharedLibLoader.cpp
+  )
 add_library(SparkCpuLib ${SparkCpu_src})
 
 add_executable(main src/main.cpp )
@@ -95,7 +97,7 @@ target_link_libraries(test_architecture
 add_executable(test_spmv tests/test_spmv.cpp)
 target_link_libraries(test_spmv
   -lboost_program_options -lboost_filesystem -lboost_system
-  SparkCpuLib SparkCpuLib SpmvImplLib SpmvDeviceLib)
+  SparkCpuLib SpmvImplLib SpmvDeviceLib)
 
 
 # -- Test targets
@@ -106,6 +108,9 @@ add_test(
   NAME unit_test_spmv
   COMMAND spmv_test)
 
+add_executable(test_loader tests/test_library_loader.cpp)
+add_test(NAME test_loader COMMAND test_loader)
+target_link_libraries(test_loader SparkCpuLib -lboost_filesystem)
 
 # -- Maxeler tests
 if (DEFINED ENV{MAXCOMPILERDIR} AND DEFINED ENV{MAXELEROSDIR})
