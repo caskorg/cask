@@ -1,7 +1,7 @@
 #include <Spark/device/SpmvDeviceInterface.h>
 
 // Make sure Spmv.h is on the compilation path
-#include <Spmv.h>
+#include <GeneratedImplemntations.h>
 
 int getSpmv_InputWidth() {
   return Spmv_inputWidth;

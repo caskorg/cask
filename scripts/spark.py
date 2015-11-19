@@ -118,10 +118,38 @@ def forceTimingScore(maxfile):
   print '      Changing timing score: {0} --> {1}'.format(oldts.strip(), newts.strip())
 
 
+def generateImplementationHeader(prjs):
+  with open('GeneratedImplementations.cpp', 'w') as f:
+    # Include maxfile headers
+    for p in prjs:
+      f.write('#include <{}.h>\n'.format(p.name))
+
+    # Defines struct formats
+    f.write('#include <Spark/{}>\n'.format('GeneratedImplSupport.hpp'))
+
+    f.write('using namespace spark::runtime;\n')
+
+    for p in prjs:
+      f.write("""
+        class SpmvImplementationLoader : public ImplementationLoader {
+          SpmvImplementationLoader() : ImplementationLoader() {
+            this->impls.push_back(
+              new GeneratedSpmvImplementation(
+        """
+        +
+        # parameters
+        '{}'.format(p.name)
+        +
+        """
+                ));
+          }
+        };""")
+
+
 def runLibraryBuild(prj):
   print '     ---- Building Library ----'
 
-  interfaceFile = '../src/spmv/src/SpmvDeviceInterface.cpp'
+  interfaceFile = 'GeneratedImplementations.cpp'
   deviceO = 'SmpvDeviceInterface.o'
   maxfileO = 'maxfile.o'
 
@@ -219,11 +247,13 @@ def runBuilds(prjs, benchmark):
   pool.close()
   pool.join()
 
-  # Client builds and benchmarking is sequential
+  generateImplementationHeader(prjs)
+
+  #Client builds and benchmarking is sequential
   for p in prjs:
     runLibraryBuild(p)
-    buildClient(p)
-    runClient(p, benchmark)
+    # buildClient(p)
+    # runClient(p, benchmark)
 
 
 def main():
@@ -255,7 +285,9 @@ def main():
         ps[k] = str(v['default'])
     params = [ps]
 
-  prjs = [PrjConfig(p, args.target, PRJ) for p  in params]
+  prjs = []
+  for i in range(len(params)):
+    prjs.append(PrjConfig(params[i], args.target, PRJ + "_" + str(i)))
 
   print 'Running builds'
   p = os.path.abspath(args.benchmark_dir)
