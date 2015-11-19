@@ -1,4 +1,4 @@
-% Spark Design Document
+[TOC]
 
 # Introduction
 
@@ -25,32 +25,30 @@ The example below shows how to use the SparkSpmv implementation from the client
 perspective. Similarly it can be extended to support other calls such as
 Conjugate Gradient directly etc.
 
-``` {.cpp}
-#include <Spark/Spmv>
+    #include <Spark/Spmv>
 
-void doSmth() {
-  EigenSparseVec x;
-  EigenSparseMatrix mat;
+    void doSmth() {
+      EigenSparseVec x;
+      EigenSparseMatrix mat;
 
-  // the implementation hint is used to narrow down the
-  // search space; optionally the _force_ flag could be set
-  // to force a certain implementation
-  SparkImplHint hint(...);
-  SparkSpmv spmv(hint); // could use arguments to select impl
+      // the implementation hint is used to narrow down the
+      // search space; optionally the _force_ flag could be set
+      // to force a certain implementation
+      SparkImplHint hint(...);
+      SparkSpmv spmv(hint); // could use arguments to select impl
 
-  // analyze and pre-process step allow Spark to
-  // select optimal implementation internally
+      // analyze and pre-process step allow Spark to
+      // select optimal implementation internally
 
-  spmv.analyze(mat);
-  spmv.preprocess(mat);
-  spmv.load(mat);
+      spmv.analyze(mat);
+      spmv.preprocess(mat);
+      spmv.load(mat);
 
-  for (int i = 0; i < its; i++) {
-    EigenSparseVec v = spmv.run(x);
-    // do smth with v
-  }
-}
-```
+      for (int i = 0; i < its; i++) {
+        EigenSparseVec v = spmv.run(x);
+        // do smth with v
+      }
+    }
 
 Two possibilities:
 
