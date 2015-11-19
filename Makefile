@@ -11,6 +11,9 @@ tags:
 doc:
 	doxygen docs/doxygen.conf
 
+clean-all-dist:
+	rm -rf src/spmv/build/Spmv* src/spmv/build/*.class
+
 # This should work, but we probably don't want to push
 # documentation while the repo is private
 #update-doc:
