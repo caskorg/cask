@@ -2,12 +2,23 @@
 #include <Spark/SimpleSpmv.hpp>
 #include <Spark/Io.hpp>
 #include <Spark/Converters.hpp>
-#include <string>
+#include <Spark/Execution.hpp>
 #include <Spark/UserInput.hpp>
+#include <Spark/GeneratedImplSupport.hpp>
+
+#include <string>
+#include <boost/filesystem.hpp>
 
 #include <test_utils.hpp>
 
+// relative path to the library dir, this should probably not be hardcoded, but
+// it's fine for now, till we find a better solution (e.g. a env. variable
+// SPARK_LIB_PATH etc.)
+const std::string LIB_DIR = "../lib-generated/";
+
 using namespace std;
+using namespace spark::execution;
+
 
 int test(string path) {
   std::cout << "File: " << path << std::endl;
@@ -21,8 +32,12 @@ int test(string path) {
   for (int i = 0; i < cols; i++)
     x[i] = (double)i * 0.25;
 
-  auto a = new spark::spmv::SimpleSpmvArchitecture();
-  //auto a = new spark::spmv::SkipEmptyRowsArchitecture();
+  spark::runtime::SpmvImplementationLoader implLoader;
+  // TODO find the best architecture somehow
+  int maxRows = eigenMatrix->rows();
+  auto deviceImpl = implLoader.architectureWithParams(maxRows);
+
+  auto a = new spark::spmv::SimpleSpmvArchitecture(deviceImpl);
 
   a->preprocess(*eigenMatrix);
   Eigen::VectorXd got = a->dfespmv(x);

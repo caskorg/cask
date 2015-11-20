@@ -43,7 +43,6 @@ void Spmv(
     const int64_t *param_indptrValuesAddresses,
     const int32_t *param_indptrValuesSizes,
     const int32_t *param_nrows,
-    const int32_t *param_outResultSizes,
     const int64_t *param_outStartAddresses,
     const int32_t *param_reductionCycles,
     const int32_t *param_totalCycles,

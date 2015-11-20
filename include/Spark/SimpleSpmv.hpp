@@ -7,6 +7,7 @@
 #include <Spark/Utils.hpp>
 #include <Spark/Model.hpp>
 #include <Spark/device/SpmvDeviceInterface.h>
+#include <Spark/GeneratedImplSupport.hpp>
 
 
 namespace spark {
@@ -59,6 +60,7 @@ namespace spark {
 
       EigenSparseMatrix mat;
       std::vector<Partition> partitions;
+      spark::runtime::GeneratedSpmvImplementation* impl;
 
       virtual int countComputeCycles(uint32_t* v, int size, int inputWidth);
 
@@ -97,6 +99,31 @@ namespace spark {
           inputWidth(_inputWidth),
           numPipes(_numPipes),
           maxRows(_maxRows) {}
+
+        /**
+         * For execution we build the architecture and give it a pointer to the
+         * device implementation.
+         */
+        SimpleSpmvArchitecture(spark::runtime::GeneratedSpmvImplementation* _impl):
+          cacheSize(_impl->cacheSize()),
+          inputWidth(_impl->inputWidth()),
+          numPipes(_impl->numPipes()),
+          maxRows(_impl->maxRows()),
+          impl(_impl) { }
+
+        virtual std::string getLibraryName() {
+          std::stringstream ss;
+          ss << "libSpmv_";
+          // XXX detect target from environment configuration?
+          const std::string target = "sim";
+          ss << target << "_";
+          ss << "cachesize" << cacheSize << "_";
+          ss << "inputwidth" << inputWidth << "_";
+          ss << "numpipes" << numPipes << "_";
+          ss << "maxrows" << maxRows;
+          ss << ".so";
+          return ss.str();
+        }
 
         virtual double getEstimatedClockCycles() {
           auto res = std::max_element(partitions.begin(), partitions.end(),
