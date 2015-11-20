@@ -8,7 +8,7 @@
 #include <dfesnippets/VectorUtils.hpp>
 #include <dfesnippets/Timing.hpp>
 
-#include <Spark/device/SpmvDeviceInterface.h>
+#include <Spark/GeneratedImplSupport.hpp>
 
 using namespace spark::spmv;
 using ssarch = spark::spmv::SimpleSpmvArchitecture;
@@ -146,6 +146,7 @@ int align(int bytes, int to) {
 
 // write the data for a partition, starting at the given offset
 PartitionWriteResult writeDataForPartition(
+    spark::runtime::GeneratedSpmvImplementation *impl,
     int offset,
     const Partition& br,
     const std::vector<double>& v) {
@@ -153,20 +154,20 @@ PartitionWriteResult writeDataForPartition(
   PartitionWriteResult pwr;
   pwr.indptrValuesStartAddress = align(offset, 384);
   pwr.indptrValuesSize = size_bytes(br.m_indptr_values);
-  Spmv_dramWrite(
+  impl->write(
       pwr.indptrValuesSize,
       pwr.indptrValuesStartAddress,
       (uint8_t *)&br.m_indptr_values[0]);
 
   pwr.vStartAddress = pwr.indptrValuesStartAddress + pwr.indptrValuesSize;
-  Spmv_dramWrite(
+  impl->write(
       size_bytes(v),
       pwr.vStartAddress,
       (uint8_t *)&v[0]);
 
   pwr.colptrStartAddress = pwr.vStartAddress + size_bytes(v);
   pwr.colptrSize = size_bytes(br.m_colptr);
-  Spmv_dramWrite(
+  impl->write(
       pwr.colptrSize,
       pwr.colptrStartAddress,
       (uint8_t *)&br.m_colptr[0]);
@@ -181,7 +182,7 @@ Eigen::VectorXd ssarch::dfespmv(Eigen::VectorXd x)
 {
   using namespace std;
 
-  if (getDramReductionEnabled()) {
+  if (this->impl->getDramReductionEnabled()) {
     // because of DRAM read/write latency we can only hope to get correct
     // answers for large matrices
     // XXX figure out where to place this constant;
@@ -227,7 +228,7 @@ Eigen::VectorXd ssarch::dfespmv(Eigen::VectorXd x)
     colptrUnpaddedSizes.push_back(p.m_colptr_unpaddedLength);
     indptrValuesUnpaddedLengths.push_back(p.m_indptr_values_unpaddedLength);
 
-    PartitionWriteResult pr = writeDataForPartition(offset, p, v);
+    PartitionWriteResult pr = writeDataForPartition(this->impl, offset, p, v);
     outputStartAddresses.push_back(pr.outStartAddr);
     outputResultSizes.push_back(pr.outSize);
     colptrStartAddresses.push_back(pr.colptrStartAddress);
@@ -265,7 +266,7 @@ Eigen::VectorXd ssarch::dfespmv(Eigen::VectorXd x)
   std::cout << "Vector size = " << v.size() << std::endl;
 
   auto start = std::chrono::high_resolution_clock::now();
-  Spmv(
+  this->impl->Spmv(
       nIterations,
       nBlocks,
       vector_load_cycles,
@@ -292,7 +293,7 @@ Eigen::VectorXd ssarch::dfespmv(Eigen::VectorXd x)
   std::vector<double> total;
   for (size_t i = 0; i < outputStartAddresses.size(); i++) {
     std::vector<double> tmp(outputResultSizes[i] / sizeof(double), 0);
-    Spmv_dramRead(
+    this->impl->read(
         size_bytes(tmp),
         outputStartAddresses[i],
         (uint8_t*)&tmp[0]);

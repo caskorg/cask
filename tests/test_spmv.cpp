@@ -4,6 +4,7 @@
 #include <Spark/Converters.hpp>
 #include <Spark/Execution.hpp>
 #include <Spark/UserInput.hpp>
+#include <Spark/GeneratedImplSupport.hpp>
 
 #include <string>
 #include <boost/filesystem.hpp>
@@ -31,12 +32,12 @@ int test(string path) {
   for (int i = 0; i < cols; i++)
     x[i] = (double)i * 0.25;
 
-  SharedLibLoader loader{LIB_DIR};
+  spark::runtime::SpmvImplementationLoader implLoader;
+  // TODO find the best architecture somehow
+  int maxRows = eigenMatrix->rows();
+  auto deviceImpl = implLoader.architectureWithParams(maxRows);
 
-  auto a = new spark::spmv::SimpleSpmvArchitecture();
-  //auto a = new spark::spmv::SkipEmptyRowsArchitecture();
-
-  loader.load_library(path);
+  auto a = new spark::spmv::SimpleSpmvArchitecture(deviceImpl);
 
   a->preprocess(*eigenMatrix);
   Eigen::VectorXd got = a->dfespmv(x);

@@ -43,6 +43,9 @@ class PrjConfig:
       params += k + '=' + v + ' '
     return params
 
+  def getParam(self, p):
+    return self.params[p]
+
   def buildTarget(self):
     if self.target == 'sim':
       return 'DFE_SIM'
@@ -129,86 +132,105 @@ def generateImplementationHeader(prjs):
 
     f.write('using namespace spark::runtime;\n')
 
-    for p in prjs:
-      f.write("""
-        class SpmvImplementationLoader : public ImplementationLoader {
-          SpmvImplementationLoader() : ImplementationLoader() {
-            this->impls.push_back(
-              new GeneratedSpmvImplementation(
-        """
-        +
-        # parameters
-        '{}'.format(p.name)
-        +
-        """
-                ));
-          }
-        };""")
+    f.write("""
+        spark::runtime::SpmvImplementationLoader::SpmvImplementationLoader() : ImplementationLoader() {
+        """)
+
+    for i in range(len(prjs)):
+      p = prjs[i]
+      f.write('this->impls.push_back(')
+      f.write(
+          'new GeneratedSpmvImplementation({0}, {1}, {2}, {3}, {4}, {5}, {6}, {7}));'.format(
+            p.name,
+            p.name + '_dramWrite',
+            p.name + '_dramRead',
+            p.getParam('max_rows'),
+            p.getParam('num_pipes'),
+            p.getParam('cache_size'),
+            p.getParam('input_width'),
+            p.name + '_dramReductionEnabled'))
+
+    f.write('\n}')
 
 
-def runLibraryBuild(prj):
+def runLibraryBuild(prjs):
   print '     ---- Building Library ----'
 
   interfaceFile = 'GeneratedImplementations.cpp'
   deviceO = 'SmpvDeviceInterface.o'
   maxfileO = 'maxfile.o'
 
-  out = subprocess.check_output([
-    'sliccompile',
-    prj.maxFileLocation(),
-    maxfileO])
+  prj_includes = []
+  obj_files = []
+  for p in prjs:
+    objFile = p.name + '.o'
+    out = subprocess.check_output([
+      'sliccompile',
+      p.maxFileLocation(),
+      objFile])
+    prj_includes.append('-I' + p.resultsDir())
+    obj_files.append(objFile)
 
   mcdir = os.getenv('MAXCOMPILERDIR')
   maxosdir = os.getenv('MAXELEROSDIR')
+  # Need to include all generated header files
+
   cmd =[
-	  'g++',
+    'g++',
     '-c',
     '-Wall',
     '-std=c++11',
+    '-fPIC',
     '-I../include',
-    '-I' + prj.resultsDir(),
     '-I' + mcdir + '/include',
     '-I' + mcdir + '/include/slic',
     '-I' + maxosdir + '/include',
+    ]
+  cmd.extend(prj_includes)
+  cmd.extend([
     interfaceFile,
     '-o',
     deviceO
-    ]
+    ])
   out = subprocess.check_output(cmd)
 
+  # TODO merge all the object files in one library
+
+  # XXX gneerate it!
+  libName = 'libSpmv_sim.so'
   cmd =[
       'g++',
       '-fPIC',
       '--std=c++11',
       '-shared',
-      '-Wl,-soname,{0}.0'.format(prj.libName()),
+      '-Wl,-soname,{0}.0'.format(libName),
       '-o',
-      prj.libName(),
-      maxfileO,
+      libName]
+  cmd.extend(obj_files)
+  cmd.extend([
       deviceO,
       '-L' + os.path.join(mcdir, 'lib'),
       '-L' + os.path.join(maxosdir, 'lib'),
       '-lmaxeleros',
       '-lslic',
       '-lm',
-      '-lpthread']
+      '-lpthread'])
   out = subprocess.check_output(cmd)
   print out
 
-  # copy the generated library
+  # # copy the generated library
   libDir = '../lib-generated'
   if os.path.exists(libDir):
     shutil.rmtree(libDir)
   os.makedirs(libDir)
-  shutil.copy(prj.libName(), libDir + '/{}.0'.format(prj.libName()))
-  shutil.copy(prj.libName(), libDir + '/libSpmv_sim.so')
-  shutil.move(prj.libName(), libDir)
+  shutil.copy(libName, libDir + '/{}.0'.format(libName))
+  shutil.move(libName, libDir)
 
-  # do a bit of cleanup
-  if os.path.exists(maxfileO):
-    os.remove(maxfileO)
-  if os.path.exists(deviceO):
-    os.remove(deviceO)
+  # # do a bit of cleanup
+  # if os.path.exists(maxfileO):
+    # os.remove(maxfileO)
+  # if os.path.exists(deviceO):
+    # os.remove(deviceO)
 
 
 def buildClient(prj):
@@ -250,8 +272,13 @@ def runBuilds(prjs, benchmark):
   generateImplementationHeader(prjs)
 
   #Client builds and benchmarking is sequential
-  for p in prjs:
-    runLibraryBuild(p)
+  runLibraryBuild(prjs)
+
+  # TODO implement one to all / all to all benchmarking
+  buildClient(prjs[0])
+  runClient(prjs[0], benchmark)
+
+  # for p in prjs:
     # buildClient(p)
     # runClient(p, benchmark)
 

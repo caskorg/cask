@@ -96,9 +96,8 @@ target_link_libraries(test_architecture
 # Mock implementation used for DSE
 add_executable(test_spmv tests/test_spmv.cpp)
 target_link_libraries(test_spmv
-  -lboost_program_options -lboost_filesystem -lboost_system
+  -lboost_program_options -lboost_filesystem -lboost_system -ldl
   SparkCpuLib SpmvImplLib SpmvDeviceLib)
-
 
 # -- Test targets
 include_directories(unit-tests)
@@ -124,7 +123,7 @@ if (DEFINED ENV{MAXCOMPILERDIR} AND DEFINED ENV{MAXELEROSDIR})
   add_executable(test_spmv_sim tests/test_spmv.cpp)
   target_link_libraries(test_spmv_sim
     SparkCpuLib SparkCpuLib SpmvImplLib
-    -L../lib-generated -lSpmv_sim -ldl
+    -L../lib-generated -lSpmv_sim -ldl -lboost_filesystem
     -lmaxeleros)
 
   # -- Hardware tests
