@@ -15,11 +15,12 @@ from multiprocessing import Pool
 from subprocess import call
 
 class PrjConfig:
-  def __init__(self, p, t, n):
+  def __init__(self, p, t, n, prj_id):
     self.params = p
     self.target = t
-    self.name = n
+    self.name = n + '_' + str(prj_id)
     self.buildRoot='../src/spmv/build/'
+    self.prj_id = prj_id
 
   def buildName(self):
     bn = self.name + '_' + self.target
@@ -241,17 +242,22 @@ def buildClient(prj):
     'test_spmv_' + prj.target])
 
 
-def runClient(prj, benchmark):
+def runClient(benchmark, sim=True, prj=None):
   print '     ---- Benchmarking Client ----'
   for p in benchmark:
-    outF = 'run_' + prj.buildName() + '_' + os.path.basename(p)
-    print '      -->', p, 'outFile =', outF
     cmd = ['bash', 'spark_dfe_run.sh', p]
-    if prj.sim():
+    if sim:
       cmd = ['bash',
           'simrunner',
           '../build/test_spmv_sim',
           p]
+    if prj:
+      cmd.append(str(prj.prj_id))
+      outF = 'run_' + prj.buildName()
+    else:
+      outF = 'run_benchmark_all'
+    outF += '_' + os.path.basename(p)
+    print '      -->', p, 'outFile =', outF
     try:
       out = subprocess.check_output(cmd)
     except subprocess.CalledProcessError as e:
@@ -262,25 +268,25 @@ def runClient(prj, benchmark):
         f.write(line)
 
 
-def runBuilds(prjs, benchmark):
-  # TODO run MC builds in parallel
+def runBuilds(prjs, benchmark, benchmark_all_to_all, sim):
+  # run MC builds in parallel
   pool = Pool(4)
   pool.map(runMaxCompilerBuild, prjs)
   pool.close()
   pool.join()
 
+  # library generation is sequential
   generateImplementationHeader(prjs)
-
-  #Client builds and benchmarking is sequential
   runLibraryBuild(prjs)
 
-  # TODO implement one to all / all to all benchmarking
+  # TODO why need prjs[0]?
   buildClient(prjs[0])
-  runClient(prjs[0], benchmark)
 
-  # for p in prjs:
-    # buildClient(p)
-    # runClient(p, benchmark)
+  if benchmark_all_to_all:
+    for p in prjs:
+      runClient(benchmark, sim, p)
+  else:
+    runClient(benchmark, sim)
 
 
 def main():
@@ -291,6 +297,7 @@ def main():
   parser.add_argument('-p', '--param-file', required=True)
   parser.add_argument('-b', '--benchmark-dir', required=True)
   parser.add_argument('-m', '--max-builds', type=int)
+  parser.add_argument('-bm', '--benchmarking-mode', choices=['best-fit', 'all'], default='best-fit')
   args = parser.parse_args()
 
   PRJ = 'Spmv'
@@ -314,7 +321,7 @@ def main():
 
   prjs = []
   for i in range(len(params)):
-    prjs.append(PrjConfig(params[i], args.target, PRJ + "_" + str(i)))
+    prjs.append(PrjConfig(params[i], args.target, PRJ, i))
 
   print 'Running builds'
   p = os.path.abspath(args.benchmark_dir)
@@ -323,7 +330,7 @@ def main():
 
   ps = prjs[:args.max_builds] if args.max_builds else prjs
 
-  runBuilds(ps, benchmark)
+  runBuilds(ps, benchmark, args.benchmarking_mode == 'all', args.target == 'sim')
 
 
 if __name__ == '__main__':

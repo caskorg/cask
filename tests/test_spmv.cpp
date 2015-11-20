@@ -19,8 +19,7 @@ const std::string LIB_DIR = "../lib-generated/";
 using namespace std;
 using namespace spark::execution;
 
-
-int test(string path) {
+int test(string path, int implId) {
   std::cout << "File: " << path << std::endl;
   spark::io::MmReader<double> m(path);
   auto eigenMatrix = spark::converters::tripletToEigen(m.mmreadMatrix(path));
@@ -29,13 +28,16 @@ int test(string path) {
   std::cout << "Nonzeros: " << eigenMatrix->nonZeros() << std::endl;
 
   Eigen::VectorXd x(cols);
-  for (int i = 0; i < cols; i++)
-    x[i] = (double)i * 0.25;
+  for (int i = 0; i < cols; i++) x[i] = (double)i * 0.25;
 
   spark::runtime::SpmvImplementationLoader implLoader;
   // TODO find the best architecture somehow
   int maxRows = eigenMatrix->rows();
-  auto deviceImpl = implLoader.architectureWithParams(maxRows);
+  spark::runtime::GeneratedSpmvImplementation* deviceImpl;
+  if (implId == -1)
+    deviceImpl = implLoader.architectureWithParams(maxRows);
+  else
+    deviceImpl = implLoader.architectureWithId(implId);
 
   auto a = new spark::spmv::SimpleSpmvArchitecture(deviceImpl);
 
@@ -44,9 +46,9 @@ int test(string path) {
   Eigen::VectorXd exp = *eigenMatrix * x;
   free(a);
 
-  auto mismatches = spark::test::check(
-      spark::converters::eigenVectorToStdVector(got),
-      spark::converters::eigenVectorToStdVector(exp));
+  auto mismatches =
+      spark::test::check(spark::converters::eigenVectorToStdVector(got),
+                         spark::converters::eigenVectorToStdVector(exp));
 
   if (mismatches.empty()) {
     std::cout << "Test passed!" << std::endl;
@@ -54,18 +56,23 @@ int test(string path) {
   }
 
   spark::test::print_mismatches(mismatches);
-  std::cout << "Test failed: " << mismatches.size() << " mismatches " << std::endl;
+  std::cout << "Test failed: " << mismatches.size() << " mismatches "
+            << std::endl;
   return 1;
 }
 
 int main(int argc, char** argv) {
   cout << "Program arguments:" << endl;
-  for (int i = 0; i < argc; i++)
-    cout << "   " << argv[i] << endl;
+  for (int i = 0; i < argc; i++) cout << "   " << argv[i] << endl;
   // XXX Reasonable argument parsing
 
   if (argc > 1) {
-    int status = test(argv[1]);
+    int status = -1;
+    if (argc == 2) {
+      status = test(argv[1], -1);
+    } else if (argc == 3) {
+      status = test(argv[1], stoi(argv[2]));
+    }
     if (status == 0)
       std::cout << "All tests passed!" << std::endl;
     else
@@ -75,4 +82,3 @@ int main(int argc, char** argv) {
 
   return 1;
 }
-

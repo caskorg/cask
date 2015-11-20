@@ -182,6 +182,10 @@ namespace spark {
         return  bestArch;
       }
 
+      GeneratedSpmvImplementation* architectureWithId(int id) {
+        return static_cast<GeneratedSpmvImplementation*>(this->impls.at(id));
+      }
+
     };
 
   }
