@@ -255,7 +255,7 @@ def runClient(benchmark, sim=True, prj=None):
       cmd.append(str(prj.prj_id))
       outF = 'run_' + prj.buildName()
     else:
-      outF = 'run_benchmark_all'
+      outF = 'run_benchmark_best'
     outF += '_' + os.path.basename(p)
     print '      -->', p, 'outFile =', outF
     try:
@@ -263,7 +263,13 @@ def runClient(benchmark, sim=True, prj=None):
     except subprocess.CalledProcessError as e:
       print '       ',e
       out = e.output
-    with open(outF, 'w') as f:
+
+    mode = 'w'
+    if prj:
+      if os.path.exists(outF):
+        os.remove(outF)
+      mode = 'a'
+    with open(outF, mode) as f:
       for line in out:
         f.write(line)
 
