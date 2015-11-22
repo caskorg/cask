@@ -218,9 +218,6 @@ Eigen::VectorXd ssarch::dfespmv(Eigen::VectorXd x)
   int offset = 0;
   int i = 0;
   for (auto& p : this->partitions) {
-    std::cout << "Doing partition " << i++ << std::endl;
-    std::cout << p.to_string() << std::endl;
-
     nrows.push_back(p.n);
     paddingCycles.push_back(p.paddingCycles);
     totalCycles.push_back(p.totalCycles);
@@ -238,32 +235,17 @@ Eigen::VectorXd ssarch::dfespmv(Eigen::VectorXd x)
     indptrValuesStartAddresses.push_back(pr.indptrValuesStartAddress);
 
     offset = pr.outStartAddr + p.outSize;
-    //int sumAccStartAddress = pr.outStartAddr + p.outSize;
-    //int sumAccSize = mat.rows() * sizeof(double);
-    //offset = sumAccStartAddress + sumAccSize;
   }
 
   // npartitions and vector load cycles should be the same for all partitions
   int nBlocks = this->partitions[0].nBlocks;
   int vector_load_cycles = this->partitions[0].vector_load_cycles;
   std::cout << "Running on DFE" << std::endl;
-  //std::cout << "V.size == " << v.size()  << std::endl;
-  //dfesnippets::vectorutils::print_vector(paddingCycles);
-  //dfesnippets::vectorutils::print_vector(nrows);
-
-  //std::cout << "Colptr elements" << this->partitions[0].m_colptr.size() << std::endl;
-  //std::cout << "colptrSize " << colptrSizes[0] << std::endl;
-  //std::cout << "colptrUnpaddedSizes " << colptrUnpaddedSizes[0] << std::endl;
 
   int nIterations = 1;
-  std::cout << "Total cycles = ";
-  dfesnippets::vectorutils::print_vector(totalCycles);
-  std::cout << "Padding cycles = ";
-  dfesnippets::vectorutils::print_vector(paddingCycles);
-  std::cout << "Reduction cycles = ";
-  dfesnippets::vectorutils::print_vector(reductionCycles);
-  std::cout << "Values sizes = " << std::endl;
-  std::cout << "Vector size = " << v.size() << std::endl;
+  logResult("Total cycles", totalCycles);
+  logResult("Padding cycles", paddingCycles);
+  logResult("Reduction cycles", reductionCycles);
 
   auto start = std::chrono::high_resolution_clock::now();
   this->impl->Spmv(
@@ -275,20 +257,21 @@ Eigen::VectorXd ssarch::dfespmv(Eigen::VectorXd x)
       &indptrValuesStartAddresses[0],
       &indptrValuesSizes[0],
       &nrows[0],
-      //&outputResultSizes[0],
       &outputStartAddresses[0],
       &reductionCycles[0],
       &totalCycles[0],
       &vStartAddresses[0]
       );
   double took = dfesnippets::timing::clock_diff(start) / nIterations;
-  std::cout << "Done on DFE" << std::endl;
   double est =(double) totalCycles[0] / (100.0 * 1e6);
   double gflopsEst = (2.0 * (double)this->mat.nonZeros() / est) / 1E9;
   double gflopsActual = (2.0 * (double)this->mat.nonZeros() / took) / 1E9;
-  std::cout << "Iterations = " << nIterations;
-  std::cout << "Took = " << took << " est = " << est;
-  std::cout << " gflops est: " << gflopsEst << " gflopsAct: " << gflopsActual << std::endl;
+
+  logResult("Iterations", nIterations);
+  logResult("Took (ms)", took);
+  logResult("Est (ms)", est);
+  logResult("Gflops (est)", gflopsEst);
+  logResult("Gflops (actual)", gflopsActual);
 
   std::vector<double> total;
   for (size_t i = 0; i < outputStartAddresses.size(); i++) {
@@ -297,12 +280,10 @@ Eigen::VectorXd ssarch::dfespmv(Eigen::VectorXd x)
         size_bytes(tmp),
         outputStartAddresses[i],
         (uint8_t*)&tmp[0]);
-    //dfesnippets::vectorutils::print_vector(tmp);
     std::copy(tmp.begin(), tmp.begin() + nrows[i], std::back_inserter(total));
   }
 
   // remove the elements which were only for padding
-
   return spark::converters::stdvectorToEigen(total);
 }
 

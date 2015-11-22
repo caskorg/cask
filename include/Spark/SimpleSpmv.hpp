@@ -198,6 +198,34 @@ namespace spark {
             const Eigen::SparseMatrix<double, Eigen::RowMajor, int32_t>& mat,
             int blockSize,
             int inputWidth);
+
+        template<typename U>
+        void logResult(std::string s, std::vector<U> vals) {
+          logResultR(s);
+          for (const auto& v : vals)
+            std::cout << v << ",";
+          std::cout << std::endl;
+        }
+
+        template<typename Arg, typename... Args>
+        void logResult(std::string s, Arg a, Args... as) {
+          logResultR(s, as...);
+          std::cout << a << ",";
+          std::cout << std::endl;
+        }
+
+        template<typename Arg, typename... Args>
+        void logResultR(std::string s, Arg a, Args... as) {
+          logResultR(s, as...);
+          std::cout << a << ",";
+        }
+
+        void logResultR(std::string s) {
+          std::cout << "Result " << get_name() << " ";
+          std::cout << s << "=";
+        }
+
+
     };
 
     template<typename T>
