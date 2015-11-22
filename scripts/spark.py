@@ -14,6 +14,10 @@ from multiprocessing import Pool
 
 from subprocess import call
 
+
+DFE_MOCK = 'dfe-mock'
+
+
 class PrjConfig:
   def __init__(self, p, t, n, prj_id):
     self.params = p
@@ -273,33 +277,51 @@ def runClient(benchmark, sim=True, prj=None):
       for line in out:
         f.write(line)
 
+class Spark:
 
-def runBuilds(prjs, benchmark, benchmark_all_to_all, sim):
-  # run MC builds in parallel
-  pool = Pool(4)
-  pool.map(runMaxCompilerBuild, prjs)
-  pool.close()
-  pool.join()
+  def __init__(self, target):
+    self.target = target
 
-  # library generation is sequential
-  generateImplementationHeader(prjs)
-  runLibraryBuild(prjs)
+  def runDfeMock(self):
+    print '     ---- Building Mock Client ----'
+    generateImplementationHeader([])
+    #buildClient()
+    #out = subprocess.check_output(['make',
+      #'-C',
+      #'../build/',
+      #'test_spmv_' + prj.target])
 
-  # TODO why need prjs[0]?
-  buildClient(prjs[0])
+  def runBuilds(self, prjs, benchmark, benchmark_all_to_all, sim):
 
-  if benchmark_all_to_all:
-    for p in prjs:
-      runClient(benchmark, sim, p)
-  else:
-    runClient(benchmark, sim)
+    if self.target == DFE_MOCK:
+        self.runDfeMock()
+        return
+
+    # run MC builds in parallel
+    pool = Pool(4)
+    pool.map(runMaxCompilerBuild, prjs)
+    pool.close()
+    pool.join()
+
+    # library generation is sequential
+    generateImplementationHeader(prjs)
+    runLibraryBuild(prjs)
+
+    # TODO why need prjs[0]?
+    buildClient(prjs[0])
+
+    if benchmark_all_to_all:
+      for p in prjs:
+        runClient(benchmark, sim, p)
+    else:
+      runClient(benchmark, sim)
 
 
 def main():
 
   parser = argparse.ArgumentParser(description='Run Spark DSE flow')
   parser.add_argument('-d', '--dse', action='store_true', default=False)
-  parser.add_argument('-t', '--target', choices=['dfe', 'sim'], required=True)
+  parser.add_argument('-t', '--target', choices=['dfe', 'sim', DFE_MOCK], required=True)
   parser.add_argument('-p', '--param-file', required=True)
   parser.add_argument('-b', '--benchmark-dir', required=True)
   parser.add_argument('-m', '--max-builds', type=int)
@@ -336,7 +358,12 @@ def main():
 
   ps = prjs[:args.max_builds] if args.max_builds else prjs
 
-  runBuilds(ps, benchmark, args.benchmarking_mode == 'all', args.target == 'sim')
+  spark = Spark(args.target)
+  spark.runBuilds(
+          ps,
+          benchmark,
+          args.benchmarking_mode == 'all',
+          args.target == 'sim')
 
 
 if __name__ == '__main__':
