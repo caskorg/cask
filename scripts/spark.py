@@ -7,6 +7,7 @@ import shutil
 import subprocess
 import sys
 import multiprocessing
+import pprint
 
 from os import listdir
 from os.path import isfile, join
@@ -27,6 +28,7 @@ class PrjConfig:
     self.name = n + '_' + str(prj_id)
     self.buildRoot='../src/spmv/build/'
     self.prj_id = prj_id
+    self.runResults = []
 
   def buildName(self):
     bn = self.name + '_' + self.target
@@ -76,6 +78,27 @@ class PrjConfig:
   def sim(self):
     return self.target == TARGET_SIM
 
+
+class RunResult:
+
+  def __init__(self, prj, matrix, outputFile):
+    self.prj = prj
+    self.matrix = matrix
+    self.loadData(outputFile)
+
+  def loadData(self, outputFile):
+    with open(outputFile, 'r') as f:
+      for l in f:
+        m = re.search(r'Result Simple Gflops \(est\)=(\d*(.\d*)?)', l)
+        if m:
+          self.gflops_est = float(m.group(1))
+
+  def __str__(self):
+    return 'gflops_est = {0}, matrix = {1}, prj = {2}'.format(
+        self.gflops_est, self.matrix, self.prj.buildName())
+
+  def __repr__(self):
+    return self.__str__()
 
 def runDse(benchFile, paramsFile):
   dseLog = subprocess.check_output(
@@ -168,6 +191,9 @@ def runClient(benchmark, target, prj=None):
     with open(outF, mode) as f:
       for line in out:
         f.write(line)
+
+    if prj:
+      prj.runResults.append(RunResult(prj, p, outF))
 
 class Spark:
 
@@ -314,6 +340,10 @@ class Spark:
         runClient(benchmark, self.target, p)
     else:
       runClient(benchmark, self.target)
+
+    pp = pprint.PrettyPrinter(indent=2)
+    for p in prjs:
+      pp.pprint(p.runResults)
 
 
 def main():
