@@ -37,6 +37,7 @@ namespace spark {
           int64_t param_start_bytes,
           uint8_t *instream_fromcpu);
 
+      protected:
       const SpmvFunctionPtr runSpmv;
       const SpmvDramWriteFunctionPtr dramWrite;
       const SpmvDramReadFunctionPtr dramRead;
@@ -88,7 +89,7 @@ namespace spark {
         return dram_reduction_enabled == 1;
       }
 
-      void Spmv(
+      virtual void Spmv(
           int64_t param_nIterations,
           int64_t param_nPartitions,
           int64_t param_vectorLoadCycles,
@@ -120,7 +121,7 @@ namespace spark {
           param_vStartAddresses);
       }
 
-      void write(
+      virtual void write(
           int64_t param_size_bytes,
           int64_t param_start_bytes,
           const uint8_t *instream_fromcpu) {
@@ -131,7 +132,7 @@ namespace spark {
       }
 
 
-      void read(
+      virtual void read(
           int64_t param_size_bytes,
           int64_t param_start_bytes,
           uint8_t *outstream_tocpu) {
@@ -140,6 +141,73 @@ namespace spark {
           param_start_bytes,
           outstream_tocpu);
       }
+
+    };
+
+    class GeneratedSpmvImplementationMock : public GeneratedSpmvImplementation {
+
+      public:
+
+      GeneratedSpmvImplementationMock (
+          int _max_rows,
+          int _num_pipes,
+          int _cache_size,
+          int _input_width,
+          int _dram_reduction_enabled
+          ) :
+        GeneratedSpmvImplementation(
+            nullptr, nullptr, nullptr,
+            _max_rows, _num_pipes, _cache_size,
+            _input_width, _dram_reduction_enabled) {}
+
+      virtual ~GeneratedSpmvImplementationMock() {
+      }
+
+      int maxRows() {
+        return max_rows;
+      }
+
+      int numPipes() {
+        return num_pipes;
+      }
+
+      int cacheSize() {
+        return cache_size;
+      }
+
+      int inputWidth() {
+        return input_width;
+      }
+
+      bool getDramReductionEnabled() {
+        return dram_reduction_enabled == 1;
+      }
+
+      void Spmv(
+          int64_t param_nIterations,
+          int64_t param_nPartitions,
+          int64_t param_vectorLoadCycles,
+          const int64_t *param_colPtrStartAddresses,
+          const int32_t *param_colptrSizes,
+          const int64_t *param_indptrValuesAddresses,
+          const int32_t *param_indptrValuesSizes,
+          const int32_t *param_nrows,
+          const int64_t *param_outStartAddresses,
+          const int32_t *param_reductionCycles,
+          const int32_t *param_totalCycles,
+          const int64_t *param_vStartAddresses) {
+        std::cout << "Running mock SPMV implemetation" << std::endl;
+      }
+
+      void write(
+          int64_t param_size_bytes,
+          int64_t param_start_bytes,
+          const uint8_t *instream_fromcpu) {}
+
+      void read(
+          int64_t param_size_bytes,
+          int64_t param_start_bytes,
+          uint8_t *outstream_tocpu) {}
 
     };
 

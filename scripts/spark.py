@@ -128,118 +128,6 @@ def forceTimingScore(maxfile):
   print '      Changing timing score: {0} --> {1}'.format(oldts.strip(), newts.strip())
 
 
-def generateImplementationHeader(prjs):
-  with open('GeneratedImplementations.cpp', 'w') as f:
-    # Include maxfile headers
-    for p in prjs:
-      f.write('#include <{}.h>\n'.format(p.name))
-
-    # Defines struct formats
-    f.write('#include <Spark/{}>\n'.format('GeneratedImplSupport.hpp'))
-
-    f.write('using namespace spark::runtime;\n')
-
-    f.write("""
-        spark::runtime::SpmvImplementationLoader::SpmvImplementationLoader() : ImplementationLoader() {
-        """)
-
-    for i in range(len(prjs)):
-      p = prjs[i]
-      f.write('this->impls.push_back(')
-      f.write(
-          'new GeneratedSpmvImplementation({0}, {1}, {2}, {3}, {4}, {5}, {6}, {7}));'.format(
-            p.name,
-            p.name + '_dramWrite',
-            p.name + '_dramRead',
-            p.getParam('max_rows'),
-            p.getParam('num_pipes'),
-            p.getParam('cache_size'),
-            p.getParam('input_width'),
-            p.name + '_dramReductionEnabled'))
-
-    f.write('\n}')
-
-
-def runLibraryBuild(prjs, libName):
-  print '     ---- Building Library ----'
-
-  interfaceFile = 'GeneratedImplementations.cpp'
-  deviceO = 'SmpvDeviceInterface.o'
-  maxfileO = 'maxfile.o'
-
-  prj_includes = []
-  obj_files = []
-  for p in prjs:
-    objFile = p.name + '.o'
-    out = subprocess.check_output([
-      'sliccompile',
-      p.maxFileLocation(),
-      objFile])
-    prj_includes.append('-I' + p.resultsDir())
-    obj_files.append(objFile)
-
-  # Need to include all generated header files
-
-  cmd =[
-    'g++',
-    '-c',
-    '-Wall',
-    '-std=c++11',
-    '-fPIC',
-    '-I../include',
-    ]
-
-  # TODO move these checks in an earlier phase
-  mcdir = os.getenv('MAXCOMPILERDIR')
-  maxosdir = os.getenv('MAXELEROSDIR')
-  if mcdir and maxosdir:
-      cmd.extend([
-          '-I' + mcdir + '/include',
-          '-I' + mcdir + '/include/slic',
-          '-I' + maxosdir + '/include'])
-
-  cmd.extend(prj_includes)
-  cmd.extend([
-    interfaceFile,
-    '-o',
-    deviceO
-    ])
-  out = subprocess.check_output(cmd)
-
-  cmd =[
-      'g++',
-      '-fPIC',
-      '--std=c++11',
-      '-shared',
-      '-Wl,-soname,{0}.0'.format(libName),
-      '-o',
-      libName]
-  cmd.extend(obj_files + [deviceO])
-  if mcdir and maxosdir:
-    cmd.extend([
-      '-L' + os.path.join(mcdir, 'lib'),
-      '-L' + os.path.join(maxosdir, 'lib'),
-      '-lmaxeleros',
-      '-lslic',])
-
-  cmd.extend(['-lm', '-lpthread'])
-  out = subprocess.check_output(cmd)
-  print out
-
-  # # copy the generated library
-  libDir = '../lib-generated'
-  if os.path.exists(libDir):
-    shutil.rmtree(libDir)
-  os.makedirs(libDir)
-  shutil.copy(libName, libDir + '/{}.0'.format(libName))
-  shutil.move(libName, libDir)
-
-  # # do a bit of cleanup
-  # if os.path.exists(maxfileO):
-    # os.remove(maxfileO)
-  # if os.path.exists(deviceO):
-    # os.remove(deviceO)
-
 
 def buildClient(target):
   print '     ---- Building Client ----'
@@ -286,6 +174,126 @@ class Spark:
   def __init__(self, target):
     self.target = target
 
+  def runLibraryBuild(self, prjs, libName):
+    print '     ---- Building Library ----'
+
+    interfaceFile = 'GeneratedImplementations.cpp'
+    deviceO = 'SmpvDeviceInterface.o'
+    maxfileO = 'maxfile.o'
+
+    prj_includes = []
+    obj_files = []
+    if self.target != TARGET_DFE_MOCK:
+      for p in prjs:
+        objFile = p.name + '.o'
+        out = subprocess.check_output([
+          'sliccompile',
+          p.maxFileLocation(),
+          objFile])
+        prj_includes.append('-I' + p.resultsDir())
+        obj_files.append(objFile)
+
+    cmd =[
+      'g++',
+      '-c',
+      '-Wall',
+      '-std=c++11',
+      '-fPIC',
+      '-I../include',
+      ]
+
+    # TODO move these checks in an earlier phase
+    mcdir = os.getenv('MAXCOMPILERDIR')
+    maxosdir = os.getenv('MAXELEROSDIR')
+    if mcdir and maxosdir:
+        cmd.extend([
+            '-I' + mcdir + '/include',
+            '-I' + mcdir + '/include/slic',
+            '-I' + maxosdir + '/include'])
+
+    cmd.extend(prj_includes)
+    cmd.extend([
+      interfaceFile,
+      '-o',
+      deviceO
+      ])
+    out = subprocess.check_output(cmd)
+
+    cmd =[
+        'g++',
+        '-fPIC',
+        '--std=c++11',
+        '-shared',
+        '-Wl,-soname,{0}.0'.format(libName),
+        '-o',
+        libName]
+    cmd.extend(obj_files + [deviceO])
+    if mcdir and maxosdir:
+      cmd.extend([
+        '-L' + os.path.join(mcdir, 'lib'),
+        '-L' + os.path.join(maxosdir, 'lib'),
+        '-lmaxeleros',
+        '-lslic',])
+
+    cmd.extend(['-lm', '-lpthread'])
+    out = subprocess.check_output(cmd)
+    print out
+
+    # # copy the generated library
+    libDir = '../lib-generated'
+    if os.path.exists(libDir):
+      shutil.rmtree(libDir)
+    os.makedirs(libDir)
+    shutil.copy(libName, libDir + '/{}.0'.format(libName))
+    shutil.move(libName, libDir)
+
+    # # do a bit of cleanup
+    # if os.path.exists(maxfileO):
+      # os.remove(maxfileO)
+    # if os.path.exists(deviceO):
+      # os.remove(deviceO)
+
+
+  def generateImplementationHeader(self, prjs):
+    with open('GeneratedImplementations.cpp', 'w') as f:
+      # Include maxfile headers
+      if self.target != TARGET_DFE_MOCK:
+        for p in prjs:
+          f.write('#include <{}.h>\n'.format(p.name))
+
+      # Defines struct formats
+      f.write('#include <Spark/{}>\n'.format('GeneratedImplSupport.hpp'))
+
+      f.write('using namespace spark::runtime;\n')
+
+      f.write("""
+          spark::runtime::SpmvImplementationLoader::SpmvImplementationLoader() : ImplementationLoader() {
+          """)
+
+      for i in range(len(prjs)):
+        p = prjs[i]
+        f.write('this->impls.push_back(')
+        if self.target == TARGET_DFE_MOCK:
+          f.write(
+              'new GeneratedSpmvImplementationMock({0}, {1}, {2}, {3}, false));'.format(
+                p.getParam('max_rows'),
+                p.getParam('num_pipes'),
+                p.getParam('cache_size'),
+                p.getParam('input_width')))
+        else:
+          f.write(
+              'new GeneratedSpmvImplementation({0}, {1}, {2}, {3}, {4}, {5}, {6}, {7}));'.format(
+                p.name,
+                p.name + '_dramWrite',
+                p.name + '_dramRead',
+                p.getParam('max_rows'),
+                p.getParam('num_pipes'),
+                p.getParam('cache_size'),
+                p.getParam('input_width'),
+                p.name + '_dramReductionEnabled'))
+
+      f.write('\n}')
+
   def runBuilds(self, prjs, benchmark, benchmark_all_to_all, sim):
 
     if self.target != TARGET_DFE_MOCK:
@@ -296,8 +304,8 @@ class Spark:
       pool.join()
 
     # library generation is sequential
-    generateImplementationHeader(prjs)
-    runLibraryBuild(prjs, 'libSpmv_' + self.target + '.so')
+    self.generateImplementationHeader(prjs)
+    self.runLibraryBuild(prjs, 'libSpmv_' + self.target + '.so')
 
     buildClient(self.target)
 
@@ -348,7 +356,6 @@ def main():
 
 
   ps = prjs[:args.max_builds] if args.max_builds else prjs
-  ps = [] if args.target == TARGET_DFE_MOCK else ps
 
   spark = Spark(args.target)
   spark.runBuilds(
