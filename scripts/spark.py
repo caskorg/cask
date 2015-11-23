@@ -8,6 +8,8 @@ import subprocess
 import sys
 import multiprocessing
 import pprint
+import numpy as np
+import matplotlib.pyplot as plt
 
 from os import listdir
 from os.path import isfile, join
@@ -84,6 +86,7 @@ class RunResult:
   def __init__(self, prj, matrix, outputFile):
     self.prj = prj
     self.matrix = matrix
+    self.gflops_est = 0
     self.loadData(outputFile)
 
   def loadData(self, outputFile):
@@ -344,6 +347,36 @@ class Spark:
     pp = pprint.PrettyPrinter(indent=2)
     for p in prjs:
       pp.pprint(p.runResults)
+
+    # TODO extract below in a separate method / class
+    all_results = [r for r in p.runResults for p in prjs]
+    matrix_names = set([os.path.basename(r.matrix) for r in all_results])
+
+    print matrix_names
+    bar_groups = len(matrix_names)
+
+    fig, ax = plt.subplots()
+
+    ind = np.arange(bar_groups)
+    colors = ['r', 'y', 'g', 'b']
+
+    width = 0.15
+    k = 0
+    p_names = []
+    for p in prjs:
+      results_p = [r.gflops_est for r in p.runResults]
+      print results_p
+      ax.bar(ind + k * width, results_p, width,
+              alpha=0.4, color=colors[k % len(colors)])
+      p_names.append(p.buildName())
+      k += 1
+
+    plt.xticks(ind + width * bar_groups / 2, list(matrix_names))
+    plt.legend(p_names, loc='upper center', fontsize=8)
+    plt.tight_layout()
+
+    fig.savefig('test.pdf')
+    plt.close(fig)
 
 
 def main():
