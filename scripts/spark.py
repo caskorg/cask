@@ -155,7 +155,7 @@ def runClient(benchmark, target, prj=None):
     outF += '_' + os.path.basename(p)
     print '      -->', p, 'outFile =', outF
     try:
-      out = subprocess.check_output(cmd)
+      out = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
     except subprocess.CalledProcessError as e:
       print '       ',e
       out = e.output

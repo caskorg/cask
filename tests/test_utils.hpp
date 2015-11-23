@@ -52,12 +52,12 @@ namespace spark {
     void print_mismatches(const MismatchT& mismatches) {
       boost::io::ios_all_saver guard(std::cout);
       if (!mismatches.empty()) {
-        std::cout << "Results didn't match" << std::endl;
+        std::cerr << "Results didn't match" << std::endl;
         for (int i = 0; i < mismatches.size(); i++) {
-          std::cout << std::fixed << std::setprecision(10);
-          std::cout << "At " << std::get<0>(mismatches[i]);
-          std::cout << " got: " << std::get<1>(mismatches[i]);
-          std::cout << " exp: "  << std::get<2>(mismatches[i]) << std::endl;
+          std::cerr << std::fixed << std::setprecision(10);
+          std::cerr << "At " << std::get<0>(mismatches[i]);
+          std::cerr << " got: " << std::get<1>(mismatches[i]);
+          std::cerr << " exp: "  << std::get<2>(mismatches[i]) << std::endl;
         }
       }
     }
