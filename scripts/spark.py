@@ -15,7 +15,9 @@ from multiprocessing import Pool
 from subprocess import call
 
 
-DFE_MOCK = 'dfe-mock'
+TARGET_DFE_MOCK = 'dfe_mock'
+TARGET_DFE = 'dfe'
+TARGET_SIM = 'sim'
 
 
 class PrjConfig:
@@ -52,7 +54,7 @@ class PrjConfig:
     return self.params[p]
 
   def buildTarget(self):
-    if self.target == 'sim':
+    if self.target == TARGET_SIM:
       return 'DFE_SIM'
     return 'DFE'
 
@@ -72,7 +74,7 @@ class PrjConfig:
     return 'lib{0}.so'.format(self.buildName())
 
   def sim(self):
-    return self.target == 'sim'
+    return self.target == TARGET_SIM
 
 
 def runDse(benchFile, paramsFile):
@@ -158,7 +160,7 @@ def generateImplementationHeader(prjs):
     f.write('\n}')
 
 
-def runLibraryBuild(prjs):
+def runLibraryBuild(prjs, libName):
   print '     ---- Building Library ----'
 
   interfaceFile = 'GeneratedImplementations.cpp'
@@ -176,8 +178,6 @@ def runLibraryBuild(prjs):
     prj_includes.append('-I' + p.resultsDir())
     obj_files.append(objFile)
 
-  mcdir = os.getenv('MAXCOMPILERDIR')
-  maxosdir = os.getenv('MAXELEROSDIR')
   # Need to include all generated header files
 
   cmd =[
@@ -187,10 +187,17 @@ def runLibraryBuild(prjs):
     '-std=c++11',
     '-fPIC',
     '-I../include',
-    '-I' + mcdir + '/include',
-    '-I' + mcdir + '/include/slic',
-    '-I' + maxosdir + '/include',
     ]
+
+  # TODO move these checks in an earlier phase
+  mcdir = os.getenv('MAXCOMPILERDIR')
+  maxosdir = os.getenv('MAXELEROSDIR')
+  if mcdir and maxosdir:
+      cmd.extend([
+          '-I' + mcdir + '/include',
+          '-I' + mcdir + '/include/slic',
+          '-I' + maxosdir + '/include'])
+
   cmd.extend(prj_includes)
   cmd.extend([
     interfaceFile,
@@ -199,10 +206,6 @@ def runLibraryBuild(prjs):
     ])
   out = subprocess.check_output(cmd)
 
-  # TODO merge all the object files in one library
-
-  # XXX gneerate it!
-  libName = 'libSpmv_sim.so'
   cmd =[
       'g++',
       '-fPIC',
@@ -211,15 +214,15 @@ def runLibraryBuild(prjs):
       '-Wl,-soname,{0}.0'.format(libName),
       '-o',
       libName]
-  cmd.extend(obj_files)
-  cmd.extend([
-      deviceO,
+  cmd.extend(obj_files + [deviceO])
+  if mcdir and maxosdir:
+    cmd.extend([
       '-L' + os.path.join(mcdir, 'lib'),
       '-L' + os.path.join(maxosdir, 'lib'),
       '-lmaxeleros',
-      '-lslic',
-      '-lm',
-      '-lpthread'])
+      '-lslic',])
+
+  cmd.extend(['-lm', '-lpthread'])
   out = subprocess.check_output(cmd)
   print out
 
@@ -238,23 +241,24 @@ def runLibraryBuild(prjs):
     # os.remove(deviceO)
 
 
-def buildClient(prj):
+def buildClient(target):
   print '     ---- Building Client ----'
   out = subprocess.check_output(['make',
     '-C',
     '../build/',
-    'test_spmv_' + prj.target])
+    'test_spmv_' + target])
 
 
-def runClient(benchmark, sim=True, prj=None):
+def runClient(benchmark, target, prj=None):
   print '     ---- Benchmarking Client ----'
   for p in benchmark:
-    cmd = ['bash', 'spark_dfe_run.sh', p]
-    if sim:
-      cmd = ['bash',
-          'simrunner',
-          '../build/test_spmv_sim',
-          p]
+    cmd = []
+    if target == TARGET_DFE:
+      cmd = ['bash', 'spark_dfe_run.sh', p]
+    elif target == TARGET_SIM:
+      cmd = ['bash', 'simrunner', '../build/test_spmv_sim', p]
+    elif target == TARGET_DFE_MOCK:
+      cmd = ['bash', 'mockrunner', '../build/test_spmv_dfe_mock', p]
     if prj:
       cmd.append(str(prj.prj_id))
       outF = 'run_' + prj.buildName()
@@ -282,46 +286,33 @@ class Spark:
   def __init__(self, target):
     self.target = target
 
-  def runDfeMock(self):
-    print '     ---- Building Mock Client ----'
-    generateImplementationHeader([])
-    #buildClient()
-    #out = subprocess.check_output(['make',
-      #'-C',
-      #'../build/',
-      #'test_spmv_' + prj.target])
-
   def runBuilds(self, prjs, benchmark, benchmark_all_to_all, sim):
 
-    if self.target == DFE_MOCK:
-        self.runDfeMock()
-        return
-
-    # run MC builds in parallel
-    pool = Pool(4)
-    pool.map(runMaxCompilerBuild, prjs)
-    pool.close()
-    pool.join()
+    if self.target != TARGET_DFE_MOCK:
+      # run MC builds in parallel
+      pool = Pool(4)
+      pool.map(runMaxCompilerBuild, prjs)
+      pool.close()
+      pool.join()
 
     # library generation is sequential
     generateImplementationHeader(prjs)
-    runLibraryBuild(prjs)
+    runLibraryBuild(prjs, 'libSpmv_' + self.target + '.so')
 
-    # TODO why need prjs[0]?
-    buildClient(prjs[0])
+    buildClient(self.target)
 
     if benchmark_all_to_all:
       for p in prjs:
-        runClient(benchmark, sim, p)
+        runClient(benchmark, self.target, p)
     else:
-      runClient(benchmark, sim)
+      runClient(benchmark, self.target)
 
 
 def main():
 
   parser = argparse.ArgumentParser(description='Run Spark DSE flow')
   parser.add_argument('-d', '--dse', action='store_true', default=False)
-  parser.add_argument('-t', '--target', choices=['dfe', 'sim', DFE_MOCK], required=True)
+  parser.add_argument('-t', '--target', choices=[TARGET_DFE, TARGET_SIM, TARGET_DFE_MOCK], required=True)
   parser.add_argument('-p', '--param-file', required=True)
   parser.add_argument('-b', '--benchmark-dir', required=True)
   parser.add_argument('-m', '--max-builds', type=int)
@@ -357,6 +348,7 @@ def main():
 
 
   ps = prjs[:args.max_builds] if args.max_builds else prjs
+  ps = [] if args.target == TARGET_DFE_MOCK else ps
 
   spark = Spark(args.target)
   spark.runBuilds(

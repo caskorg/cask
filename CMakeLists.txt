@@ -94,9 +94,9 @@ target_link_libraries(test_architecture
   SparkCpuLib SpmvImplLib SpmvDeviceLib)
 
 # Mock implementation used for DSE
-add_executable(test_spmv tests/test_spmv.cpp)
-target_link_libraries(test_spmv
-  -lboost_program_options -lboost_filesystem -lboost_system -ldl
+add_executable(test_spmv_dfe_mock tests/test_spmv.cpp)
+target_link_libraries(test_spmv_dfe_mock
+  -lboost_program_options -lboost_filesystem -lboost_system -ldl -L../lib-generated -lSpmv_dfe_mock
   SparkCpuLib SpmvImplLib SpmvDeviceLib)
 
 # -- Test targets
