@@ -4,6 +4,7 @@ import pprint
 import numpy as np
 import matplotlib.pyplot as plt
 import collections
+from matplotlib.backends.backend_pdf import PdfPages
 
 class Architecture:
 
@@ -57,7 +58,7 @@ def extract_from_group(field, group):
   return new_group
 
 
-def bar_plot(group, file_name, group_names):
+def bar_plot(pdf, group, group_names):
   fig, ax = plt.subplots()
 
   bar_groups = len(group)
@@ -83,7 +84,7 @@ def bar_plot(group, file_name, group_names):
   plt.legend(names, loc='upper center', fontsize=8)
   # plt.tight_layout()
 
-  fig.savefig(file_name)
+  pdf.savefig()
   plt.close(fig)
 
 
@@ -110,7 +111,20 @@ def main():
   # by_matrix = [ r.prj
 
   # for each group of 4 do a plot
-  bar_plot(gflops_per_matr_per_project, 'gflops_per_matrix.pdf', matrices)
+  dicts = []
+
+  pos = 0
+  size = 5
+  while pos < len(gflops_per_matr_per_project):
+    dicts.append(dict(gflops_per_matr_per_project.items()[pos:pos+size]))
+    pos += size
+
+  pdf = PdfPages('gflops_per_matrix.pdf')
+  i = 0
+  for d in dicts:
+    bar_plot(pdf, d, matrices)
+    i += 1
+  pdf.close()
 
 
 if __name__ == '__main__':
