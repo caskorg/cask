@@ -8,3 +8,4 @@ lib-generated/
 scripts/*.o
 scripts/dse_out.json
 scripts/run_sim*
+scripts/run_*
