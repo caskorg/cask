@@ -50,6 +50,12 @@ def group_by_field(field, elems):
       value.sort(key=lambda x: x.matrix)
   return grp
 
+def sort_by_avg_of_value(elems):
+  sorted_x = sorted(
+          elems.items(),
+          key = lambda x : np.mean(x[1]))
+  return collections.OrderedDict(sorted_x)
+
 def extract_from_group(field, group):
   new_group = collections.defaultdict(list)
   for key, value in group.iteritems():
@@ -57,6 +63,13 @@ def extract_from_group(field, group):
       new_group[key].append(getattr(e, field))
   return new_group
 
+def split_dict_by_size(elems, size):
+  dicts = []
+  pos = 0
+  while pos < len(elems):
+    dicts.append(dict(elems.items()[pos:pos+size]))
+    pos += size
+  return dicts
 
 def bar_plot(pdf, group, group_names):
   fig, ax = plt.subplots()
@@ -71,7 +84,7 @@ def bar_plot(pdf, group, group_names):
   k = 0
   names = []
   for key, value in group.iteritems():
-    print value
+    print  np.mean(value)
     ax.bar(ind + k * width, value, width,
             alpha=0.4, color=colors[k % len(colors)])
     names.append(key)
@@ -100,28 +113,17 @@ def main():
   projects = all_unique('prj', runResults)
 
   group_by_project = group_by_field('prj', runResults)
-  gflops_per_matr_per_project = extract_from_group('gflops_est', group_by_project)
+  gflops_per_matr_per_project = sort_by_avg_of_value(extract_from_group('gflops_est', group_by_project))
 
   # Render graphs
   pp = pprint.PrettyPrinter(indent=2)
-  # pp.pprint(runResults)
   pp.pprint(matrices)
   pp.pprint(dict(group_by_project))
   pp.pprint(dict(gflops_per_matr_per_project))
-  # by_matrix = [ r.prj
-
-  # for each group of 4 do a plot
-  dicts = []
-
-  pos = 0
-  size = 5
-  while pos < len(gflops_per_matr_per_project):
-    dicts.append(dict(gflops_per_matr_per_project.items()[pos:pos+size]))
-    pos += size
 
   pdf = PdfPages('gflops_per_matrix.pdf')
   i = 0
-  for d in dicts:
+  for d in split_dict_by_size(gflops_per_matr_per_project, 5):
     bar_plot(pdf, d, matrices)
     i += 1
   pdf.close()
