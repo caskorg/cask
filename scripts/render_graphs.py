@@ -80,13 +80,15 @@ def bar_plot(pdf, group, group_names):
   ind = np.arange(num_groups)
   colors = ['r', 'y', 'g', 'b', 'm', 'c']
 
-  width = 0.1
+  width = 0.15
   k = 0
   names = []
   for key, value in group.iteritems():
     print  np.mean(value)
+    c = colors[k % len(colors)]
     ax.bar(ind + k * width, value, width,
-            alpha=0.4, color=colors[k % len(colors)])
+            linewidth=0,
+            alpha=0.6, color=c)
     names.append(key)
     k += 1
 
