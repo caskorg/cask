@@ -66,10 +66,6 @@ include_directories(include)
 #   library and adds CPU functions for pre/post-processing the data
 # - an interface (header) for the implementation library
 
-# SpMV Device library
-set(SpmvDeviceLib_src
-  src/device/SpmvDeviceInterfaceMock.cpp)
-add_library(SpmvDeviceLib ${SpmvDeviceLib_src})
 
 # SpMV Implementation Library
 set(SpmvImplLib_src
@@ -86,18 +82,18 @@ add_library(SparkCpuLib ${SparkCpu_src})
 add_executable(main src/main.cpp )
 target_link_libraries(main
   -lboost_program_options -lboost_filesystem -lboost_system
-  SparkCpuLib SpmvImplLib SpmvDeviceLib)
+  SparkCpuLib SpmvImplLib)
 
 add_executable(test_architecture tests/test_architecture.cpp)
 target_link_libraries(test_architecture
   -lboost_program_options
-  SparkCpuLib SpmvImplLib SpmvDeviceLib)
+  SparkCpuLib SpmvImplLib )
 
 # Mock implementation used for DSE
 add_executable(test_spmv_dfe_mock tests/test_spmv.cpp)
 target_link_libraries(test_spmv_dfe_mock
   -lboost_program_options -lboost_filesystem -lboost_system -ldl -L../lib-generated -lSpmv_dfe_mock
-  SparkCpuLib SpmvImplLib SpmvDeviceLib)
+  SparkCpuLib SpmvImplLib)
 
 # -- Test targets
 include_directories(unit-tests)
