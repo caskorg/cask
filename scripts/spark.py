@@ -81,28 +81,6 @@ class PrjConfig:
     return self.target == TARGET_SIM
 
 
-class RunResult:
-
-  def __init__(self, prj, matrix, outputFile):
-    self.prj = prj
-    self.matrix = matrix
-    self.gflops_est = 0
-    self.loadData(outputFile)
-
-  def loadData(self, outputFile):
-    with open(outputFile, 'r') as f:
-      for l in f:
-        m = re.search(r'Result Simple Gflops \(est\)=(\d*(.\d*)?)', l)
-        if m:
-          self.gflops_est = float(m.group(1))
-
-  def __str__(self):
-    return 'gflops_est = {0}, matrix = {1}, prj = {2}'.format(
-        self.gflops_est, self.matrix, self.prj.buildName())
-
-  def __repr__(self):
-    return self.__str__()
-
 def runDse(benchFile, paramsFile):
   dseLog = subprocess.check_output(
       ["../build/main", benchFile, paramsFile])
@@ -195,8 +173,6 @@ def runClient(benchmark, target, prj=None):
       for line in out:
         f.write(line)
 
-    if prj:
-      prj.runResults.append(RunResult(prj, p, outF))
 
 class Spark:
 
@@ -234,7 +210,7 @@ class Spark:
     # TODO move these checks in an earlier phase
     mcdir = os.getenv('MAXCOMPILERDIR')
     maxosdir = os.getenv('MAXELEROSDIR')
-    if mcdir and maxosdir:
+    if mcdir and maxosdir and self.target != TARGET_DFE_MOCK:
         cmd.extend([
             '-I' + mcdir + '/include',
             '-I' + mcdir + '/include/slic',
@@ -257,7 +233,7 @@ class Spark:
         '-o',
         libName]
     cmd.extend(obj_files + [deviceO])
-    if mcdir and maxosdir:
+    if mcdir and maxosdir and self.target != TARGET_DFE_MOCK:
       cmd.extend([
         '-L' + os.path.join(mcdir, 'lib'),
         '-L' + os.path.join(maxosdir, 'lib'),
@@ -343,40 +319,6 @@ class Spark:
         runClient(benchmark, self.target, p)
     else:
       runClient(benchmark, self.target)
-
-    pp = pprint.PrettyPrinter(indent=2)
-    for p in prjs:
-      pp.pprint(p.runResults)
-
-    # TODO extract below in a separate method / class
-    all_results = [r for r in p.runResults for p in prjs]
-    matrix_names = set([os.path.basename(r.matrix) for r in all_results])
-
-    print matrix_names
-    bar_groups = len(matrix_names)
-
-    fig, ax = plt.subplots()
-
-    ind = np.arange(bar_groups)
-    colors = ['r', 'y', 'g', 'b']
-
-    width = 0.15
-    k = 0
-    p_names = []
-    for p in prjs:
-      results_p = [r.gflops_est for r in p.runResults]
-      print results_p
-      ax.bar(ind + k * width, results_p, width,
-              alpha=0.4, color=colors[k % len(colors)])
-      p_names.append(p.buildName())
-      k += 1
-
-    plt.xticks(ind + width * bar_groups / 2, list(matrix_names))
-    plt.legend(p_names, loc='upper center', fontsize=8)
-    plt.tight_layout()
-
-    fig.savefig('test.pdf')
-    plt.close(fig)
 
 
 def main():
