@@ -7,6 +7,8 @@ import matplotlib.pyplot as plt
 import collections
 from matplotlib.backends.backend_pdf import PdfPages
 
+import seaborn as sns
+
 class RunResult:
 
   def __init__(self, outputFile):
@@ -49,16 +51,22 @@ def main():
   names = []
   for name, group in grouped:
     group.set_index(1, inplace=True)
-    group.sort_index(inplace=True)
+    # group.sort_index(inplace=True)
     groups.append(group[2])
     names.append(name)
 
   new_df = pd.concat(groups, axis=1)
   new_df.columns = names
 
+  sns.set_style("white")
+  sns.set_palette(sns.color_palette("cubehelix", 13))
   bar = new_df.plot(kind='bar')
-  # bar.get_figure().savefig('est_gflops.pdf')
-  plt.show()
+  sns.despine()
+  fig = bar.get_figure()
+  fig.set_size_inches(15, 15)
+  fig.tight_layout()
+  fig.savefig('est_gflops.pdf')
+  # plt.show()
 
 
 if __name__ == '__main__':
