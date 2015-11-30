@@ -1,0 +1,124 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - final.info - include/Spark/SparseLinearSolvers.hpp</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">include/Spark</a> - SparseLinearSolvers.hpp<span style="font-size: 80%;"> (source / <a href="SparseLinearSolvers.hpp.func.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">final.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">4</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-11-30</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">2</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : #ifndef SPARSE_LINEAR_SOLVERS_HPP</a>
+<span class="lineNum">       2 </span>            : #define SPARSE_LINEAR_SOLVERS_HPP
+<span class="lineNum">       3 </span>            : 
+<span class="lineNum">       4 </span>            : #include &lt;Eigen/Sparse&gt;
+<span class="lineNum">       5 </span>            : 
+<span class="lineNum">       6 </span>            : namespace spark {
+<span class="lineNum">       7 </span>            :   namespace sparse_linear_solvers {
+<span class="lineNum">       8 </span>            : 
+<a name="9"><span class="lineNum">       9 </span>            :     class Solver {</a>
+<span class="lineNum">      10 </span>            :       public:
+<span class="lineNum">      11 </span><span class="lineNoCov">          0 :         virtual void analyze(</span>
+<span class="lineNum">      12 </span>            :             const Eigen::SparseMatrix&lt;double&gt; &amp;A) {
+<a name="13"><span class="lineNum">      13 </span><span class="lineNoCov">          0 :         }</span></a>
+<span class="lineNum">      14 </span>            : 
+<span class="lineNum">      15 </span><span class="lineNoCov">          0 :         virtual void preprocess(</span>
+<span class="lineNum">      16 </span>            :             const Eigen::SparseMatrix&lt;double&gt; &amp;A) {
+<span class="lineNum">      17 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">      18 </span>            : 
+<span class="lineNum">      19 </span>            :         virtual Eigen::VectorXd solve(
+<span class="lineNum">      20 </span>            :             const Eigen::SparseMatrix&lt;double&gt;&amp; A,
+<span class="lineNum">      21 </span>            :             const Eigen::VectorXd&amp; b) = 0;
+<span class="lineNum">      22 </span>            :     };
+<span class="lineNum">      23 </span>            : 
+<span class="lineNum">      24 </span>            :     class EigenSolver: public Solver {
+<span class="lineNum">      25 </span>            :       public:
+<span class="lineNum">      26 </span>            :         virtual Eigen::VectorXd solve(
+<span class="lineNum">      27 </span>            :             const Eigen::SparseMatrix&lt;double&gt;&amp; A,
+<span class="lineNum">      28 </span>            :             const Eigen::VectorXd&amp; b);
+<span class="lineNum">      29 </span>            :     };
+<span class="lineNum">      30 </span>            : 
+<span class="lineNum">      31 </span>            :     class DfeCgSolver: public Solver {
+<span class="lineNum">      32 </span>            :       public:
+<span class="lineNum">      33 </span>            :         virtual Eigen::VectorXd solve(
+<span class="lineNum">      34 </span>            :             const Eigen::SparseMatrix&lt;double&gt;&amp; A,
+<span class="lineNum">      35 </span>            :             const Eigen::VectorXd&amp; b);
+<span class="lineNum">      36 </span>            :     };
+<span class="lineNum">      37 </span>            : 
+<span class="lineNum">      38 </span>            :     class DfeBiCgSolver: public Solver {
+<span class="lineNum">      39 </span>            :       public:
+<span class="lineNum">      40 </span>            :         virtual Eigen::VectorXd solve(
+<span class="lineNum">      41 </span>            :             const Eigen::SparseMatrix&lt;double&gt;&amp; A,
+<span class="lineNum">      42 </span>            :             const Eigen::VectorXd&amp; b);
+<span class="lineNum">      43 </span>            :     };
+<span class="lineNum">      44 </span>            :   }
+<span class="lineNum">      45 </span>            : }
+<span class="lineNum">      46 </span>            : 
+<span class="lineNum">      47 </span>            : #endif /* end of include guard: SPARSE_LINEAR_SOLVERS_HPP */
+<span class="lineNum">      48 </span>            : 
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.10</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

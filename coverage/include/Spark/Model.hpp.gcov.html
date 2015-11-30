@@ -1,0 +1,163 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - final.info - include/Spark/Model.hpp</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">include/Spark</a> - Model.hpp<span style="font-size: 80%;"> (source / <a href="Model.hpp.func.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">final.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">2</td>
+            <td class="headerCovTableEntry">31</td>
+            <td class="headerCovTableEntryLo">6.5 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-11-30</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntry">10</td>
+            <td class="headerCovTableEntryLo">10.0 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : #ifndef MODEL_H</a>
+<span class="lineNum">       2 </span>            : #define MODEL_H
+<span class="lineNum">       3 </span>            : 
+<span class="lineNum">       4 </span>            : #include &lt;sstream&gt;
+<span class="lineNum">       5 </span>            : 
+<span class="lineNum">       6 </span>            : namespace spark {
+<span class="lineNum">       7 </span>            :   namespace model {
+<span class="lineNum">       8 </span>            : 
+<span class="lineNum">       9 </span>            :     class LogicResourceUsage {
+<span class="lineNum">      10 </span>            :       public:
+<span class="lineNum">      11 </span>            :         int luts, ffs, brams, dsps;
+<span class="lineNum">      12 </span>            : 
+<a name="13"><span class="lineNum">      13 </span>            :         LogicResourceUsage() : luts(0), ffs(0), dsps(0), brams(0) {}</a>
+<span class="lineNum">      14 </span>            : 
+<span class="lineNum">      15 </span><span class="lineCov">          1 :         LogicResourceUsage(int _l, int _f, int _b, int _d) :</span>
+<a name="16"><span class="lineNum">      16 </span><span class="lineCov">          1 :           luts(_l), ffs(_f), brams(_b), dsps(_d) {}</span></a>
+<span class="lineNum">      17 </span>            : 
+<span class="lineNum">      18 </span><span class="lineNoCov">          0 :         LogicResourceUsage(const LogicResourceUsage&amp; ru) {</span>
+<span class="lineNum">      19 </span><span class="lineNoCov">          0 :           luts = ru.luts;</span>
+<span class="lineNum">      20 </span><span class="lineNoCov">          0 :           ffs = ru.ffs;</span>
+<span class="lineNum">      21 </span><span class="lineNoCov">          0 :           dsps = ru.dsps;</span>
+<span class="lineNum">      22 </span><span class="lineNoCov">          0 :           brams = ru.brams;</span>
+<a name="23"><span class="lineNum">      23 </span><span class="lineNoCov">          0 :         }</span></a>
+<span class="lineNum">      24 </span>            : 
+<span class="lineNum">      25 </span><span class="lineNoCov">          0 :         std::string to_string() {</span>
+<span class="lineNum">      26 </span><span class="lineNoCov">          0 :           std::stringstream s;</span>
+<span class="lineNum">      27 </span><span class="lineNoCov">          0 :           s &lt;&lt; luts &lt;&lt; &quot; &quot; &lt;&lt; ffs &lt;&lt; &quot; &quot; &lt;&lt; &quot; &quot; &lt;&lt; dsps &lt;&lt; &quot; &quot; &lt;&lt; brams;</span>
+<span class="lineNum">      28 </span><span class="lineNoCov">          0 :           return s.str();</span>
+<a name="29"><span class="lineNum">      29 </span>            :         }</a>
+<span class="lineNum">      30 </span>            : 
+<span class="lineNum">      31 </span><span class="lineNoCov">          0 :         const LogicResourceUsage operator+(const LogicResourceUsage&amp; ru) const {</span>
+<span class="lineNum">      32 </span><span class="lineNoCov">          0 :           return LogicResourceUsage(luts + ru.luts, ffs + ru.ffs, brams + ru.brams, dsps + ru.dsps);</span>
+<a name="33"><span class="lineNum">      33 </span>            :         }</a>
+<span class="lineNum">      34 </span>            : 
+<span class="lineNum">      35 </span><span class="lineNoCov">          0 :         const LogicResourceUsage operator*(int x) const {</span>
+<span class="lineNum">      36 </span><span class="lineNoCov">          0 :           return LogicResourceUsage(x * luts,  x * ffs, x * brams, x * dsps);</span>
+<a name="37"><span class="lineNum">      37 </span>            :         }</a>
+<span class="lineNum">      38 </span>            : 
+<span class="lineNum">      39 </span><span class="lineNoCov">          0 :         const LogicResourceUsage operator*(double x) const {</span>
+<span class="lineNum">      40 </span><span class="lineNoCov">          0 :           return LogicResourceUsage(x * (double)luts,  x * (double)ffs, x * (double)brams, x * (double)dsps);</span>
+<a name="41"><span class="lineNum">      41 </span>            :         }</a>
+<span class="lineNum">      42 </span>            : 
+<span class="lineNum">      43 </span><span class="lineNoCov">          0 :         const bool operator&lt;(const LogicResourceUsage&amp; ru) const {</span>
+<span class="lineNum">      44 </span>            :           return
+<span class="lineNum">      45 </span><span class="lineNoCov">          0 :             luts &lt; ru.luts &amp;&amp;</span>
+<span class="lineNum">      46 </span><span class="lineNoCov">          0 :             ffs &lt; ru.ffs &amp;&amp;</span>
+<span class="lineNum">      47 </span><span class="lineNoCov">          0 :             dsps &lt; ru.dsps &amp;&amp;</span>
+<span class="lineNum">      48 </span><span class="lineNoCov">          0 :             brams &lt; ru.brams;</span>
+<span class="lineNum">      49 </span>            :         }
+<span class="lineNum">      50 </span>            :     };
+<span class="lineNum">      51 </span>            : 
+<span class="lineNum">      52 </span>            :     // models the implementation parameters which are constrained (e.g. by
+<span class="lineNum">      53 </span>            :     // physical properties, such as lut usage, or by the compiler, such as the
+<span class="lineNum">      54 </span>            :     // number of streams)
+<span class="lineNum">      55 </span>            :     class ImplementationParameters {
+<span class="lineNum">      56 </span>            :       public:
+<span class="lineNum">      57 </span>            : 
+<span class="lineNum">      58 </span>            :         LogicResourceUsage ru;
+<span class="lineNum">      59 </span>            : 
+<span class="lineNum">      60 </span>            :         //  params belows not being used currently
+<span class="lineNum">      61 </span>            :         double memoryBandwidth; // &lt;-- would be nice to have this
+<span class="lineNum">      62 </span>            :         //int streams;
+<span class="lineNum">      63 </span>            :         //int clockFrequency;
+<a name="64"><span class="lineNum">      64 </span>            :         //int memoryClockFrequency;</a>
+<span class="lineNum">      65 </span>            : 
+<a name="66"><span class="lineNum">      66 </span><span class="lineNoCov">          0 :         ImplementationParameters(const LogicResourceUsage&amp; _ru, double _memoryBandwidth) : ru(_ru), memoryBandwidth(_memoryBandwidth) {}</span></a>
+<span class="lineNum">      67 </span>            : 
+<span class="lineNum">      68 </span><span class="lineNoCov">          0 :         std::string to_string() {</span>
+<span class="lineNum">      69 </span><span class="lineNoCov">          0 :           std::stringstream s;</span>
+<span class="lineNum">      70 </span><span class="lineNoCov">          0 :           s &lt;&lt; ru.to_string() &lt;&lt; &quot; &quot; &lt;&lt; memoryBandwidth;</span>
+<span class="lineNum">      71 </span><span class="lineNoCov">          0 :           return s.str();</span>
+<a name="72"><span class="lineNum">      72 </span>            :         }</a>
+<span class="lineNum">      73 </span>            : 
+<span class="lineNum">      74 </span><span class="lineNoCov">          0 :         bool operator&lt;(const ImplementationParameters&amp; other) const {</span>
+<span class="lineNum">      75 </span>            :           return
+<span class="lineNum">      76 </span><span class="lineNoCov">          0 :             ru &lt; other.ru &amp;&amp;</span>
+<span class="lineNum">      77 </span><span class="lineNoCov">          0 :             memoryBandwidth &lt; other.memoryBandwidth;</span>
+<span class="lineNum">      78 </span>            :           //stream &lt; other.streams &amp;&amp;
+<span class="lineNum">      79 </span>            :           //clockFrequency &lt; other.clockFrequency &amp;&amp;
+<span class="lineNum">      80 </span>            :           //memoryClockFrequency &lt; other.memoryClockFrequency;
+<span class="lineNum">      81 </span>            :         }
+<span class="lineNum">      82 </span>            :     };
+<span class="lineNum">      83 </span>            : 
+<span class="lineNum">      84 </span>            : 
+<span class="lineNum">      85 </span>            :   }
+<span class="lineNum">      86 </span>            : }
+<span class="lineNum">      87 </span>            : #endif /* end of include guard: MODEL_H */
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.10</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

@@ -1,0 +1,125 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - final.info - include/Spark/Converters.hpp</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">include/Spark</a> - Converters.hpp<span style="font-size: 80%;"> (source / <a href="Converters.hpp.func.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">final.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">20</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-11-30</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">3</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : #ifndef CONVERTERS_HPP_QNX3RWUJ</a>
+<span class="lineNum">       2 </span>            : #define CONVERTERS_HPP_QNX3RWUJ
+<span class="lineNum">       3 </span>            : 
+<span class="lineNum">       4 </span>            : #include &lt;stdexcept&gt;
+<span class="lineNum">       5 </span>            : #include &lt;memory&gt;
+<span class="lineNum">       6 </span>            : 
+<span class="lineNum">       7 </span>            : #include &lt;Spark/SparseMatrix.hpp&gt;
+<span class="lineNum">       8 </span>            : #include &lt;Eigen/Sparse&gt;
+<span class="lineNum">       9 </span>            : #include &lt;Spark/SparseMatrix.hpp&gt;
+<span class="lineNum">      10 </span>            : 
+<span class="lineNum">      11 </span>            : namespace spark {
+<span class="lineNum">      12 </span>            :   namespace converters {
+<span class="lineNum">      13 </span>            : 
+<span class="lineNum">      14 </span>            :     using EigenSparseMatrix = std::unique_ptr&lt;Eigen::SparseMatrix&lt;double, Eigen::RowMajor, int32_t&gt;&gt;;
+<a name="15"><span class="lineNum">      15 </span>            : </a>
+<span class="lineNum">      16 </span>            :     // convert a Spark COO matrix to an Eigen Sparse Matrix
+<span class="lineNum">      17 </span><span class="lineNoCov">          0 :     inline EigenSparseMatrix tripletToEigen(spark::sparse::SparkCooMatrix&lt;double&gt; mat) {</span>
+<span class="lineNum">      18 </span><span class="lineNoCov">          0 :       auto coo = mat.data;</span>
+<span class="lineNum">      19 </span><span class="lineNoCov">          0 :       EigenSparseMatrix m(new Eigen::SparseMatrix&lt;double, Eigen::RowMajor, int32_t&gt;(mat.n, mat.m));</span>
+<span class="lineNum">      20 </span><span class="lineNoCov">          0 :       std::vector&lt;Eigen::Triplet&lt;double&gt;&gt; trips;</span>
+<span class="lineNum">      21 </span><span class="lineNoCov">          0 :       for (size_t i = 0; i &lt; coo.size(); i++)</span>
+<span class="lineNum">      22 </span>            :         trips.push_back(
+<span class="lineNum">      23 </span>            :             Eigen::Triplet&lt;double&gt;(
+<span class="lineNum">      24 </span><span class="lineNoCov">          0 :               std::get&lt;0&gt;(coo[i]),</span>
+<span class="lineNum">      25 </span><span class="lineNoCov">          0 :               std::get&lt;1&gt;(coo[i]),</span>
+<span class="lineNum">      26 </span><span class="lineNoCov">          0 :               std::get&lt;2&gt;(coo[i])));</span>
+<span class="lineNum">      27 </span><span class="lineNoCov">          0 :       m-&gt;setFromTriplets(trips.begin(), trips.end());</span>
+<span class="lineNum">      28 </span><span class="lineNoCov">          0 :       return m;</span>
+<a name="29"><span class="lineNum">      29 </span>            :     }</a>
+<span class="lineNum">      30 </span>            : 
+<span class="lineNum">      31 </span><span class="lineNoCov">          0 :     inline Eigen::VectorXd stdvectorToEigen(std::vector&lt;double&gt; v) {</span>
+<span class="lineNum">      32 </span><span class="lineNoCov">          0 :       Eigen::VectorXd m(v.size());</span>
+<span class="lineNum">      33 </span><span class="lineNoCov">          0 :       for (size_t i = 0; i &lt; v.size(); i++)</span>
+<span class="lineNum">      34 </span><span class="lineNoCov">          0 :         m[i] = v[i];</span>
+<span class="lineNum">      35 </span><span class="lineNoCov">          0 :       return m;</span>
+<a name="36"><span class="lineNum">      36 </span>            :     }</a>
+<span class="lineNum">      37 </span>            : 
+<span class="lineNum">      38 </span><span class="lineNoCov">          0 :     inline std::vector&lt;double&gt; eigenVectorToStdVector(const Eigen::VectorXd&amp; v) {</span>
+<span class="lineNum">      39 </span><span class="lineNoCov">          0 :       std::vector&lt;double&gt; m(v.size());</span>
+<span class="lineNum">      40 </span><span class="lineNoCov">          0 :       for (int i = 0; i &lt; v.size(); i++)</span>
+<span class="lineNum">      41 </span><span class="lineNoCov">          0 :         m[i] = v[i];</span>
+<span class="lineNum">      42 </span><span class="lineNoCov">          0 :       return m;</span>
+<span class="lineNum">      43 </span>            :     }
+<span class="lineNum">      44 </span>            : 
+<span class="lineNum">      45 </span>            :   }
+<span class="lineNum">      46 </span>            : }
+<span class="lineNum">      47 </span>            : 
+<span class="lineNum">      48 </span>            : 
+<span class="lineNum">      49 </span>            : #endif /* end of include guard: CONVERTERS_HPP_QNX3RWUJ */
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.10</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

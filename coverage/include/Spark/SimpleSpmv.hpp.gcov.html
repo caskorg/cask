@@ -1,0 +1,462 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - final.info - include/Spark/SimpleSpmv.hpp</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">include/Spark</a> - SimpleSpmv.hpp<span style="font-size: 80%;"> (source / <a href="SimpleSpmv.hpp.func.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">final.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">134</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2015-11-30</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">29</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : #ifndef SIMPLESPMV_H</a>
+<span class="lineNum">       2 </span>            : #define SIMPLESPMV_H
+<span class="lineNum">       3 </span>            : 
+<span class="lineNum">       4 </span>            : #include &lt;sstream&gt;
+<span class="lineNum">       5 </span>            : 
+<span class="lineNum">       6 </span>            : #include &lt;Spark/Spmv.hpp&gt;
+<span class="lineNum">       7 </span>            : #include &lt;Spark/Utils.hpp&gt;
+<span class="lineNum">       8 </span>            : #include &lt;Spark/Model.hpp&gt;
+<span class="lineNum">       9 </span>            : #include &lt;Spark/device/SpmvDeviceInterface.h&gt;
+<span class="lineNum">      10 </span>            : #include &lt;Spark/GeneratedImplSupport.hpp&gt;
+<span class="lineNum">      11 </span>            : 
+<span class="lineNum">      12 </span>            : 
+<span class="lineNum">      13 </span>            : namespace spark {
+<span class="lineNum">      14 </span>            :   namespace spmv {
+<span class="lineNum">      15 </span>            : 
+<span class="lineNum">      16 </span>            :     using EigenSparseMatrix = Eigen::SparseMatrix&lt;double, Eigen::RowMajor, int32_t&gt;;
+<span class="lineNum">      17 </span>            : 
+<span class="lineNum">      18 </span>            :     // pack values and colptr to reduce number of streams
+<span class="lineNum">      19 </span>            : #pragma pack(1)
+<span class="lineNum">      20 </span>            :     struct indptr_value {
+<a name="21"><span class="lineNum">      21 </span>            :       double value;</a>
+<a name="22"><span class="lineNum">      22 </span>            :       int indptr;</a>
+<span class="lineNum">      23 </span><span class="lineNoCov">          0 :       indptr_value(double _value, int _indptr) : value(_value), indptr(_indptr) {}</span>
+<span class="lineNum">      24 </span><span class="lineNoCov">          0 :       indptr_value() : value(0), indptr(0) {}</span>
+<span class="lineNum">      25 </span>            :     } __attribute__((packed));
+<a name="26"><span class="lineNum">      26 </span>            : #pragma pack()</a>
+<span class="lineNum">      27 </span>            : 
+<span class="lineNum">      28 </span><span class="lineNoCov">          0 :     struct Partition {</span>
+<span class="lineNum">      29 </span>            :       int nBlocks, n, paddingCycles, totalCycles, vector_load_cycles, outSize;
+<span class="lineNum">      30 </span>            :       int reductionCycles, emptyCycles;
+<span class="lineNum">      31 </span>            :       int m_colptr_unpaddedLength;
+<span class="lineNum">      32 </span>            :       int m_indptr_values_unpaddedLength;
+<span class="lineNum">      33 </span>            :       std::vector&lt;int&gt; m_colptr;
+<span class="lineNum">      34 </span>            :       std::vector&lt;indptr_value&gt; m_indptr_values;
+<span class="lineNum">      35 </span>            : 
+<span class="lineNum">      36 </span>            :       std::string to_string() {
+<span class="lineNum">      37 </span>            :         std::stringstream s;
+<span class="lineNum">      38 </span>            :         s &lt;&lt; &quot;Vector load cycles &quot; &lt;&lt; vector_load_cycles &lt;&lt; std::endl;
+<span class="lineNum">      39 </span>            :         s &lt;&lt; &quot;Padding cycles = &quot; &lt;&lt; paddingCycles &lt;&lt; std::endl;
+<span class="lineNum">      40 </span>            :         s &lt;&lt; &quot;Total cycles = &quot; &lt;&lt; totalCycles &lt;&lt; std::endl;
+<span class="lineNum">      41 </span>            :         s &lt;&lt; &quot;Nrows = &quot; &lt;&lt; n &lt;&lt; std::endl;
+<span class="lineNum">      42 </span>            :         s &lt;&lt; &quot;Partitions = &quot; &lt;&lt; nBlocks &lt;&lt; std::endl;
+<span class="lineNum">      43 </span>            :         s &lt;&lt; &quot;Reduction cycles = &quot; &lt;&lt; reductionCycles &lt;&lt; std::endl;
+<span class="lineNum">      44 </span>            :         std::cout &lt;&lt; &quot;Empty cycles = &quot; &lt;&lt; emptyCycles &lt;&lt; std::endl;
+<span class="lineNum">      45 </span>            :         return s.str();
+<span class="lineNum">      46 </span>            :       }
+<span class="lineNum">      47 </span>            :     };
+<span class="lineNum">      48 </span>            : 
+<span class="lineNum">      49 </span>            :     // A parameterised, generic architecture for SpMV. Supported parameters are:
+<span class="lineNum">      50 </span>            :     // - input width
+<span class="lineNum">      51 </span>            :     // - number of pipes
+<a name="52"><span class="lineNum">      52 </span>            :     // - cache size per pipe</a>
+<span class="lineNum">      53 </span>            :     // - TODO data type
+<span class="lineNum">      54 </span><span class="lineNoCov">          0 :     class SimpleSpmvArchitecture : public SpmvArchitecture {</span>
+<span class="lineNum">      55 </span>            :       // architecture specific properties
+<span class="lineNum">      56 </span>            :       protected:
+<span class="lineNum">      57 </span>            : 
+<span class="lineNum">      58 </span>            :       // design parameters
+<span class="lineNum">      59 </span>            :       const int cacheSize, inputWidth, numPipes, maxRows;
+<span class="lineNum">      60 </span>            : 
+<span class="lineNum">      61 </span>            :       EigenSparseMatrix mat;
+<span class="lineNum">      62 </span>            :       std::vector&lt;Partition&gt; partitions;
+<span class="lineNum">      63 </span>            :       spark::runtime::GeneratedSpmvImplementation* impl;
+<span class="lineNum">      64 </span>            : 
+<a name="65"><span class="lineNum">      65 </span>            :       virtual int countComputeCycles(uint32_t* v, int size, int inputWidth);</a>
+<span class="lineNum">      66 </span>            : 
+<span class="lineNum">      67 </span><span class="lineNoCov">          0 :       virtual bool equals(const SpmvArchitecture&amp; a) const override {</span>
+<span class="lineNum">      68 </span><span class="lineNoCov">          0 :         const SimpleSpmvArchitecture* other = dynamic_cast&lt;const SimpleSpmvArchitecture*&gt;(&amp;a);</span>
+<span class="lineNum">      69 </span><span class="lineNoCov">          0 :         return other != nullptr &amp;&amp; *other == *this;</span>
+<span class="lineNum">      70 </span>            :       }
+<span class="lineNum">      71 </span>            : 
+<a name="72"><span class="lineNum">      72 </span>            :       public:</a>
+<span class="lineNum">      73 </span>            : 
+<span class="lineNum">      74 </span><span class="lineNoCov">          0 :         bool operator==(const SimpleSpmvArchitecture&amp; other) const {</span>
+<span class="lineNum">      75 </span>            :           return
+<span class="lineNum">      76 </span><span class="lineNoCov">          0 :             cacheSize == other.cacheSize &amp;&amp;</span>
+<span class="lineNum">      77 </span><span class="lineNoCov">          0 :             inputWidth == other.inputWidth &amp;&amp;</span>
+<span class="lineNum">      78 </span><span class="lineNoCov">          0 :             numPipes == other.numPipes &amp;&amp;</span>
+<span class="lineNum">      79 </span><span class="lineNoCov">          0 :             maxRows == other.maxRows;</span>
+<a name="80"><span class="lineNum">      80 </span>            :         }</a>
+<span class="lineNum">      81 </span>            : 
+<span class="lineNum">      82 </span><span class="lineNoCov">          0 :         virtual boost::property_tree::ptree write_params() override {</span>
+<span class="lineNum">      83 </span><span class="lineNoCov">          0 :           boost::property_tree::ptree tree;</span>
+<span class="lineNum">      84 </span><span class="lineNoCov">          0 :           tree.put(&quot;num_pipes&quot;, numPipes);</span>
+<span class="lineNum">      85 </span><span class="lineNoCov">          0 :           tree.put(&quot;cache_size&quot;, cacheSize);</span>
+<span class="lineNum">      86 </span><span class="lineNoCov">          0 :           tree.put(&quot;input_width&quot;, inputWidth);</span>
+<span class="lineNum">      87 </span><span class="lineNoCov">          0 :           tree.put(&quot;max_rows&quot;, maxRows);</span>
+<span class="lineNum">      88 </span><span class="lineNoCov">          0 :           return tree;</span>
+<span class="lineNum">      89 </span>            :         }
+<span class="lineNum">      90 </span>            : 
+<span class="lineNum">      91 </span>            :         SimpleSpmvArchitecture() :
+<span class="lineNum">      92 </span>            :           cacheSize(getSpmv_PartitionSize()),
+<span class="lineNum">      93 </span>            :           inputWidth(getSpmv_InputWidth()),
+<span class="lineNum">      94 </span>            :           numPipes(getSpmv_NumPipes()),
+<a name="95"><span class="lineNum">      95 </span>            :           maxRows(getSpmv_MaxRows()) {}</a>
+<span class="lineNum">      96 </span>            : 
+<span class="lineNum">      97 </span><span class="lineNoCov">          0 :         SimpleSpmvArchitecture(int _cacheSize, int  _inputWidth, int _numPipes, int _maxRows) :</span>
+<span class="lineNum">      98 </span>            :           cacheSize(_cacheSize),
+<span class="lineNum">      99 </span>            :           inputWidth(_inputWidth),
+<span class="lineNum">     100 </span>            :           numPipes(_numPipes),
+<span class="lineNum">     101 </span><span class="lineNoCov">          0 :           maxRows(_maxRows) {}</span>
+<span class="lineNum">     102 </span>            : 
+<span class="lineNum">     103 </span>            :         /**
+<span class="lineNum">     104 </span>            :          * For execution we build the architecture and give it a pointer to the
+<a name="105"><span class="lineNum">     105 </span>            :          * device implementation.</a>
+<span class="lineNum">     106 </span>            :          */
+<span class="lineNum">     107 </span><span class="lineNoCov">          0 :         SimpleSpmvArchitecture(spark::runtime::GeneratedSpmvImplementation* _impl):</span>
+<span class="lineNum">     108 </span><span class="lineNoCov">          0 :           cacheSize(_impl-&gt;cacheSize()),</span>
+<span class="lineNum">     109 </span><span class="lineNoCov">          0 :           inputWidth(_impl-&gt;inputWidth()),</span>
+<span class="lineNum">     110 </span><span class="lineNoCov">          0 :           numPipes(_impl-&gt;numPipes()),</span>
+<span class="lineNum">     111 </span><span class="lineNoCov">          0 :           maxRows(_impl-&gt;maxRows()),</span>
+<a name="112"><span class="lineNum">     112 </span><span class="lineNoCov">          0 :           impl(_impl) { }</span></a>
+<span class="lineNum">     113 </span>            : 
+<span class="lineNum">     114 </span><span class="lineNoCov">          0 :         virtual std::string getLibraryName() {</span>
+<span class="lineNum">     115 </span><span class="lineNoCov">          0 :           std::stringstream ss;</span>
+<span class="lineNum">     116 </span><span class="lineNoCov">          0 :           ss &lt;&lt; &quot;libSpmv_&quot;;</span>
+<span class="lineNum">     117 </span>            :           // XXX detect target from environment configuration?
+<span class="lineNum">     118 </span><span class="lineNoCov">          0 :           const std::string target = &quot;sim&quot;;</span>
+<span class="lineNum">     119 </span><span class="lineNoCov">          0 :           ss &lt;&lt; target &lt;&lt; &quot;_&quot;;</span>
+<span class="lineNum">     120 </span><span class="lineNoCov">          0 :           ss &lt;&lt; &quot;cachesize&quot; &lt;&lt; cacheSize &lt;&lt; &quot;_&quot;;</span>
+<span class="lineNum">     121 </span><span class="lineNoCov">          0 :           ss &lt;&lt; &quot;inputwidth&quot; &lt;&lt; inputWidth &lt;&lt; &quot;_&quot;;</span>
+<span class="lineNum">     122 </span><span class="lineNoCov">          0 :           ss &lt;&lt; &quot;numpipes&quot; &lt;&lt; numPipes &lt;&lt; &quot;_&quot;;</span>
+<span class="lineNum">     123 </span><span class="lineNoCov">          0 :           ss &lt;&lt; &quot;maxrows&quot; &lt;&lt; maxRows;</span>
+<span class="lineNum">     124 </span><span class="lineNoCov">          0 :           ss &lt;&lt; &quot;.so&quot;;</span>
+<span class="lineNum">     125 </span><span class="lineNoCov">          0 :           return ss.str();</span>
+<a name="126"><span class="lineNum">     126 </span>            :         }</a>
+<span class="lineNum">     127 </span>            : 
+<a name="128"><span class="lineNum">     128 </span><span class="lineNoCov">          0 :         virtual double getEstimatedClockCycles() {</span></a>
+<span class="lineNum">     129 </span>            :           auto res = std::max_element(partitions.begin(), partitions.end(),
+<span class="lineNum">     130 </span><span class="lineNoCov">          0 :               [](const Partition&amp; a, const Partition&amp; b) {</span>
+<span class="lineNum">     131 </span><span class="lineNoCov">          0 :                 return a.totalCycles &lt; b.totalCycles;</span>
+<span class="lineNum">     132 </span><span class="lineNoCov">          0 :               });</span>
+<span class="lineNum">     133 </span><span class="lineNoCov">          0 :           return res-&gt;totalCycles;</span>
+<a name="134"><span class="lineNum">     134 </span>            :         }</a>
+<span class="lineNum">     135 </span>            : 
+<span class="lineNum">     136 </span><span class="lineNoCov">          0 :         virtual double getGFlopsCount() {</span>
+<span class="lineNum">     137 </span><span class="lineNoCov">          0 :           return 2 * this-&gt;mat.nonZeros() / 1E9;</span>
+<span class="lineNum">     138 </span>            :         }
+<a name="139"><span class="lineNum">     139 </span>            : </a>
+<span class="lineNum">     140 </span>            :         // NOTE: only call this after a call to preprocessMatrix
+<span class="lineNum">     141 </span><span class="lineNoCov">          0 :         virtual spark::model::ImplementationParameters getImplementationParameters() {</span>
+<span class="lineNum">     142 </span>            :           // XXX bram usage for altera in double precision only (512 deep, 40 bits wide, so need 2 BRAMs)
+<span class="lineNum">     143 </span>            :           //int brams = (double)cacheSize * (double)inputWidth / 512.0 * 2.0;
+<span class="lineNum">     144 </span>            :           using namespace spark::model;
+<span class="lineNum">     145 </span>            : 
+<span class="lineNum">     146 </span>            :           // XXX these should be architecture params
+<span class="lineNum">     147 </span><span class="lineNoCov">          0 :           int maxRows = (this-&gt;mat.rows() / 512) * 512;</span>
+<span class="lineNum">     148 </span><span class="lineNoCov">          0 :           const int virtex6EntriesPerBram = 512;</span>
+<span class="lineNum">     149 </span>            : 
+<span class="lineNum">     150 </span><span class="lineNoCov">          0 :           LogicResourceUsage interPartitionReductionKernel(2768,1505, maxRows / virtex6EntriesPerBram, 0);</span>
+<span class="lineNum">     151 </span><span class="lineNoCov">          0 :           LogicResourceUsage paddingKernel{400, 500, 0, 0};</span>
+<span class="lineNum">     152 </span><span class="lineNoCov">          0 :           LogicResourceUsage spmvKernelPerInput{1466, 2060, cacheSize / virtex6EntriesPerBram, 10}; // includes cache</span>
+<span class="lineNum">     153 </span><span class="lineNoCov">          0 :           LogicResourceUsage sm{800, 500, 0, 0};</span>
+<span class="lineNum">     154 </span>            : 
+<span class="lineNum">     155 </span>            :           LogicResourceUsage spmvPerPipe =
+<span class="lineNum">     156 </span><span class="lineNoCov">          0 :             interPartitionReductionKernel +</span>
+<span class="lineNum">     157 </span><span class="lineNoCov">          0 :             paddingKernel +</span>
+<span class="lineNum">     158 </span><span class="lineNoCov">          0 :             spmvKernelPerInput * inputWidth +</span>
+<span class="lineNum">     159 </span><span class="lineNoCov">          0 :             sm;</span>
+<span class="lineNum">     160 </span>            : 
+<span class="lineNum">     161 </span><span class="lineNoCov">          0 :           LogicResourceUsage memoryPerPipe{3922, 8393, 160, 0};</span>
+<span class="lineNum">     162 </span><span class="lineNoCov">          0 :           LogicResourceUsage memory{24000, 32000, 0, 0};</span>
+<span class="lineNum">     163 </span>            : 
+<span class="lineNum">     164 </span>            :           //LogicResourceUsage designOther{};
+<span class="lineNum">     165 </span><span class="lineNoCov">          0 :           LogicResourceUsage designUsage = (spmvPerPipe + memoryPerPipe) * numPipes + memory;</span>
+<span class="lineNum">     166 </span>            : 
+<span class="lineNum">     167 </span><span class="lineNoCov">          0 :           double memoryBandwidth =(double)inputWidth * numPipes * getFrequency() * 12.0 / 1E9;</span>
+<span class="lineNum">     168 </span><span class="lineNoCov">          0 :           ImplementationParameters ip{designUsage, memoryBandwidth};</span>
+<span class="lineNum">     169 </span>            :           //ip.clockFrequency = getFrequency() / 1E6; // MHz
+<span class="lineNum">     170 </span><span class="lineNoCov">          0 :           return ip;</span>
+<a name="171"><span class="lineNum">     171 </span>            :         }</a>
+<span class="lineNum">     172 </span>            : 
+<span class="lineNum">     173 </span><span class="lineNoCov">          0 :         virtual std::string to_string() {</span>
+<span class="lineNum">     174 </span><span class="lineNoCov">          0 :           std::stringstream s;</span>
+<span class="lineNum">     175 </span><span class="lineNoCov">          0 :           s &lt;&lt; get_name();</span>
+<span class="lineNum">     176 </span><span class="lineNoCov">          0 :           s &lt;&lt; &quot; &quot; &lt;&lt; cacheSize;</span>
+<span class="lineNum">     177 </span><span class="lineNoCov">          0 :           s &lt;&lt; &quot; &quot; &lt;&lt; inputWidth;</span>
+<span class="lineNum">     178 </span><span class="lineNoCov">          0 :           s &lt;&lt; &quot; &quot; &lt;&lt; numPipes;</span>
+<span class="lineNum">     179 </span><span class="lineNoCov">          0 :           s &lt;&lt; &quot; &quot; &lt;&lt; getEstimatedClockCycles();</span>
+<span class="lineNum">     180 </span><span class="lineNoCov">          0 :           s &lt;&lt; &quot; &quot; &lt;&lt; getEstimatedGFlops();</span>
+<span class="lineNum">     181 </span><span class="lineNoCov">          0 :           return s.str();</span>
+<span class="lineNum">     182 </span>            :         }
+<span class="lineNum">     183 </span>            : 
+<span class="lineNum">     184 </span>            :         virtual void preprocess(const EigenSparseMatrix&amp; mat) override;
+<span class="lineNum">     185 </span>            : 
+<a name="186"><span class="lineNum">     186 </span>            :         virtual Eigen::VectorXd dfespmv(Eigen::VectorXd x) override;</a>
+<span class="lineNum">     187 </span>            : 
+<span class="lineNum">     188 </span><span class="lineNoCov">          0 :         virtual std::string get_name() override {</span>
+<span class="lineNum">     189 </span><span class="lineNoCov">          0 :           return std::string(&quot;Simple&quot;);</span>
+<span class="lineNum">     190 </span>            :         }
+<span class="lineNum">     191 </span>            : 
+<span class="lineNum">     192 </span>            :       private:
+<span class="lineNum">     193 </span>            :         std::vector&lt;EigenSparseMatrix&gt; do_partition(
+<span class="lineNum">     194 </span>            :             const EigenSparseMatrix&amp; mat,
+<span class="lineNum">     195 </span>            :             int numPipes);
+<span class="lineNum">     196 </span>            : 
+<span class="lineNum">     197 </span>            :         Partition do_blocking(
+<span class="lineNum">     198 </span>            :             const Eigen::SparseMatrix&lt;double, Eigen::RowMajor, int32_t&gt;&amp; mat,
+<span class="lineNum">     199 </span>            :             int blockSize,
+<span class="lineNum">     200 </span>            :             int inputWidth);
+<a name="201"><span class="lineNum">     201 </span>            : </a>
+<span class="lineNum">     202 </span>            :         template&lt;typename U&gt;
+<span class="lineNum">     203 </span><span class="lineNoCov">          0 :         void logResult(std::string s, std::vector&lt;U&gt; vals) {</span>
+<span class="lineNum">     204 </span><span class="lineNoCov">          0 :           logResultR(s);</span>
+<span class="lineNum">     205 </span><span class="lineNoCov">          0 :           for (const auto&amp; v : vals)</span>
+<span class="lineNum">     206 </span><span class="lineNoCov">          0 :             std::cout &lt;&lt; v &lt;&lt; &quot;,&quot;;</span>
+<span class="lineNum">     207 </span><span class="lineNoCov">          0 :           std::cout &lt;&lt; std::endl;</span>
+<span class="lineNum">     208 </span><span class="lineNoCov">          0 :         }</span>
+<a name="209"><span class="lineNum">     209 </span>            : </a>
+<span class="lineNum">     210 </span>            :         template&lt;typename Arg, typename... Args&gt;
+<span class="lineNum">     211 </span><span class="lineNoCov">          0 :         void logResult(std::string s, Arg a, Args... as) {</span>
+<span class="lineNum">     212 </span><span class="lineNoCov">          0 :           logResultR(s, as...);</span>
+<span class="lineNum">     213 </span><span class="lineNoCov">          0 :           std::cout &lt;&lt; a &lt;&lt; &quot;,&quot;;</span>
+<span class="lineNum">     214 </span><span class="lineNoCov">          0 :           std::cout &lt;&lt; std::endl;</span>
+<span class="lineNum">     215 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">     216 </span>            : 
+<span class="lineNum">     217 </span>            :         template&lt;typename Arg, typename... Args&gt;
+<span class="lineNum">     218 </span>            :         void logResultR(std::string s, Arg a, Args... as) {
+<span class="lineNum">     219 </span>            :           logResultR(s, as...);
+<span class="lineNum">     220 </span>            :           std::cout &lt;&lt; a &lt;&lt; &quot;,&quot;;
+<a name="221"><span class="lineNum">     221 </span>            :         }</a>
+<span class="lineNum">     222 </span>            : 
+<span class="lineNum">     223 </span><span class="lineNoCov">          0 :         void logResultR(std::string s) {</span>
+<span class="lineNum">     224 </span><span class="lineNoCov">          0 :           std::cout &lt;&lt; &quot;Result &quot; &lt;&lt; get_name() &lt;&lt; &quot; &quot;;</span>
+<span class="lineNum">     225 </span><span class="lineNoCov">          0 :           std::cout &lt;&lt; s &lt;&lt; &quot;=&quot;;</span>
+<span class="lineNum">     226 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">     227 </span>            : 
+<span class="lineNum">     228 </span>            : 
+<span class="lineNum">     229 </span>            :     };
+<span class="lineNum">     230 </span>            : 
+<span class="lineNum">     231 </span>            :     template&lt;typename T&gt;
+<span class="lineNum">     232 </span>            :     class SimpleSpmvArchitectureSpace : public SpmvArchitectureSpace {
+<span class="lineNum">     233 </span>            :       // NOTE any raw pointers returned through the API of this class
+<span class="lineNum">     234 </span>            :       // are assumed to be wrapped in smart pointers by the base class
+<span class="lineNum">     235 </span>            :       spark::utils::Range cacheSizeR{1024, 4096, 512};
+<span class="lineNum">     236 </span>            :       spark::utils::Range inputWidthR{8, 100, 8};
+<span class="lineNum">     237 </span>            :       spark::utils::Range numPipesR{1, 6, 1};
+<span class="lineNum">     238 </span>            :       int maxRows;
+<span class="lineNum">     239 </span>            : 
+<span class="lineNum">     240 </span>            :       bool last = false;
+<span class="lineNum">     241 </span>            : 
+<a name="242"><span class="lineNum">     242 </span>            :       public:</a>
+<span class="lineNum">     243 </span>            : 
+<span class="lineNum">     244 </span><span class="lineNoCov">          0 :       SimpleSpmvArchitectureSpace(</span>
+<span class="lineNum">     245 </span>            :           spark::utils::Range numPipesRange,
+<span class="lineNum">     246 </span>            :           spark::utils::Range inputWidthRange,
+<span class="lineNum">     247 </span>            :           spark::utils::Range cacheSizeRange,
+<span class="lineNum">     248 </span><span class="lineNoCov">          0 :           int _maxRows) {</span>
+<span class="lineNum">     249 </span><span class="lineNoCov">          0 :         cacheSizeR = cacheSizeRange;</span>
+<span class="lineNum">     250 </span><span class="lineNoCov">          0 :         inputWidthR = inputWidthRange;</span>
+<span class="lineNum">     251 </span><span class="lineNoCov">          0 :         numPipesR = numPipesRange;</span>
+<span class="lineNum">     252 </span><span class="lineNoCov">          0 :         maxRows = _maxRows;</span>
+<span class="lineNum">     253 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">     254 </span>            : 
+<span class="lineNum">     255 </span>            :       SimpleSpmvArchitectureSpace() {
+<span class="lineNum">     256 </span>            :       }
+<a name="257"><span class="lineNum">     257 </span>            : </a>
+<span class="lineNum">     258 </span>            :       protected:
+<span class="lineNum">     259 </span><span class="lineNoCov">          0 :       void restart() override {</span>
+<span class="lineNum">     260 </span><span class="lineNoCov">          0 :         cacheSizeR.restart();</span>
+<span class="lineNum">     261 </span><span class="lineNoCov">          0 :         inputWidthR.restart();</span>
+<span class="lineNum">     262 </span><span class="lineNoCov">          0 :         numPipesR.restart();</span>
+<span class="lineNum">     263 </span><span class="lineNoCov">          0 :         last = false;</span>
+<a name="264"><span class="lineNum">     264 </span><span class="lineNoCov">          0 :       }</span></a>
+<span class="lineNum">     265 </span>            : 
+<span class="lineNum">     266 </span><span class="lineNoCov">          0 :       T* doNext(){</span>
+<span class="lineNum">     267 </span><span class="lineNoCov">          0 :         if (last)</span>
+<span class="lineNum">     268 </span><span class="lineNoCov">          0 :           return nullptr;</span>
+<span class="lineNum">     269 </span>            : 
+<span class="lineNum">     270 </span><span class="lineNoCov">          0 :         T* result = new T(cacheSizeR.crt, inputWidthR.crt, numPipesR.crt, maxRows);</span>
+<span class="lineNum">     271 </span>            : 
+<span class="lineNum">     272 </span><span class="lineNoCov">          0 :         ++cacheSizeR;</span>
+<span class="lineNum">     273 </span><span class="lineNoCov">          0 :         if (cacheSizeR.at_start()) {</span>
+<span class="lineNum">     274 </span><span class="lineNoCov">          0 :           ++inputWidthR;</span>
+<span class="lineNum">     275 </span><span class="lineNoCov">          0 :           if (inputWidthR.at_start()) {</span>
+<span class="lineNum">     276 </span><span class="lineNoCov">          0 :             ++numPipesR;</span>
+<span class="lineNum">     277 </span><span class="lineNoCov">          0 :             if (numPipesR.at_start())</span>
+<span class="lineNum">     278 </span><span class="lineNoCov">          0 :               last = true;</span>
+<span class="lineNum">     279 </span>            :           }
+<span class="lineNum">     280 </span>            :         }
+<span class="lineNum">     281 </span>            : 
+<span class="lineNum">     282 </span><span class="lineNoCov">          0 :         return result;</span>
+<span class="lineNum">     283 </span>            :       }
+<span class="lineNum">     284 </span>            :     };
+<span class="lineNum">     285 </span>            : 
+<span class="lineNum">     286 </span>            : 
+<span class="lineNum">     287 </span>            :     // FST based architecture, for now we assume it's the same though it probably isn't
+<span class="lineNum">     288 </span>            :     class FstSpmvArchitecture : public SimpleSpmvArchitecture {
+<span class="lineNum">     289 </span>            :       protected:
+<span class="lineNum">     290 </span>            : 
+<span class="lineNum">     291 </span>            :       virtual int countComputeCycles(uint32_t* v, int size, int inputWidth) override {
+<span class="lineNum">     292 </span>            :         int cycles = 0;
+<span class="lineNum">     293 </span>            :         for (int i = 0; i &lt; size; i++) {
+<span class="lineNum">     294 </span>            :           int toread = v[i] - (i &gt; 0 ? v[i - 1] : 0);
+<span class="lineNum">     295 </span>            :           do {
+<span class="lineNum">     296 </span>            :             toread -= std::min(toread, inputWidth);
+<span class="lineNum">     297 </span>            :             cycles++;
+<span class="lineNum">     298 </span>            :           } while (toread &gt; 0);
+<span class="lineNum">     299 </span>            :         }
+<span class="lineNum">     300 </span>            :         return cycles;
+<span class="lineNum">     301 </span>            :       }
+<span class="lineNum">     302 </span>            : 
+<span class="lineNum">     303 </span>            :       public:
+<span class="lineNum">     304 </span>            :       FstSpmvArchitecture() : SimpleSpmvArchitecture() {}
+<span class="lineNum">     305 </span>            : 
+<span class="lineNum">     306 </span>            :       FstSpmvArchitecture(int _cacheSize, int  _inputWidth, int _numPipes, int _maxRows) :
+<span class="lineNum">     307 </span>            :         SimpleSpmvArchitecture(_cacheSize, _inputWidth, _numPipes, _maxRows) {}
+<span class="lineNum">     308 </span>            : 
+<span class="lineNum">     309 </span>            :       virtual std::string get_name() override {
+<span class="lineNum">     310 </span>            :         return std::string(&quot;Fst&quot;);
+<span class="lineNum">     311 </span>            :       }
+<span class="lineNum">     312 </span>            : 
+<span class="lineNum">     313 </span>            :     };
+<span class="lineNum">     314 </span>            : 
+<span class="lineNum">     315 </span>            :     // Model for an architecture which can skip sequences of empty rows
+<span class="lineNum">     316 </span>            :     class SkipEmptyRowsArchitecture : public SimpleSpmvArchitecture {
+<a name="317"><span class="lineNum">     317 </span>            :       protected:</a>
+<span class="lineNum">     318 </span>            : 
+<span class="lineNum">     319 </span><span class="lineNoCov">          0 :         std::vector&lt;uint32_t&gt; encodeEmptyRows(std::vector&lt;uint32_t&gt; pin, bool encode) {</span>
+<span class="lineNum">     320 </span><span class="lineNoCov">          0 :           std::vector&lt;uint32_t&gt; encoded;</span>
+<span class="lineNum">     321 </span><span class="lineNoCov">          0 :           if (!encode) {</span>
+<span class="lineNum">     322 </span><span class="lineNoCov">          0 :             return pin;</span>
+<span class="lineNum">     323 </span>            :           }
+<span class="lineNum">     324 </span>            : 
+<span class="lineNum">     325 </span><span class="lineNoCov">          0 :           int emptyRunLength = 0;</span>
+<span class="lineNum">     326 </span><span class="lineNoCov">          0 :           for (size_t i = 0; i &lt; pin.size(); i++) {</span>
+<span class="lineNum">     327 </span><span class="lineNoCov">          0 :             uint32_t rowLength = pin[i] - (i == 0 ? 0 : pin[i - 1]);</span>
+<span class="lineNum">     328 </span><span class="lineNoCov">          0 :             if (rowLength == 0) {</span>
+<span class="lineNum">     329 </span><span class="lineNoCov">          0 :               emptyRunLength++;</span>
+<span class="lineNum">     330 </span>            :             } else {
+<span class="lineNum">     331 </span><span class="lineNoCov">          0 :               if (emptyRunLength != 0) {</span>
+<span class="lineNum">     332 </span><span class="lineNoCov">          0 :                 encoded.push_back(emptyRunLength | (1 &lt;&lt; 31));</span>
+<span class="lineNum">     333 </span>            :               }
+<span class="lineNum">     334 </span><span class="lineNoCov">          0 :               emptyRunLength = 0;</span>
+<span class="lineNum">     335 </span><span class="lineNoCov">          0 :               encoded.push_back(pin[i]);</span>
+<span class="lineNum">     336 </span>            :             }
+<span class="lineNum">     337 </span>            :           }
+<span class="lineNum">     338 </span>            : 
+<span class="lineNum">     339 </span><span class="lineNoCov">          0 :           if (emptyRunLength != 0) {</span>
+<span class="lineNum">     340 </span><span class="lineNoCov">          0 :             encoded.push_back(emptyRunLength | (1 &lt;&lt; 31));</span>
+<span class="lineNum">     341 </span>            :           }
+<span class="lineNum">     342 </span>            : 
+<span class="lineNum">     343 </span><span class="lineNoCov">          0 :           return encoded;</span>
+<a name="344"><span class="lineNum">     344 </span>            :         }</a>
+<span class="lineNum">     345 </span>            : 
+<span class="lineNum">     346 </span><span class="lineNoCov">          0 :         virtual spark::sparse::CsrMatrix preprocessBlock(</span>
+<span class="lineNum">     347 </span>            :             const spark::sparse::CsrMatrix&amp; in,
+<span class="lineNum">     348 </span>            :             int blockNumber,
+<span class="lineNum">     349 </span>            :             int nBlocks) override {
+<span class="lineNum">     350 </span><span class="lineNoCov">          0 :           bool encode = blockNumber != 0 &amp;&amp; blockNumber != nBlocks - 1;</span>
+<span class="lineNum">     351 </span>            :           return std::make_tuple(
+<span class="lineNum">     352 </span><span class="lineNoCov">          0 :               encodeEmptyRows(std::get&lt;0&gt;(in), encode),</span>
+<span class="lineNum">     353 </span><span class="lineNoCov">          0 :               std::get&lt;1&gt;(in),</span>
+<span class="lineNum">     354 </span><span class="lineNoCov">          0 :               std::get&lt;2&gt;(in));</span>
+<span class="lineNum">     355 </span>            :         }
+<span class="lineNum">     356 </span>            : 
+<span class="lineNum">     357 </span>            :       public:
+<span class="lineNum">     358 </span>            :       SkipEmptyRowsArchitecture() : SimpleSpmvArchitecture(){}
+<span class="lineNum">     359 </span>            : 
+<span class="lineNum">     360 </span>            :       SkipEmptyRowsArchitecture(int _cacheSize, int  _inputWidth, int _numPipes, int _maxRows) :
+<span class="lineNum">     361 </span>            :         SimpleSpmvArchitecture(_cacheSize, _inputWidth, _numPipes, maxRows) {}
+<span class="lineNum">     362 </span>            : 
+<span class="lineNum">     363 </span>            :       virtual std::string get_name() override {
+<span class="lineNum">     364 </span>            :         return std::string(&quot;SkipEmpty&quot;);
+<span class="lineNum">     365 </span>            :       }
+<span class="lineNum">     366 </span>            :     };
+<span class="lineNum">     367 </span>            : 
+<span class="lineNum">     368 </span>            :     class PrefetchingArchitecture : public SkipEmptyRowsArchitecture {
+<span class="lineNum">     369 </span>            :       protected:
+<span class="lineNum">     370 </span>            : 
+<span class="lineNum">     371 </span>            :       public:
+<span class="lineNum">     372 </span>            :       PrefetchingArchitecture() : SkipEmptyRowsArchitecture(){}
+<span class="lineNum">     373 </span>            : 
+<span class="lineNum">     374 </span>            :       PrefetchingArchitecture(int _cacheSize, int  _inputWidth, int _numPipes, int _maxRows) :
+<span class="lineNum">     375 </span>            :         SkipEmptyRowsArchitecture(_cacheSize, _inputWidth, _numPipes, _maxRows) {}
+<span class="lineNum">     376 </span>            : 
+<span class="lineNum">     377 </span>            :       virtual std::string get_name() override {
+<span class="lineNum">     378 </span>            :         return std::string(&quot;PrefetchingArchitecture&quot;);
+<span class="lineNum">     379 </span>            :       }
+<span class="lineNum">     380 </span>            :     };
+<span class="lineNum">     381 </span>            : 
+<span class="lineNum">     382 </span>            :   }
+<span class="lineNum">     383 </span>            : }
+<span class="lineNum">     384 </span>            : 
+<span class="lineNum">     385 </span>            : 
+<span class="lineNum">     386 </span>            : #endif /* end of include guard: SIMPLESPMV_H */
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.10</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>
