@@ -37,7 +37,7 @@ upd-doc: doc
 	git checkout gh-pages
 	cp ${TMP_PATH}/* docs/ -R
 	rm -rf ${TRASH}
-	git add .
+	git add docs/
 	git commit -m "Update documentation"
 	git push -u origin gh-pages
 	rm -rf ${TMP_PATH}
