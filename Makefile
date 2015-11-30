@@ -1,7 +1,7 @@
 TMP_PATH="/tmp/spark_html_doc"
 HTML_DIR="html"
 COV_DIR="coverage"
-TMP_COV_PATH="tmp/spark_coverage"
+TMP_COV_PATH="/tmp/spark_coverage"
 TRASH=latex
 
 help:
@@ -13,11 +13,16 @@ help:
 	@ echo "  upd-coverage  -- push updated coverage information"
 
 mock:
-	cd scripts && python spark.py -t dfe_mock -p ../params.json -b ../test-benchmark && cd ..
 	mkdir -p build
-	cd build && cmake .. && make -j12
+	cd build && cmake ..
+	cd scripts && python spark.py -t dfe_mock -p ../params.json -b ../test-benchmark && cd ..
+	cd build && make -j12
 
-mock-coverage: build/unit_test_spmv
+mock-coverage:
+	mkdir -p build
+	cd build && cmake -DCMAKE_BUILD_TYPE=Debug ..
+	cd scripts && python spark.py -t dfe_mock -p ../params.json -b ../test-benchmark && cd ..
+	cd build && make -j12
 	bash gen_cov
 
 clean-tags:
