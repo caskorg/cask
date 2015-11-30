@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 2.6)
 
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0 --coverage -fno-inline --coverage -fno-inline -fno-inline-small-functions -fno-default-inline")
+
 
 # --- Project Options and Configurations
 OPTION(SparseLib_DisableTesting "Disable execution of SparseLib tests" OFF)
@@ -97,8 +99,8 @@ target_link_libraries(test_spmv_dfe_mock
 
 # -- Test targets
 include_directories(unit-tests)
-add_executable(spmv_test unit-tests/spmv_test.cpp)
-target_link_libraries(spmv_test boost_unit_test_framework)
+add_executable(unit_test_spmv unit-tests/spmv_test.cpp)
+target_link_libraries(unit_test_spmv boost_unit_test_framework -lgcov)
 add_test(
   NAME unit_test_spmv
   COMMAND spmv_test)

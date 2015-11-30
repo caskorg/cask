@@ -1,0 +1,27 @@
+# Remove old coverage data
+
+#path=CMakeFiles/unit_test_spmv.dir/unit-tests/
+#rm -f ${path}/*
+rm -f *.info
+rm -rf ~/spark-coverage
+
+# Baseline coverage
+#lcov  -c -i -d CMakeFiles/unit_test_spmv.dir/unit-tests/ -o app_base.info
+
+base=/mnt/data/scratch/pg1709/workspaces/spark-dev/
+lcov -b ${base} -d . -z
+lcov -b ${base} -d . -i -c --output base.info
+
+#cd build && ctest -R unit* && cd .. && cd ..
+./build/unit_test_spmv
+
+lcov -b ${base} -d . -c --output-file run.info
+
+#lcov  -c -d CMakeFiles/unit_test_spmv.dir/unit-tests/ -o app_test.info
+
+lcov -a base.info -a run.info -o total.info
+
+# Exclude some traces we aren't interested in
+lcov -r total.info */boost/* 4.9.2/* Core/* IterativeLinearSolvers OrderingMethdods SparseCore SparseLU misc plugins *Eigen* -o final.info
+
+genhtml final.info --output-directory ~/spark-coverage
