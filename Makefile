@@ -35,6 +35,7 @@ upd-doc: doc
 	cp ${HTML_DIR} ${TMP_PATH} -R && rm -rf ${HTML_DIR}
 	git fetch
 	git checkout gh-pages
+	mkdir -p docs
 	cp ${TMP_PATH}/* docs/ -R
 	rm -rf ${TRASH}
 	git add docs/
