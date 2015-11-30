@@ -1,5 +1,7 @@
 TMP_PATH="/tmp/spark_html_doc"
 HTML_DIR="html"
+COV_DIR="coverage"
+TMP_COV_PATH="tmp/spark_coverage"
 TRASH=latex
 
 help:
@@ -42,6 +44,19 @@ upd-doc: doc
 	git commit -m "Update documentation"
 	git push -u origin gh-pages
 	rm -rf ${TMP_PATH}
+	git checkout master
+
+upd-cov: mock-coverage
+	rm -rf ${TMP_COV_PATH}
+	cp ${COV_DIR} ${TMP_COV_PATH} -R && rm -rf ${COV_DIR}
+	git fetch
+	git checkout gh-pages
+	mkdir -p coverage
+	cp ${TMP_COV_PATH}/* coverage/ -R
+	git add coverage/
+	git commit -m "Update coverage"
+	git push -u origin gh-pages
+	rm -rf ${TMP_COV_PATH}
 	git checkout master
 
 .PHONY: doc update-doc tags
