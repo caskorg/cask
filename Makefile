@@ -30,12 +30,12 @@ doc:
 clean-all-dist:
 	rm -rf src/spmv/build/Spmv* src/spmv/build/*.class
 
-upd-doc:
+upd-doc: doc
 	rm -rf ${TMP_PATH}
 	cp ${HTML_DIR} ${TMP_PATH} -R && rm -rf ${HTML_DIR}
 	git fetch
 	git checkout gh-pages
-	cp ${TMP_PATH}/* . -R
+	cp ${TMP_PATH}/* docs/ -R
 	rm -rf ${TRASH}
 	git add .
 	git commit -m "Update documentation"
