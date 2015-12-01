@@ -1,0 +1,2 @@
+Name, Order, Nonzeros, Unique Values, Sparsity, MC(2), MC(5), MC(8), MC(10) 
+dw8192 8194 41746 673 0.06218 0.44814 0.68117 0.97480 1.00000 1.00000

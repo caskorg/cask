@@ -1,0 +1,19 @@
+Program arguments:
+   ../build/test_spmv_sim
+   ../test-benchmark/raefsky1.mtx
+File: ../test-benchmark/raefsky1.mtx
+Sorting took:  took 0.681008 seconds.
+Nonzeros: 294276
+Running on DFE
+Result Simple Total cycles=19229,19610,
+Result Simple Padding cycles=11,11,
+Result Simple Reduction cycles=6484,6484,
+Running on architecture with 
+   maxRows = 200000
+Result Simple Iterations=1,
+Result Simple Took (ms)=1.06774,
+Result Simple Est (ms)=0.00019229,
+Result Simple Gflops (est)=3.06075,
+Result Simple Gflops (actual)=0.000551211,
+Test passed!
+All tests passed!

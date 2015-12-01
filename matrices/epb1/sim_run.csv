@@ -1,0 +1,19 @@
+Program arguments:
+   ../build/test_spmv_sim
+   ../test-benchmark/epb1.mtx
+File: ../test-benchmark/epb1.mtx
+Sorting took:  took 0.157675 seconds.
+Nonzeros: 95053
+Running on DFE
+Result Simple Total cycles=128288,128276,
+Result Simple Padding cycles=25,25,
+Result Simple Reduction cycles=110505,110505,
+Running on architecture with 
+   maxRows = 200000
+Result Simple Iterations=1,
+Result Simple Took (ms)=7.24573,
+Result Simple Est (ms)=0.00128288,
+Result Simple Gflops (est)=0.148187,
+Result Simple Gflops (actual)=2.6237e-05,
+Test passed!
+All tests passed!
