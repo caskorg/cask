@@ -16,6 +16,6 @@ lcov -a base.info -a run.info -o total.info
 
 # Keep only traces we are interested in
 lcov -e total.info '*spark*' -o spark.info
-lcov -r spark.info 'test*' -o final.info
+lcov -r spark.info 'test*' '*dfe-snippets*' -o final.info
 
 genhtml final.info --output-directory coverage
