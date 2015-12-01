@@ -31,18 +31,18 @@
             <td class="headerValue">final.info</td>
             <td></td>
             <td class="headerItem">Lines:</td>
-            <td class="headerCovTableEntry">0</td>
             <td class="headerCovTableEntry">9</td>
-            <td class="headerCovTableEntryLo">0.0 %</td>
+            <td class="headerCovTableEntry">9</td>
+            <td class="headerCovTableEntryHi">100.0 %</td>
           </tr>
           <tr>
             <td class="headerItem">Date:</td>
-            <td class="headerValue">2015-11-30</td>
+            <td class="headerValue">2015-12-01</td>
             <td></td>
             <td class="headerItem">Functions:</td>
-            <td class="headerCovTableEntry">0</td>
             <td class="headerCovTableEntry">2</td>
-            <td class="headerCovTableEntryLo">0.0 %</td>
+            <td class="headerCovTableEntry">2</td>
+            <td class="headerCovTableEntryHi">100.0 %</td>
           </tr>
           <tr><td><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
         </table>
@@ -70,23 +70,23 @@
 <span class="lineNum">       8 </span>            : namespace dfesnippets {
 <a name="9"><span class="lineNum">       9 </span>            :   namespace timing {</a>
 <span class="lineNum">      10 </span>            : 
-<span class="lineNum">      11 </span><span class="lineNoCov">          0 :     inline double clock_diff(</span>
+<span class="lineNum">      11 </span><span class="lineCov">         40 :     inline double clock_diff(</span>
 <span class="lineNum">      12 </span>            :         std::chrono::high_resolution_clock::time_point start) {
 <span class="lineNum">      13 </span>            :       using namespace std::chrono;
-<span class="lineNum">      14 </span><span class="lineNoCov">          0 :       auto end = std::chrono::high_resolution_clock::now();</span>
-<span class="lineNum">      15 </span><span class="lineNoCov">          0 :       return duration_cast&lt;duration&lt;double&gt; &gt;(end - start).count();</span>
+<span class="lineNum">      14 </span><span class="lineCov">         40 :       auto end = std::chrono::high_resolution_clock::now();</span>
+<span class="lineNum">      15 </span><span class="lineCov">         40 :       return duration_cast&lt;duration&lt;double&gt; &gt;(end - start).count();</span>
 <span class="lineNum">      16 </span>            :     }
 <a name="17"><span class="lineNum">      17 </span>            : </a>
 <span class="lineNum">      18 </span>            :     /** Print the difference between now and start */
-<span class="lineNum">      19 </span><span class="lineNoCov">          0 :     inline void print_clock_diff(</span>
+<span class="lineNum">      19 </span><span class="lineCov">         40 :     inline void print_clock_diff(</span>
 <span class="lineNum">      20 </span>            :         std::string item,
 <span class="lineNum">      21 </span>            :         std::chrono::high_resolution_clock::time_point start) {
 <span class="lineNum">      22 </span>            :       using namespace std::chrono;
-<span class="lineNum">      23 </span><span class="lineNoCov">          0 :       auto end = std::chrono::high_resolution_clock::now();</span>
-<span class="lineNum">      24 </span><span class="lineNoCov">          0 :       std::cout &lt;&lt; item &lt;&lt; &quot; took &quot;;</span>
-<span class="lineNum">      25 </span><span class="lineNoCov">          0 :       std::cout &lt;&lt; duration_cast&lt;duration&lt;double&gt; &gt;(end - start).count();</span>
-<span class="lineNum">      26 </span><span class="lineNoCov">          0 :       std::cout &lt;&lt; &quot; seconds.&quot; &lt;&lt; std::endl;</span>
-<span class="lineNum">      27 </span><span class="lineNoCov">          0 :     }</span>
+<span class="lineNum">      23 </span><span class="lineCov">         40 :       auto end = std::chrono::high_resolution_clock::now();</span>
+<span class="lineNum">      24 </span><span class="lineCov">         40 :       std::cout &lt;&lt; item &lt;&lt; &quot; took &quot;;</span>
+<span class="lineNum">      25 </span><span class="lineCov">         40 :       std::cout &lt;&lt; duration_cast&lt;duration&lt;double&gt; &gt;(end - start).count();</span>
+<span class="lineNum">      26 </span><span class="lineCov">         40 :       std::cout &lt;&lt; &quot; seconds.&quot; &lt;&lt; std::endl;</span>
+<span class="lineNum">      27 </span><span class="lineCov">         40 :     }</span>
 <span class="lineNum">      28 </span>            : 
 <span class="lineNum">      29 </span>            :     /** Print the difference between end and start */
 <span class="lineNum">      30 </span>            :     inline void print_clock_diff(std::string item,

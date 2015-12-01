@@ -31,18 +31,18 @@
             <td class="headerValue">final.info</td>
             <td></td>
             <td class="headerItem">Lines:</td>
-            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">168</td>
             <td class="headerCovTableEntry">190</td>
-            <td class="headerCovTableEntryLo">0.0 %</td>
+            <td class="headerCovTableEntryMed">88.4 %</td>
           </tr>
           <tr>
             <td class="headerItem">Date:</td>
-            <td class="headerValue">2015-11-30</td>
+            <td class="headerValue">2015-12-01</td>
             <td></td>
             <td class="headerItem">Functions:</td>
-            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">11</td>
             <td class="headerCovTableEntry">12</td>
-            <td class="headerCovTableEntryLo">0.0 %</td>
+            <td class="headerCovTableEntryHi">91.7 %</td>
           </tr>
           <tr><td><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
         </table>
@@ -76,59 +76,59 @@
 <span class="lineNum">      14 </span>            : using ssarch = spark::spmv::SimpleSpmvArchitecture;
 <a name="15"><span class="lineNum">      15 </span>            : </a>
 <span class="lineNum">      16 </span>            : // how many cycles does it take to resolve the accesses
-<span class="lineNum">      17 </span><span class="lineNoCov">          0 : int ssarch::countComputeCycles(uint32_t* v, int size, int inputWidth)</span>
+<span class="lineNum">      17 </span><span class="lineCov">        492 : int ssarch::countComputeCycles(uint32_t* v, int size, int inputWidth)</span>
 <span class="lineNum">      18 </span>            : {
-<span class="lineNum">      19 </span><span class="lineNoCov">          0 :   int cycles = 0;</span>
-<span class="lineNum">      20 </span><span class="lineNoCov">          0 :   int crtPos = 0;</span>
-<span class="lineNum">      21 </span><span class="lineNoCov">          0 :   for (int i = 0; i &lt; size; i++) {</span>
-<span class="lineNum">      22 </span><span class="lineNoCov">          0 :     int toread = v[i] - (i &gt; 0 ? v[i - 1] : 0);</span>
-<span class="lineNum">      23 </span><span class="lineNoCov">          0 :     do {</span>
-<span class="lineNum">      24 </span><span class="lineNoCov">          0 :       int canread = std::min(inputWidth - crtPos, toread);</span>
-<span class="lineNum">      25 </span><span class="lineNoCov">          0 :       crtPos += canread;</span>
-<span class="lineNum">      26 </span><span class="lineNoCov">          0 :       crtPos %= inputWidth;</span>
-<span class="lineNum">      27 </span><span class="lineNoCov">          0 :       cycles++;</span>
-<span class="lineNum">      28 </span><span class="lineNoCov">          0 :       toread -= canread;</span>
-<span class="lineNum">      29 </span><span class="lineNoCov">          0 :     } while (toread &gt; 0);</span>
+<span class="lineNum">      19 </span><span class="lineCov">        492 :   int cycles = 0;</span>
+<span class="lineNum">      20 </span><span class="lineCov">        492 :   int crtPos = 0;</span>
+<span class="lineNum">      21 </span><span class="lineCov">    6259686 :   for (int i = 0; i &lt; size; i++) {</span>
+<span class="lineNum">      22 </span><span class="lineCov">    6259194 :     int toread = v[i] - (i &gt; 0 ? v[i - 1] : 0);</span>
+<span class="lineNum">      23 </span><span class="lineCov">    6294435 :     do {</span>
+<span class="lineNum">      24 </span><span class="lineCov">    6294435 :       int canread = std::min(inputWidth - crtPos, toread);</span>
+<span class="lineNum">      25 </span><span class="lineCov">    6294435 :       crtPos += canread;</span>
+<span class="lineNum">      26 </span><span class="lineCov">    6294435 :       crtPos %= inputWidth;</span>
+<span class="lineNum">      27 </span><span class="lineCov">    6294435 :       cycles++;</span>
+<span class="lineNum">      28 </span><span class="lineCov">    6294435 :       toread -= canread;</span>
+<span class="lineNum">      29 </span><span class="lineCov">    6294435 :     } while (toread &gt; 0);</span>
 <span class="lineNum">      30 </span>            :   }
-<span class="lineNum">      31 </span><span class="lineNoCov">          0 :   return cycles;</span>
+<span class="lineNum">      31 </span><span class="lineCov">        492 :   return cycles;</span>
 <span class="lineNum">      32 </span>            : }
 <a name="33"><span class="lineNum">      33 </span>            : </a>
 <span class="lineNum">      34 </span>            : // transform a given matrix with n rows in blocks of size n X blockSize
-<span class="lineNum">      35 </span><span class="lineNoCov">          0 : spark::spmv::Partition ssarch::do_blocking(</span>
+<span class="lineNum">      35 </span><span class="lineCov">         80 : spark::spmv::Partition ssarch::do_blocking(</span>
 <span class="lineNum">      36 </span>            :     const EigenSparseMatrix&amp; m,
 <span class="lineNum">      37 </span>            :     int blockSize,
 <span class="lineNum">      38 </span>            :     int inputWidth)
 <span class="lineNum">      39 </span>            : {
 <span class="lineNum">      40 </span>            : 
-<span class="lineNum">      41 </span><span class="lineNoCov">          0 :   const int* indptr = m.innerIndexPtr();</span>
-<span class="lineNum">      42 </span><span class="lineNoCov">          0 :   const double* values = m.valuePtr();</span>
-<span class="lineNum">      43 </span><span class="lineNoCov">          0 :   const int* colptr = m.outerIndexPtr();</span>
-<span class="lineNum">      44 </span><span class="lineNoCov">          0 :   int rows = m.rows();</span>
-<span class="lineNum">      45 </span><span class="lineNoCov">          0 :   int cols = m.cols();</span>
-<span class="lineNum">      46 </span><span class="lineNoCov">          0 :   int n = rows;</span>
+<span class="lineNum">      41 </span><span class="lineCov">         80 :   const int* indptr = m.innerIndexPtr();</span>
+<span class="lineNum">      42 </span><span class="lineCov">         80 :   const double* values = m.valuePtr();</span>
+<span class="lineNum">      43 </span><span class="lineCov">         80 :   const int* colptr = m.outerIndexPtr();</span>
+<span class="lineNum">      44 </span><span class="lineCov">         80 :   int rows = m.rows();</span>
+<span class="lineNum">      45 </span><span class="lineCov">         80 :   int cols = m.cols();</span>
+<span class="lineNum">      46 </span><span class="lineCov">         80 :   int n = rows;</span>
 <span class="lineNum">      47 </span>            :   //std::cout &lt;&lt; &quot;Mat rows &quot; &lt;&lt; n &lt;&lt; std::endl;
 <span class="lineNum">      48 </span>            : 
-<span class="lineNum">      49 </span><span class="lineNoCov">          0 :   int nBlocks = cols / blockSize + (cols % blockSize == 0 ? 0 : 1);</span>
+<span class="lineNum">      49 </span><span class="lineCov">         80 :   int nBlocks = cols / blockSize + (cols % blockSize == 0 ? 0 : 1);</span>
 <span class="lineNum">      50 </span>            :   //std::cout &lt;&lt; &quot;Npartitions: &quot; &lt;&lt; nPartitions &lt;&lt; std::endl;
 <span class="lineNum">      51 </span>            : 
-<span class="lineNum">      52 </span><span class="lineNoCov">          0 :   std::vector&lt;spark::sparse::CsrMatrix&gt; partitions(nBlocks);</span>
+<span class="lineNum">      52 </span><span class="lineCov">         80 :   std::vector&lt;spark::sparse::CsrMatrix&gt; partitions(nBlocks);</span>
 <span class="lineNum">      53 </span>            : 
-<span class="lineNum">      54 </span><span class="lineNoCov">          0 :   for (int i = 0; i &lt; rows; i++) {</span>
-<span class="lineNum">      55 </span><span class="lineNoCov">          0 :     for (int j = 0; j &lt; nBlocks; j++) {</span>
-<span class="lineNum">      56 </span><span class="lineNoCov">          0 :       auto&amp; p = std::get&lt;0&gt;(partitions[j]);</span>
-<span class="lineNum">      57 </span><span class="lineNoCov">          0 :       if (p.size() == 0)</span>
-<span class="lineNum">      58 </span><span class="lineNoCov">          0 :         p.push_back(0);</span>
+<span class="lineNum">      54 </span><span class="lineCov">     216737 :   for (int i = 0; i &lt; rows; i++) {</span>
+<span class="lineNum">      55 </span><span class="lineCov">    6475851 :     for (int j = 0; j &lt; nBlocks; j++) {</span>
+<span class="lineNum">      56 </span><span class="lineCov">    6259194 :       auto&amp; p = std::get&lt;0&gt;(partitions[j]);</span>
+<span class="lineNum">      57 </span><span class="lineCov">    6259194 :       if (p.size() == 0)</span>
+<span class="lineNum">      58 </span><span class="lineCov">        492 :         p.push_back(0);</span>
 <span class="lineNum">      59 </span>            :       else
-<span class="lineNum">      60 </span><span class="lineNoCov">          0 :         p.push_back(p.back());</span>
+<span class="lineNum">      60 </span><span class="lineCov">    6258702 :         p.push_back(p.back());</span>
 <span class="lineNum">      61 </span>            :     }
 <span class="lineNum">      62 </span>            :     //std::cout &lt;&lt; &quot;i = &quot; &lt;&lt; i &lt;&lt; std::endl;
 <span class="lineNum">      63 </span>            :     //std::cout &lt;&lt; &quot;colptr&quot; &lt;&lt; colptr[i] &lt;&lt; std::endl;
-<span class="lineNum">      64 </span><span class="lineNoCov">          0 :     for (int j = colptr[i]; j &lt; colptr[i+1]; j++) {</span>
-<span class="lineNum">      65 </span><span class="lineNoCov">          0 :       auto&amp; p = partitions[indptr[j] / blockSize];</span>
-<span class="lineNum">      66 </span><span class="lineNoCov">          0 :       int idxInPartition = indptr[j] - (indptr[j] / blockSize ) * blockSize;</span>
-<span class="lineNum">      67 </span><span class="lineNoCov">          0 :       std::get&lt;1&gt;(p).push_back(idxInPartition);</span>
-<span class="lineNum">      68 </span><span class="lineNoCov">          0 :       std::get&lt;2&gt;(p).push_back(values[j]);</span>
-<span class="lineNum">      69 </span><span class="lineNoCov">          0 :       std::get&lt;0&gt;(p).back()++;</span>
+<span class="lineNum">      64 </span><span class="lineCov">    1193227 :     for (int j = colptr[i]; j &lt; colptr[i+1]; j++) {</span>
+<span class="lineNum">      65 </span><span class="lineCov">     976570 :       auto&amp; p = partitions[indptr[j] / blockSize];</span>
+<span class="lineNum">      66 </span><span class="lineCov">     976570 :       int idxInPartition = indptr[j] - (indptr[j] / blockSize ) * blockSize;</span>
+<span class="lineNum">      67 </span><span class="lineCov">     976570 :       std::get&lt;1&gt;(p).push_back(idxInPartition);</span>
+<span class="lineNum">      68 </span><span class="lineCov">     976570 :       std::get&lt;2&gt;(p).push_back(values[j]);</span>
+<span class="lineNum">      69 </span><span class="lineCov">     976570 :       std::get&lt;0&gt;(p).back()++;</span>
 <span class="lineNum">      70 </span>            :     }
 <span class="lineNum">      71 </span>            :   }
 <span class="lineNum">      72 </span>            : 
@@ -137,60 +137,60 @@
 <span class="lineNum">      75 </span>            :         //&quot;Matrix has too many rows - maximum supported: &quot;
 <span class="lineNum">      76 </span>            :         //+ std::to_string(Spmv_maxRows));
 <span class="lineNum">      77 </span>            : 
-<span class="lineNum">      78 </span><span class="lineNoCov">          0 :   std::vector&lt;double&gt; v(cols, 0);</span>
-<span class="lineNum">      79 </span><span class="lineNoCov">          0 :   std::vector&lt;int&gt; m_colptr;</span>
-<span class="lineNum">      80 </span><span class="lineNoCov">          0 :   std::vector&lt;indptr_value&gt; m_indptr_value;</span>
+<span class="lineNum">      78 </span><span class="lineCov">        160 :   std::vector&lt;double&gt; v(cols, 0);</span>
+<span class="lineNum">      79 </span><span class="lineCov">        160 :   std::vector&lt;int&gt; m_colptr;</span>
+<span class="lineNum">      80 </span><span class="lineCov">        160 :   std::vector&lt;indptr_value&gt; m_indptr_value;</span>
 <span class="lineNum">      81 </span>            : 
 <span class="lineNum">      82 </span>            :   // now we coalesce partitions
-<span class="lineNum">      83 </span><span class="lineNoCov">          0 :   int cycles = 0;</span>
-<span class="lineNum">      84 </span><span class="lineNoCov">          0 :   int partition = 0;</span>
-<span class="lineNum">      85 </span><span class="lineNoCov">          0 :   int reductionCycles = rows * partitions.size();</span>
-<span class="lineNum">      86 </span><span class="lineNoCov">          0 :   int emptyCycles = 0;</span>
-<span class="lineNum">      87 </span><span class="lineNoCov">          0 :   for (auto&amp; p : partitions) {</span>
-<span class="lineNum">      88 </span><span class="lineNoCov">          0 :     auto pp = preprocessBlock(p, partition++, partitions.size());</span>
-<span class="lineNum">      89 </span><span class="lineNoCov">          0 :     auto&amp; p_colptr = std::get&lt;0&gt;(pp);</span>
-<span class="lineNum">      90 </span><span class="lineNoCov">          0 :     auto&amp; p_indptr = std::get&lt;1&gt;(pp);</span>
-<span class="lineNum">      91 </span><span class="lineNoCov">          0 :     auto&amp; p_values = std::get&lt;2&gt;(pp);</span>
+<span class="lineNum">      83 </span><span class="lineCov">         80 :   int cycles = 0;</span>
+<span class="lineNum">      84 </span><span class="lineCov">         80 :   int partition = 0;</span>
+<span class="lineNum">      85 </span><span class="lineCov">         80 :   int reductionCycles = rows * partitions.size();</span>
+<span class="lineNum">      86 </span><span class="lineCov">         80 :   int emptyCycles = 0;</span>
+<span class="lineNum">      87 </span><span class="lineCov">        572 :   for (auto&amp; p : partitions) {</span>
+<span class="lineNum">      88 </span><span class="lineCov">        492 :     auto pp = preprocessBlock(p, partition++, partitions.size());</span>
+<span class="lineNum">      89 </span><span class="lineCov">        492 :     auto&amp; p_colptr = std::get&lt;0&gt;(pp);</span>
+<span class="lineNum">      90 </span><span class="lineCov">        492 :     auto&amp; p_indptr = std::get&lt;1&gt;(pp);</span>
+<span class="lineNum">      91 </span><span class="lineCov">        492 :     auto&amp; p_values = std::get&lt;2&gt;(pp);</span>
 <span class="lineNum">      92 </span>            : 
-<span class="lineNum">      93 </span><span class="lineNoCov">          0 :     int diff = std::get&lt;0&gt;(p).size() - p_colptr.size();</span>
-<span class="lineNum">      94 </span><span class="lineNoCov">          0 :     emptyCycles += diff;</span>
-<span class="lineNum">      95 </span><span class="lineNoCov">          0 :     reductionCycles -= diff;</span>
-<span class="lineNum">      96 </span><span class="lineNoCov">          0 :     cycles += this-&gt;countComputeCycles(&amp;std::get&lt;0&gt;(p)[0], n, inputWidth) - diff;</span>
+<span class="lineNum">      93 </span><span class="lineCov">        492 :     int diff = std::get&lt;0&gt;(p).size() - p_colptr.size();</span>
+<span class="lineNum">      94 </span><span class="lineCov">        492 :     emptyCycles += diff;</span>
+<span class="lineNum">      95 </span><span class="lineCov">        492 :     reductionCycles -= diff;</span>
+<span class="lineNum">      96 </span><span class="lineCov">        492 :     cycles += this-&gt;countComputeCycles(&amp;std::get&lt;0&gt;(p)[0], n, inputWidth) - diff;</span>
 <span class="lineNum">      97 </span>            : 
-<span class="lineNum">      98 </span><span class="lineNoCov">          0 :     spark::spmv::align(p_indptr, sizeof(int) * inputWidth);</span>
-<span class="lineNum">      99 </span><span class="lineNoCov">          0 :     spark::spmv::align(p_values, sizeof(double) * inputWidth);</span>
-<span class="lineNum">     100 </span><span class="lineNoCov">          0 :     std::copy(p_colptr.begin(), p_colptr.end(), back_inserter(m_colptr));</span>
-<span class="lineNum">     101 </span><span class="lineNoCov">          0 :     for (size_t i = 0; i &lt; p_values.size(); i++)</span>
-<span class="lineNum">     102 </span><span class="lineNoCov">          0 :       m_indptr_value.push_back(indptr_value( p_values[i], p_indptr[i]));</span>
-<span class="lineNum">     103 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">      98 </span><span class="lineCov">        492 :     spark::spmv::align(p_indptr, sizeof(int) * inputWidth);</span>
+<span class="lineNum">      99 </span><span class="lineCov">        492 :     spark::spmv::align(p_values, sizeof(double) * inputWidth);</span>
+<span class="lineNum">     100 </span><span class="lineCov">        492 :     std::copy(p_colptr.begin(), p_colptr.end(), back_inserter(m_colptr));</span>
+<span class="lineNum">     101 </span><span class="lineCov">     978204 :     for (size_t i = 0; i &lt; p_values.size(); i++)</span>
+<span class="lineNum">     102 </span><span class="lineCov">     977712 :       m_indptr_value.push_back(indptr_value( p_values[i], p_indptr[i]));</span>
+<span class="lineNum">     103 </span><span class="lineCov">        492 :   }</span>
 <span class="lineNum">     104 </span>            : 
-<span class="lineNum">     105 </span><span class="lineNoCov">          0 :   Partition br;</span>
-<span class="lineNum">     106 </span><span class="lineNoCov">          0 :   br.m_colptr_unpaddedLength = m_colptr.size();</span>
-<span class="lineNum">     107 </span><span class="lineNoCov">          0 :   br.m_indptr_values_unpaddedLength = m_indptr_value.size();</span>
+<span class="lineNum">     105 </span><span class="lineCov">         80 :   Partition br;</span>
+<span class="lineNum">     106 </span><span class="lineCov">         80 :   br.m_colptr_unpaddedLength = m_colptr.size();</span>
+<span class="lineNum">     107 </span><span class="lineCov">         80 :   br.m_indptr_values_unpaddedLength = m_indptr_value.size();</span>
 <span class="lineNum">     108 </span>            :   //std::cout &lt;&lt; &quot;m_colptr unaligned size&quot; &lt;&lt; m_colptr.size() &lt;&lt; std::endl;
-<span class="lineNum">     109 </span><span class="lineNoCov">          0 :   spark::spmv::align(m_colptr, 384);</span>
-<span class="lineNum">     110 </span><span class="lineNoCov">          0 :   spark::spmv::align(m_indptr_value, 384);</span>
-<span class="lineNum">     111 </span><span class="lineNoCov">          0 :   std::vector&lt;double&gt; out(n, 0);</span>
-<span class="lineNum">     112 </span><span class="lineNoCov">          0 :   spark::spmv::align(out, 384);</span>
-<span class="lineNum">     113 </span><span class="lineNoCov">          0 :   spark::spmv::align(v, sizeof(double) * blockSize);</span>
+<span class="lineNum">     109 </span><span class="lineCov">         80 :   spark::spmv::align(m_colptr, 384);</span>
+<span class="lineNum">     110 </span><span class="lineCov">         80 :   spark::spmv::align(m_indptr_value, 384);</span>
+<span class="lineNum">     111 </span><span class="lineCov">        160 :   std::vector&lt;double&gt; out(n, 0);</span>
+<span class="lineNum">     112 </span><span class="lineCov">         80 :   spark::spmv::align(out, 384);</span>
+<span class="lineNum">     113 </span><span class="lineCov">         80 :   spark::spmv::align(v, sizeof(double) * blockSize);</span>
 <span class="lineNum">     114 </span>            : 
-<span class="lineNum">     115 </span><span class="lineNoCov">          0 :   br.nBlocks = nBlocks;</span>
-<span class="lineNum">     116 </span><span class="lineNoCov">          0 :   br.n = n;</span>
-<span class="lineNum">     117 </span><span class="lineNoCov">          0 :   br.paddingCycles = out.size() - n; // number of cycles required to align to the burst size</span>
-<span class="lineNum">     118 </span><span class="lineNoCov">          0 :   br.totalCycles = cycles + v.size();</span>
-<span class="lineNum">     119 </span><span class="lineNoCov">          0 :   br.vector_load_cycles = v.size() / nBlocks; // per partition</span>
-<span class="lineNum">     120 </span><span class="lineNoCov">          0 :   br.m_indptr_values = m_indptr_value;</span>
-<span class="lineNum">     121 </span><span class="lineNoCov">          0 :   br.m_colptr = m_colptr;</span>
-<span class="lineNum">     122 </span><span class="lineNoCov">          0 :   br.outSize = out.size() * sizeof(double);</span>
-<span class="lineNum">     123 </span><span class="lineNoCov">          0 :   br.emptyCycles = emptyCycles;</span>
-<span class="lineNum">     124 </span><span class="lineNoCov">          0 :   br.reductionCycles = reductionCycles;</span>
+<span class="lineNum">     115 </span><span class="lineCov">         80 :   br.nBlocks = nBlocks;</span>
+<span class="lineNum">     116 </span><span class="lineCov">         80 :   br.n = n;</span>
+<span class="lineNum">     117 </span><span class="lineCov">         80 :   br.paddingCycles = out.size() - n; // number of cycles required to align to the burst size</span>
+<span class="lineNum">     118 </span><span class="lineCov">         80 :   br.totalCycles = cycles + v.size();</span>
+<span class="lineNum">     119 </span><span class="lineCov">         80 :   br.vector_load_cycles = v.size() / nBlocks; // per partition</span>
+<span class="lineNum">     120 </span><span class="lineCov">         80 :   br.m_indptr_values = m_indptr_value;</span>
+<span class="lineNum">     121 </span><span class="lineCov">         80 :   br.m_colptr = m_colptr;</span>
+<span class="lineNum">     122 </span><span class="lineCov">         80 :   br.outSize = out.size() * sizeof(double);</span>
+<span class="lineNum">     123 </span><span class="lineCov">         80 :   br.emptyCycles = emptyCycles;</span>
+<span class="lineNum">     124 </span><span class="lineCov">         80 :   br.reductionCycles = reductionCycles;</span>
 <span class="lineNum">     125 </span>            : 
-<span class="lineNum">     126 </span><span class="lineNoCov">          0 :   return br;</span>
+<span class="lineNum">     126 </span><span class="lineCov">        160 :   return br;</span>
 <span class="lineNum">     127 </span>            : }
 <a name="128"><span class="lineNum">     128 </span>            : </a>
 <span class="lineNum">     129 </span>            : template&lt;typename T&gt;
-<span class="lineNum">     130 </span><span class="lineNoCov">          0 : long size_bytes(const std::vector&lt;T&gt;&amp; v) {</span>
-<span class="lineNum">     131 </span><span class="lineNoCov">          0 :   return sizeof(T) * v.size();</span>
+<span class="lineNum">     130 </span><span class="lineCov">        400 : long size_bytes(const std::vector&lt;T&gt;&amp; v) {</span>
+<span class="lineNum">     131 </span><span class="lineCov">        400 :   return sizeof(T) * v.size();</span>
 <span class="lineNum">     132 </span>            : }
 <span class="lineNum">     133 </span>            : 
 <span class="lineNum">     134 </span>            : struct PartitionWriteResult {
@@ -198,53 +198,53 @@
 <span class="lineNum">     136 </span>            :   int vStartAddress, indptrValuesStartAddress, indptrValuesSize;
 <a name="137"><span class="lineNum">     137 </span>            : };</a>
 <span class="lineNum">     138 </span>            : 
-<span class="lineNum">     139 </span><span class="lineNoCov">          0 : int align(int bytes, int to) {</span>
-<span class="lineNum">     140 </span><span class="lineNoCov">          0 :   int quot = bytes / to;</span>
-<span class="lineNum">     141 </span><span class="lineNoCov">          0 :   if (bytes % to != 0)</span>
+<span class="lineNum">     139 </span><span class="lineCov">         80 : int align(int bytes, int to) {</span>
+<span class="lineNum">     140 </span><span class="lineCov">         80 :   int quot = bytes / to;</span>
+<span class="lineNum">     141 </span><span class="lineCov">         80 :   if (bytes % to != 0)</span>
 <span class="lineNum">     142 </span><span class="lineNoCov">          0 :     return (quot + 1) * to;</span>
-<span class="lineNum">     143 </span><span class="lineNoCov">          0 :   return bytes;</span>
+<span class="lineNum">     143 </span><span class="lineCov">         80 :   return bytes;</span>
 <span class="lineNum">     144 </span>            : }
 <span class="lineNum">     145 </span>            : 
 <a name="146"><span class="lineNum">     146 </span>            : </a>
 <span class="lineNum">     147 </span>            : // write the data for a partition, starting at the given offset
-<span class="lineNum">     148 </span><span class="lineNoCov">          0 : PartitionWriteResult writeDataForPartition(</span>
+<span class="lineNum">     148 </span><span class="lineCov">         80 : PartitionWriteResult writeDataForPartition(</span>
 <span class="lineNum">     149 </span>            :     spark::runtime::GeneratedSpmvImplementation *impl,
 <span class="lineNum">     150 </span>            :     int offset,
 <span class="lineNum">     151 </span>            :     const Partition&amp; br,
 <span class="lineNum">     152 </span>            :     const std::vector&lt;double&gt;&amp; v) {
 <span class="lineNum">     153 </span>            :   // for each partition write this down
 <span class="lineNum">     154 </span>            :   PartitionWriteResult pwr;
-<span class="lineNum">     155 </span><span class="lineNoCov">          0 :   pwr.indptrValuesStartAddress = align(offset, 384);</span>
-<span class="lineNum">     156 </span><span class="lineNoCov">          0 :   pwr.indptrValuesSize = size_bytes(br.m_indptr_values);</span>
+<span class="lineNum">     155 </span><span class="lineCov">         80 :   pwr.indptrValuesStartAddress = align(offset, 384);</span>
+<span class="lineNum">     156 </span><span class="lineCov">         80 :   pwr.indptrValuesSize = size_bytes(br.m_indptr_values);</span>
 <span class="lineNum">     157 </span>            :   impl-&gt;write(
 <span class="lineNum">     158 </span>            :       pwr.indptrValuesSize,
 <span class="lineNum">     159 </span>            :       pwr.indptrValuesStartAddress,
-<span class="lineNum">     160 </span><span class="lineNoCov">          0 :       (uint8_t *)&amp;br.m_indptr_values[0]);</span>
+<span class="lineNum">     160 </span><span class="lineCov">         80 :       (uint8_t *)&amp;br.m_indptr_values[0]);</span>
 <span class="lineNum">     161 </span>            : 
-<span class="lineNum">     162 </span><span class="lineNoCov">          0 :   pwr.vStartAddress = pwr.indptrValuesStartAddress + pwr.indptrValuesSize;</span>
+<span class="lineNum">     162 </span><span class="lineCov">         80 :   pwr.vStartAddress = pwr.indptrValuesStartAddress + pwr.indptrValuesSize;</span>
 <span class="lineNum">     163 </span>            :   impl-&gt;write(
 <span class="lineNum">     164 </span>            :       size_bytes(v),
 <span class="lineNum">     165 </span>            :       pwr.vStartAddress,
-<span class="lineNum">     166 </span><span class="lineNoCov">          0 :       (uint8_t *)&amp;v[0]);</span>
+<span class="lineNum">     166 </span><span class="lineCov">         80 :       (uint8_t *)&amp;v[0]);</span>
 <span class="lineNum">     167 </span>            : 
-<span class="lineNum">     168 </span><span class="lineNoCov">          0 :   pwr.colptrStartAddress = pwr.vStartAddress + size_bytes(v);</span>
-<span class="lineNum">     169 </span><span class="lineNoCov">          0 :   pwr.colptrSize = size_bytes(br.m_colptr);</span>
+<span class="lineNum">     168 </span><span class="lineCov">         80 :   pwr.colptrStartAddress = pwr.vStartAddress + size_bytes(v);</span>
+<span class="lineNum">     169 </span><span class="lineCov">         80 :   pwr.colptrSize = size_bytes(br.m_colptr);</span>
 <span class="lineNum">     170 </span>            :   impl-&gt;write(
 <span class="lineNum">     171 </span>            :       pwr.colptrSize,
 <span class="lineNum">     172 </span>            :       pwr.colptrStartAddress,
-<span class="lineNum">     173 </span><span class="lineNoCov">          0 :       (uint8_t *)&amp;br.m_colptr[0]);</span>
+<span class="lineNum">     173 </span><span class="lineCov">         80 :       (uint8_t *)&amp;br.m_colptr[0]);</span>
 <span class="lineNum">     174 </span>            : 
-<span class="lineNum">     175 </span><span class="lineNoCov">          0 :   pwr.outStartAddr = pwr.colptrStartAddress + pwr.colptrSize;</span>
-<span class="lineNum">     176 </span><span class="lineNoCov">          0 :   pwr.outSize = br.outSize;</span>
-<span class="lineNum">     177 </span><span class="lineNoCov">          0 :   return pwr;</span>
+<span class="lineNum">     175 </span><span class="lineCov">         80 :   pwr.outStartAddr = pwr.colptrStartAddress + pwr.colptrSize;</span>
+<span class="lineNum">     176 </span><span class="lineCov">         80 :   pwr.outSize = br.outSize;</span>
+<span class="lineNum">     177 </span><span class="lineCov">         80 :   return pwr;</span>
 <span class="lineNum">     178 </span>            : }
 <a name="179"><span class="lineNum">     179 </span>            : </a>
 <span class="lineNum">     180 </span>            : 
-<span class="lineNum">     181 </span><span class="lineNoCov">          0 : Eigen::VectorXd ssarch::dfespmv(Eigen::VectorXd x)</span>
+<span class="lineNum">     181 </span><span class="lineCov">         40 : Eigen::VectorXd ssarch::dfespmv(Eigen::VectorXd x)</span>
 <span class="lineNum">     182 </span>            : {
 <span class="lineNum">     183 </span>            :   using namespace std;
 <span class="lineNum">     184 </span>            : 
-<span class="lineNum">     185 </span><span class="lineNoCov">          0 :   if (this-&gt;impl-&gt;getDramReductionEnabled()) {</span>
+<span class="lineNum">     185 </span><span class="lineCov">         40 :   if (this-&gt;impl-&gt;getDramReductionEnabled()) {</span>
 <span class="lineNum">     186 </span>            :     // because of DRAM read/write latency we can only hope to get correct
 <span class="lineNum">     187 </span>            :     // answers for large matrices
 <span class="lineNum">     188 </span>            :     // XXX figure out where to place this constant;
@@ -257,7 +257,7 @@
 <span class="lineNum">     195 </span><span class="lineNoCov">          0 :       throw invalid_argument(ss.str());</span>
 <span class="lineNum">     196 </span>            :     }
 <span class="lineNum">     197 </span>            :   } else {
-<span class="lineNum">     198 </span><span class="lineNoCov">          0 :     if (maxRows &lt; mat.rows()) {</span>
+<span class="lineNum">     198 </span><span class="lineCov">         40 :     if (maxRows &lt; mat.rows()) {</span>
 <span class="lineNum">     199 </span><span class="lineNoCov">          0 :       stringstream ss;</span>
 <span class="lineNum">     200 </span><span class="lineNoCov">          0 :       ss &lt;&lt; &quot;Matrix is too large! Maximum supported rows: &quot;;</span>
 <span class="lineNum">     201 </span><span class="lineNoCov">          0 :       ss &lt;&lt; maxRows;</span>
@@ -266,87 +266,87 @@
 <span class="lineNum">     204 </span>            :     }
 <span class="lineNum">     205 </span>            :   }
 <span class="lineNum">     206 </span>            : 
-<span class="lineNum">     207 </span><span class="lineNoCov">          0 :   int cacheSize = this-&gt;cacheSize;</span>
+<span class="lineNum">     207 </span><span class="lineCov">         40 :   int cacheSize = this-&gt;cacheSize;</span>
 <span class="lineNum">     208 </span>            : 
-<span class="lineNum">     209 </span><span class="lineNoCov">          0 :   vector&lt;double&gt; v = spark::converters::eigenVectorToStdVector(x);</span>
-<span class="lineNum">     210 </span><span class="lineNoCov">          0 :   spark::spmv::align(v, sizeof(double) * cacheSize);</span>
-<span class="lineNum">     211 </span><span class="lineNoCov">          0 :   spark::spmv::align(v, 384);</span>
+<span class="lineNum">     209 </span><span class="lineCov">         40 :   vector&lt;double&gt; v = spark::converters::eigenVectorToStdVector(x);</span>
+<span class="lineNum">     210 </span><span class="lineCov">         40 :   spark::spmv::align(v, sizeof(double) * cacheSize);</span>
+<span class="lineNum">     211 </span><span class="lineCov">         40 :   spark::spmv::align(v, 384);</span>
 <span class="lineNum">     212 </span>            : 
-<span class="lineNum">     213 </span><span class="lineNoCov">          0 :   std::vector&lt;int&gt; nrows, totalCycles, reductionCycles, paddingCycles, colptrSizes, indptrValuesSizes, outputResultSizes;</span>
-<span class="lineNum">     214 </span><span class="lineNoCov">          0 :   std::vector&lt;int&gt; colptrUnpaddedSizes, indptrValuesUnpaddedLengths;</span>
-<span class="lineNum">     215 </span><span class="lineNoCov">          0 :   std::vector&lt;long&gt; outputStartAddresses, colptrStartAddresses;</span>
-<span class="lineNum">     216 </span><span class="lineNoCov">          0 :   std::vector&lt;long&gt; vStartAddresses, indptrValuesStartAddresses;</span>
+<span class="lineNum">     213 </span><span class="lineCov">         80 :   std::vector&lt;int&gt; nrows, totalCycles, reductionCycles, paddingCycles, colptrSizes, indptrValuesSizes, outputResultSizes;</span>
+<span class="lineNum">     214 </span><span class="lineCov">         80 :   std::vector&lt;int&gt; colptrUnpaddedSizes, indptrValuesUnpaddedLengths;</span>
+<span class="lineNum">     215 </span><span class="lineCov">         80 :   std::vector&lt;long&gt; outputStartAddresses, colptrStartAddresses;</span>
+<span class="lineNum">     216 </span><span class="lineCov">         80 :   std::vector&lt;long&gt; vStartAddresses, indptrValuesStartAddresses;</span>
 <span class="lineNum">     217 </span>            : 
-<span class="lineNum">     218 </span><span class="lineNoCov">          0 :   int offset = 0;</span>
-<span class="lineNum">     219 </span><span class="lineNoCov">          0 :   int i = 0;</span>
-<span class="lineNum">     220 </span><span class="lineNoCov">          0 :   for (auto&amp; p : this-&gt;partitions) {</span>
-<span class="lineNum">     221 </span><span class="lineNoCov">          0 :     nrows.push_back(p.n);</span>
-<span class="lineNum">     222 </span><span class="lineNoCov">          0 :     paddingCycles.push_back(p.paddingCycles);</span>
-<span class="lineNum">     223 </span><span class="lineNoCov">          0 :     totalCycles.push_back(p.totalCycles);</span>
-<span class="lineNum">     224 </span><span class="lineNoCov">          0 :     reductionCycles.push_back(p.reductionCycles);</span>
-<span class="lineNum">     225 </span><span class="lineNoCov">          0 :     colptrUnpaddedSizes.push_back(p.m_colptr_unpaddedLength);</span>
-<span class="lineNum">     226 </span><span class="lineNoCov">          0 :     indptrValuesUnpaddedLengths.push_back(p.m_indptr_values_unpaddedLength);</span>
+<span class="lineNum">     218 </span><span class="lineCov">         40 :   int offset = 0;</span>
+<span class="lineNum">     219 </span><span class="lineCov">         40 :   int i = 0;</span>
+<span class="lineNum">     220 </span><span class="lineCov">        120 :   for (auto&amp; p : this-&gt;partitions) {</span>
+<span class="lineNum">     221 </span><span class="lineCov">         80 :     nrows.push_back(p.n);</span>
+<span class="lineNum">     222 </span><span class="lineCov">         80 :     paddingCycles.push_back(p.paddingCycles);</span>
+<span class="lineNum">     223 </span><span class="lineCov">         80 :     totalCycles.push_back(p.totalCycles);</span>
+<span class="lineNum">     224 </span><span class="lineCov">         80 :     reductionCycles.push_back(p.reductionCycles);</span>
+<span class="lineNum">     225 </span><span class="lineCov">         80 :     colptrUnpaddedSizes.push_back(p.m_colptr_unpaddedLength);</span>
+<span class="lineNum">     226 </span><span class="lineCov">         80 :     indptrValuesUnpaddedLengths.push_back(p.m_indptr_values_unpaddedLength);</span>
 <span class="lineNum">     227 </span>            : 
-<span class="lineNum">     228 </span><span class="lineNoCov">          0 :     PartitionWriteResult pr = writeDataForPartition(this-&gt;impl, offset, p, v);</span>
-<span class="lineNum">     229 </span><span class="lineNoCov">          0 :     outputStartAddresses.push_back(pr.outStartAddr);</span>
-<span class="lineNum">     230 </span><span class="lineNoCov">          0 :     outputResultSizes.push_back(pr.outSize);</span>
-<span class="lineNum">     231 </span><span class="lineNoCov">          0 :     colptrStartAddresses.push_back(pr.colptrStartAddress);</span>
-<span class="lineNum">     232 </span><span class="lineNoCov">          0 :     colptrSizes.push_back(pr.colptrSize);</span>
-<span class="lineNum">     233 </span><span class="lineNoCov">          0 :     vStartAddresses.push_back(pr.vStartAddress);</span>
-<span class="lineNum">     234 </span><span class="lineNoCov">          0 :     indptrValuesSizes.push_back(pr.indptrValuesSize);</span>
-<span class="lineNum">     235 </span><span class="lineNoCov">          0 :     indptrValuesStartAddresses.push_back(pr.indptrValuesStartAddress);</span>
+<span class="lineNum">     228 </span><span class="lineCov">         80 :     PartitionWriteResult pr = writeDataForPartition(this-&gt;impl, offset, p, v);</span>
+<span class="lineNum">     229 </span><span class="lineCov">         80 :     outputStartAddresses.push_back(pr.outStartAddr);</span>
+<span class="lineNum">     230 </span><span class="lineCov">         80 :     outputResultSizes.push_back(pr.outSize);</span>
+<span class="lineNum">     231 </span><span class="lineCov">         80 :     colptrStartAddresses.push_back(pr.colptrStartAddress);</span>
+<span class="lineNum">     232 </span><span class="lineCov">         80 :     colptrSizes.push_back(pr.colptrSize);</span>
+<span class="lineNum">     233 </span><span class="lineCov">         80 :     vStartAddresses.push_back(pr.vStartAddress);</span>
+<span class="lineNum">     234 </span><span class="lineCov">         80 :     indptrValuesSizes.push_back(pr.indptrValuesSize);</span>
+<span class="lineNum">     235 </span><span class="lineCov">         80 :     indptrValuesStartAddresses.push_back(pr.indptrValuesStartAddress);</span>
 <span class="lineNum">     236 </span>            : 
-<span class="lineNum">     237 </span><span class="lineNoCov">          0 :     offset = pr.outStartAddr + p.outSize;</span>
+<span class="lineNum">     237 </span><span class="lineCov">         80 :     offset = pr.outStartAddr + p.outSize;</span>
 <span class="lineNum">     238 </span>            :   }
 <span class="lineNum">     239 </span>            : 
 <span class="lineNum">     240 </span>            :   // npartitions and vector load cycles should be the same for all partitions
-<span class="lineNum">     241 </span><span class="lineNoCov">          0 :   int nBlocks = this-&gt;partitions[0].nBlocks;</span>
-<span class="lineNum">     242 </span><span class="lineNoCov">          0 :   int vector_load_cycles = this-&gt;partitions[0].vector_load_cycles;</span>
-<span class="lineNum">     243 </span><span class="lineNoCov">          0 :   std::cout &lt;&lt; &quot;Running on DFE&quot; &lt;&lt; std::endl;</span>
+<span class="lineNum">     241 </span><span class="lineCov">         40 :   int nBlocks = this-&gt;partitions[0].nBlocks;</span>
+<span class="lineNum">     242 </span><span class="lineCov">         40 :   int vector_load_cycles = this-&gt;partitions[0].vector_load_cycles;</span>
+<span class="lineNum">     243 </span><span class="lineCov">         40 :   std::cout &lt;&lt; &quot;Running on DFE&quot; &lt;&lt; std::endl;</span>
 <span class="lineNum">     244 </span>            : 
-<span class="lineNum">     245 </span><span class="lineNoCov">          0 :   int nIterations = 1;</span>
-<span class="lineNum">     246 </span><span class="lineNoCov">          0 :   logResult(&quot;Total cycles&quot;, totalCycles);</span>
-<span class="lineNum">     247 </span><span class="lineNoCov">          0 :   logResult(&quot;Padding cycles&quot;, paddingCycles);</span>
-<span class="lineNum">     248 </span><span class="lineNoCov">          0 :   logResult(&quot;Reduction cycles&quot;, reductionCycles);</span>
+<span class="lineNum">     245 </span><span class="lineCov">         40 :   int nIterations = 1;</span>
+<span class="lineNum">     246 </span><span class="lineCov">         40 :   logResult(&quot;Total cycles&quot;, totalCycles);</span>
+<span class="lineNum">     247 </span><span class="lineCov">         40 :   logResult(&quot;Padding cycles&quot;, paddingCycles);</span>
+<span class="lineNum">     248 </span><span class="lineCov">         40 :   logResult(&quot;Reduction cycles&quot;, reductionCycles);</span>
 <span class="lineNum">     249 </span>            : 
-<span class="lineNum">     250 </span><span class="lineNoCov">          0 :   auto start = std::chrono::high_resolution_clock::now();</span>
+<span class="lineNum">     250 </span><span class="lineCov">         40 :   auto start = std::chrono::high_resolution_clock::now();</span>
 <span class="lineNum">     251 </span>            :   this-&gt;impl-&gt;Spmv(
 <span class="lineNum">     252 </span>            :       nIterations,
 <span class="lineNum">     253 </span>            :       nBlocks,
 <span class="lineNum">     254 </span>            :       vector_load_cycles,
-<span class="lineNum">     255 </span><span class="lineNoCov">          0 :       &amp;colptrStartAddresses[0],</span>
-<span class="lineNum">     256 </span><span class="lineNoCov">          0 :       &amp;colptrSizes[0],</span>
-<span class="lineNum">     257 </span><span class="lineNoCov">          0 :       &amp;indptrValuesStartAddresses[0],</span>
-<span class="lineNum">     258 </span><span class="lineNoCov">          0 :       &amp;indptrValuesSizes[0],</span>
-<span class="lineNum">     259 </span><span class="lineNoCov">          0 :       &amp;nrows[0],</span>
-<span class="lineNum">     260 </span><span class="lineNoCov">          0 :       &amp;outputStartAddresses[0],</span>
-<span class="lineNum">     261 </span><span class="lineNoCov">          0 :       &amp;reductionCycles[0],</span>
-<span class="lineNum">     262 </span><span class="lineNoCov">          0 :       &amp;totalCycles[0],</span>
-<span class="lineNum">     263 </span><span class="lineNoCov">          0 :       &amp;vStartAddresses[0]</span>
-<span class="lineNum">     264 </span><span class="lineNoCov">          0 :       );</span>
-<span class="lineNum">     265 </span><span class="lineNoCov">          0 :   double took = dfesnippets::timing::clock_diff(start) / nIterations;</span>
-<span class="lineNum">     266 </span><span class="lineNoCov">          0 :   double est =(double) totalCycles[0] / (100.0 * 1e6);</span>
-<span class="lineNum">     267 </span><span class="lineNoCov">          0 :   double gflopsEst = (2.0 * (double)this-&gt;mat.nonZeros() / est) / 1E9;</span>
-<span class="lineNum">     268 </span><span class="lineNoCov">          0 :   double gflopsActual = (2.0 * (double)this-&gt;mat.nonZeros() / took) / 1E9;</span>
+<span class="lineNum">     255 </span><span class="lineCov">         40 :       &amp;colptrStartAddresses[0],</span>
+<span class="lineNum">     256 </span><span class="lineCov">         40 :       &amp;colptrSizes[0],</span>
+<span class="lineNum">     257 </span><span class="lineCov">         40 :       &amp;indptrValuesStartAddresses[0],</span>
+<span class="lineNum">     258 </span><span class="lineCov">         40 :       &amp;indptrValuesSizes[0],</span>
+<span class="lineNum">     259 </span><span class="lineCov">         40 :       &amp;nrows[0],</span>
+<span class="lineNum">     260 </span><span class="lineCov">         40 :       &amp;outputStartAddresses[0],</span>
+<span class="lineNum">     261 </span><span class="lineCov">         40 :       &amp;reductionCycles[0],</span>
+<span class="lineNum">     262 </span><span class="lineCov">         40 :       &amp;totalCycles[0],</span>
+<span class="lineNum">     263 </span><span class="lineCov">         40 :       &amp;vStartAddresses[0]</span>
+<span class="lineNum">     264 </span><span class="lineCov">         80 :       );</span>
+<span class="lineNum">     265 </span><span class="lineCov">         40 :   double took = dfesnippets::timing::clock_diff(start) / nIterations;</span>
+<span class="lineNum">     266 </span><span class="lineCov">         40 :   double est =(double) totalCycles[0] / (100.0 * 1e6);</span>
+<span class="lineNum">     267 </span><span class="lineCov">         40 :   double gflopsEst = (2.0 * (double)this-&gt;mat.nonZeros() / est) / 1E9;</span>
+<span class="lineNum">     268 </span><span class="lineCov">         40 :   double gflopsActual = (2.0 * (double)this-&gt;mat.nonZeros() / took) / 1E9;</span>
 <span class="lineNum">     269 </span>            : 
-<span class="lineNum">     270 </span><span class="lineNoCov">          0 :   logResult(&quot;Iterations&quot;, nIterations);</span>
-<span class="lineNum">     271 </span><span class="lineNoCov">          0 :   logResult(&quot;Took (ms)&quot;, took);</span>
-<span class="lineNum">     272 </span><span class="lineNoCov">          0 :   logResult(&quot;Est (ms)&quot;, est);</span>
-<span class="lineNum">     273 </span><span class="lineNoCov">          0 :   logResult(&quot;Gflops (est)&quot;, gflopsEst);</span>
-<span class="lineNum">     274 </span><span class="lineNoCov">          0 :   logResult(&quot;Gflops (actual)&quot;, gflopsActual);</span>
+<span class="lineNum">     270 </span><span class="lineCov">         40 :   logResult(&quot;Iterations&quot;, nIterations);</span>
+<span class="lineNum">     271 </span><span class="lineCov">         40 :   logResult(&quot;Took (ms)&quot;, took);</span>
+<span class="lineNum">     272 </span><span class="lineCov">         40 :   logResult(&quot;Est (ms)&quot;, est);</span>
+<span class="lineNum">     273 </span><span class="lineCov">         40 :   logResult(&quot;Gflops (est)&quot;, gflopsEst);</span>
+<span class="lineNum">     274 </span><span class="lineCov">         40 :   logResult(&quot;Gflops (actual)&quot;, gflopsActual);</span>
 <span class="lineNum">     275 </span>            : 
-<span class="lineNum">     276 </span><span class="lineNoCov">          0 :   std::vector&lt;double&gt; total;</span>
-<span class="lineNum">     277 </span><span class="lineNoCov">          0 :   for (size_t i = 0; i &lt; outputStartAddresses.size(); i++) {</span>
-<span class="lineNum">     278 </span><span class="lineNoCov">          0 :     std::vector&lt;double&gt; tmp(outputResultSizes[i] / sizeof(double), 0);</span>
+<span class="lineNum">     276 </span><span class="lineCov">         80 :   std::vector&lt;double&gt; total;</span>
+<span class="lineNum">     277 </span><span class="lineCov">        120 :   for (size_t i = 0; i &lt; outputStartAddresses.size(); i++) {</span>
+<span class="lineNum">     278 </span><span class="lineCov">         80 :     std::vector&lt;double&gt; tmp(outputResultSizes[i] / sizeof(double), 0);</span>
 <span class="lineNum">     279 </span>            :     this-&gt;impl-&gt;read(
 <span class="lineNum">     280 </span>            :         size_bytes(tmp),
-<span class="lineNum">     281 </span><span class="lineNoCov">          0 :         outputStartAddresses[i],</span>
-<span class="lineNum">     282 </span><span class="lineNoCov">          0 :         (uint8_t*)&amp;tmp[0]);</span>
-<span class="lineNum">     283 </span><span class="lineNoCov">          0 :     std::copy(tmp.begin(), tmp.begin() + nrows[i], std::back_inserter(total));</span>
-<span class="lineNum">     284 </span><span class="lineNoCov">          0 :   }</span>
+<span class="lineNum">     281 </span><span class="lineCov">         80 :         outputStartAddresses[i],</span>
+<span class="lineNum">     282 </span><span class="lineCov">        160 :         (uint8_t*)&amp;tmp[0]);</span>
+<span class="lineNum">     283 </span><span class="lineCov">         80 :     std::copy(tmp.begin(), tmp.begin() + nrows[i], std::back_inserter(total));</span>
+<span class="lineNum">     284 </span><span class="lineCov">         80 :   }</span>
 <span class="lineNum">     285 </span>            : 
 <span class="lineNum">     286 </span>            :   // remove the elements which were only for padding
-<span class="lineNum">     287 </span><span class="lineNoCov">          0 :   return spark::converters::stdvectorToEigen(total);</span>
+<span class="lineNum">     287 </span><span class="lineCov">         80 :   return spark::converters::stdvectorToEigen(total);</span>
 <a name="288"><span class="lineNum">     288 </span>            : }</a>
 <span class="lineNum">     289 </span>            : 
 <span class="lineNum">     290 </span><span class="lineNoCov">          0 : std::vector&lt;EigenSparseMatrix&gt; ssarch::do_partition(const EigenSparseMatrix&amp; mat, int numPipes) {</span>
@@ -362,26 +362,26 @@
 <span class="lineNum">     300 </span><span class="lineNoCov">          0 :   return res;</span>
 <a name="301"><span class="lineNum">     301 </span>            : }</a>
 <span class="lineNum">     302 </span>            : 
-<span class="lineNum">     303 </span><span class="lineNoCov">          0 : void ssarch::preprocess(</span>
+<span class="lineNum">     303 </span><span class="lineCov">         40 : void ssarch::preprocess(</span>
 <span class="lineNum">     304 </span>            :     const EigenSparseMatrix&amp; mat) {
-<span class="lineNum">     305 </span><span class="lineNoCov">          0 :   this-&gt;mat = mat;</span>
+<span class="lineNum">     305 </span><span class="lineCov">         40 :   this-&gt;mat = mat;</span>
 <span class="lineNum">     306 </span>            : 
-<span class="lineNum">     307 </span><span class="lineNoCov">          0 :   int rowsPerPartition = mat.rows() / numPipes;</span>
-<span class="lineNum">     308 </span><span class="lineNoCov">          0 :   int start = 0;</span>
-<span class="lineNum">     309 </span><span class="lineNoCov">          0 :   for (int i = 0; i &lt; numPipes - 1; i++) {</span>
+<span class="lineNum">     307 </span><span class="lineCov">         40 :   int rowsPerPartition = mat.rows() / numPipes;</span>
+<span class="lineNum">     308 </span><span class="lineCov">         40 :   int start = 0;</span>
+<span class="lineNum">     309 </span><span class="lineCov">         80 :   for (int i = 0; i &lt; numPipes - 1; i++) {</span>
 <span class="lineNum">     310 </span>            :     this-&gt;partitions.push_back(
 <span class="lineNum">     311 </span>            :         do_blocking(
-<span class="lineNum">     312 </span><span class="lineNoCov">          0 :           mat.middleRows(start, rowsPerPartition),</span>
-<span class="lineNum">     313 </span><span class="lineNoCov">          0 :           this-&gt;cacheSize, this-&gt;inputWidth));</span>
-<span class="lineNum">     314 </span><span class="lineNoCov">          0 :     start += rowsPerPartition;</span>
+<span class="lineNum">     312 </span><span class="lineCov">         40 :           mat.middleRows(start, rowsPerPartition),</span>
+<span class="lineNum">     313 </span><span class="lineCov">         80 :           this-&gt;cacheSize, this-&gt;inputWidth));</span>
+<span class="lineNum">     314 </span><span class="lineCov">         40 :     start += rowsPerPartition;</span>
 <span class="lineNum">     315 </span>            :   }
 <span class="lineNum">     316 </span>            : 
 <span class="lineNum">     317 </span>            :   // put all rows left in the last partition
 <span class="lineNum">     318 </span>            :   this-&gt;partitions.push_back(
-<span class="lineNum">     319 </span><span class="lineNoCov">          0 :       do_blocking(mat.middleRows(start, mat.rows() - start),</span>
-<a name="320"><span class="lineNum">     320 </span><span class="lineNoCov">          0 :         this-&gt;cacheSize, this-&gt;inputWidth));</span></a>
+<span class="lineNum">     319 </span><span class="lineCov">         40 :       do_blocking(mat.middleRows(start, mat.rows() - start),</span>
+<a name="320"><span class="lineNum">     320 </span><span class="lineCov">         80 :         this-&gt;cacheSize, this-&gt;inputWidth));</span></a>
 <span class="lineNum">     321 </span>            : 
-<span class="lineNum">     322 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     322 </span><span class="lineCov">        160 : }</span>
 </pre>
       </td>
     </tr>

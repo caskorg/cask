@@ -31,18 +31,18 @@
             <td class="headerValue">final.info</td>
             <td></td>
             <td class="headerItem">Lines:</td>
-            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">60</td>
             <td class="headerCovTableEntry">86</td>
-            <td class="headerCovTableEntryLo">0.0 %</td>
+            <td class="headerCovTableEntryLo">69.8 %</td>
           </tr>
           <tr>
             <td class="headerItem">Date:</td>
-            <td class="headerValue">2015-11-30</td>
+            <td class="headerValue">2015-12-01</td>
             <td></td>
             <td class="headerItem">Functions:</td>
-            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">7</td>
             <td class="headerCovTableEntry">10</td>
-            <td class="headerCovTableEntryLo">0.0 %</td>
+            <td class="headerCovTableEntryLo">70.0 %</td>
           </tr>
           <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
         </table>
@@ -87,76 +87,76 @@
 <span class="lineNum">      25 </span>            :         using SparseMatrix = spark::sparse::SparkCooMatrix&lt;value_type&gt;;
 <a name="26"><span class="lineNum">      26 </span>            :         using CoordType = typename SparseMatrix::CoordType;</a>
 <span class="lineNum">      27 </span>            : 
-<span class="lineNum">      28 </span><span class="lineNoCov">          0 :         typename SparseMatrix::CoordType mmparse(const std::string line) {</span>
-<span class="lineNum">      29 </span><span class="lineNoCov">          0 :           std::stringstream ss{line};</span>
+<span class="lineNum">      28 </span><span class="lineCov">     768597 :         typename SparseMatrix::CoordType mmparse(const std::string line) {</span>
+<span class="lineNum">      29 </span><span class="lineCov">     768597 :           std::stringstream ss{line};</span>
 <span class="lineNum">      30 </span>            :           int x, y;
 <span class="lineNum">      31 </span>            :           value_type val;
-<span class="lineNum">      32 </span><span class="lineNoCov">          0 :           ss &gt;&gt; x &gt;&gt; y &gt;&gt; val;</span>
-<span class="lineNum">      33 </span><span class="lineNoCov">          0 :           return std::make_tuple(x - 1, y - 1, val);</span>
+<span class="lineNum">      32 </span><span class="lineCov">     768597 :           ss &gt;&gt; x &gt;&gt; y &gt;&gt; val;</span>
+<span class="lineNum">      33 </span><span class="lineCov">     768597 :           return std::make_tuple(x - 1, y - 1, val);</span>
 <a name="34"><span class="lineNum">      34 </span>            :         }</a>
 <span class="lineNum">      35 </span>            : 
-<span class="lineNum">      36 </span><span class="lineNoCov">          0 :         void parseHeader(std::string line) {</span>
+<span class="lineNum">      36 </span><span class="lineCov">         40 :         void parseHeader(std::string line) {</span>
 <span class="lineNum">      37 </span>            :             // is this dense / sparse ?
-<span class="lineNum">      38 </span><span class="lineNoCov">          0 :             sparse = true;</span>
-<span class="lineNum">      39 </span><span class="lineNoCov">          0 :             if (line.find(&quot;coordinate&quot;) != std::string::npos) {</span>
-<span class="lineNum">      40 </span><span class="lineNoCov">          0 :               sparse = true;</span>
+<span class="lineNum">      38 </span><span class="lineCov">         40 :             sparse = true;</span>
+<span class="lineNum">      39 </span><span class="lineCov">         40 :             if (line.find(&quot;coordinate&quot;) != std::string::npos) {</span>
+<span class="lineNum">      40 </span><span class="lineCov">         40 :               sparse = true;</span>
 <span class="lineNum">      41 </span><span class="lineNoCov">          0 :             } else if (line.find(&quot;array&quot;) != std::string::npos) {</span>
 <span class="lineNum">      42 </span><span class="lineNoCov">          0 :               sparse = false;</span>
 <span class="lineNum">      43 </span>            :             } else {
 <span class="lineNum">      44 </span><span class="lineNoCov">          0 :               throw std::invalid_argument(&quot;Cannot parse header, requires either 'coordinate' or 'matrix' type&quot;);</span>
 <span class="lineNum">      45 </span>            :             }
 <span class="lineNum">      46 </span>            : 
-<span class="lineNum">      47 </span><span class="lineNoCov">          0 :             if (line[0] =='%' &amp;&amp; line[1] == '%') {</span>
-<span class="lineNum">      48 </span><span class="lineNoCov">          0 :               if (line.find(&quot;matrix&quot;) != std::string::npos) {</span>
-<span class="lineNum">      49 </span><span class="lineNoCov">          0 :                 symmetric = line.find(&quot;symmetric&quot;) != std::string::npos;</span>
+<span class="lineNum">      47 </span><span class="lineCov">         40 :             if (line[0] =='%' &amp;&amp; line[1] == '%') {</span>
+<span class="lineNum">      48 </span><span class="lineCov">         38 :               if (line.find(&quot;matrix&quot;) != std::string::npos) {</span>
+<span class="lineNum">      49 </span><span class="lineCov">         38 :                 symmetric = line.find(&quot;symmetric&quot;) != std::string::npos;</span>
 <span class="lineNum">      50 </span>            :               } else
 <span class="lineNum">      51 </span><span class="lineNoCov">          0 :                 throw std::invalid_argument(&quot;Unsupported file type: &quot; + line);</span>
 <span class="lineNum">      52 </span>            :             }
-<a name="53"><span class="lineNum">      53 </span><span class="lineNoCov">          0 :         }</span></a>
+<a name="53"><span class="lineNum">      53 </span><span class="lineCov">         40 :         }</span></a>
 <span class="lineNum">      54 </span>            : 
-<span class="lineNum">      55 </span><span class="lineNoCov">          0 :         bool parseHeader(bool pprint=false) {</span>
-<span class="lineNum">      56 </span><span class="lineNoCov">          0 :           std::string line;</span>
-<span class="lineNum">      57 </span><span class="lineNoCov">          0 :           if (!getline(*f, line))</span>
+<span class="lineNum">      55 </span><span class="lineCov">         40 :         bool parseHeader(bool pprint=false) {</span>
+<span class="lineNum">      56 </span><span class="lineCov">         40 :           std::string line;</span>
+<span class="lineNum">      57 </span><span class="lineCov">         40 :           if (!getline(*f, line))</span>
 <span class="lineNum">      58 </span><span class="lineNoCov">          0 :             throw std::invalid_argument(&quot;File &quot; + path + &quot; is empty&quot;);</span>
 <span class="lineNum">      59 </span>            : 
-<span class="lineNum">      60 </span><span class="lineNoCov">          0 :           parseHeader(line);</span>
+<span class="lineNum">      60 </span><span class="lineCov">         40 :           parseHeader(line);</span>
 <span class="lineNum">      61 </span>            : 
 <span class="lineNum">      62 </span>            :           // skip comments
-<span class="lineNum">      63 </span><span class="lineNoCov">          0 :           while (getline(*f, line) &amp;&amp; line[0] == '%')</span>
-<span class="lineNum">      64 </span><span class="lineNoCov">          0 :             continue;</span>
+<span class="lineNum">      63 </span><span class="lineCov">        193 :           while (getline(*f, line) &amp;&amp; line[0] == '%')</span>
+<span class="lineNum">      64 </span><span class="lineCov">        113 :             continue;</span>
 <span class="lineNum">      65 </span>            : 
 <span class="lineNum">      66 </span>            :           // read the dimensions
-<span class="lineNum">      67 </span><span class="lineNoCov">          0 :           std::stringstream ss;</span>
-<span class="lineNum">      68 </span><span class="lineNoCov">          0 :           ss &lt;&lt; line;</span>
-<span class="lineNum">      69 </span><span class="lineNoCov">          0 :           ss &gt;&gt; nrows &gt;&gt; ncols;</span>
-<span class="lineNum">      70 </span><span class="lineNoCov">          0 :           if (sparse)</span>
-<span class="lineNum">      71 </span><span class="lineNoCov">          0 :             ss &gt;&gt; nnzs;</span>
-<span class="lineNum">      72 </span><span class="lineNoCov">          0 :           matrix = ncols &gt; 1;</span>
+<span class="lineNum">      67 </span><span class="lineCov">         80 :           std::stringstream ss;</span>
+<span class="lineNum">      68 </span><span class="lineCov">         40 :           ss &lt;&lt; line;</span>
+<span class="lineNum">      69 </span><span class="lineCov">         40 :           ss &gt;&gt; nrows &gt;&gt; ncols;</span>
+<span class="lineNum">      70 </span><span class="lineCov">         40 :           if (sparse)</span>
+<span class="lineNum">      71 </span><span class="lineCov">         40 :             ss &gt;&gt; nnzs;</span>
+<span class="lineNum">      72 </span><span class="lineCov">         40 :           matrix = ncols &gt; 1;</span>
 <span class="lineNum">      73 </span>            : 
-<span class="lineNum">      74 </span><span class="lineNoCov">          0 :           if (pprint) {</span>
+<span class="lineNum">      74 </span><span class="lineCov">         40 :           if (pprint) {</span>
 <span class="lineNum">      75 </span><span class="lineNoCov">          0 :             std::cout &lt;&lt; &quot;sparse: &quot; &lt;&lt; sparse &lt;&lt; std::endl;</span>
 <span class="lineNum">      76 </span><span class="lineNoCov">          0 :             std::cout &lt;&lt; &quot;symmetric: &quot; &lt;&lt; symmetric &lt;&lt; std::endl;</span>
 <span class="lineNum">      77 </span><span class="lineNoCov">          0 :             std::cout &lt;&lt; &quot;matrix: &quot; &lt;&lt; matrix &lt;&lt; std::endl;</span>
 <span class="lineNum">      78 </span><span class="lineNoCov">          0 :             std::cout &lt;&lt; &quot;ncols: &quot; &lt;&lt; ncols &lt;&lt; std::endl;</span>
 <span class="lineNum">      79 </span><span class="lineNoCov">          0 :             std::cout &lt;&lt; &quot;nrows: &quot; &lt;&lt; nrows &lt;&lt; std::endl;</span>
 <span class="lineNum">      80 </span><span class="lineNoCov">          0 :             std::cout &lt;&lt; &quot;nnzs: &quot; &lt;&lt; nnzs &lt;&lt; std::endl;</span>
-<span class="lineNum">      81 </span><span class="lineNoCov">          0 :           }</span>
-<span class="lineNum">      82 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">      81 </span><span class="lineCov">         40 :           }</span>
+<span class="lineNum">      82 </span><span class="lineCov">         40 :         }</span>
 <span class="lineNum">      83 </span>            : 
 <span class="lineNum">      84 </span>            :         std::ifstream* f;
 <span class="lineNum">      85 </span>            :         std::string path;
 <span class="lineNum">      86 </span>            : 
 <a name="87"><span class="lineNum">      87 </span>            :         public:</a>
 <span class="lineNum">      88 </span>            : 
-<span class="lineNum">      89 </span><span class="lineNoCov">          0 :         MmReader(std::string _path) : path(_path) {</span>
-<span class="lineNum">      90 </span><span class="lineNoCov">          0 :           f = new std::ifstream{_path};</span>
-<span class="lineNum">      91 </span><span class="lineNoCov">          0 :           if (!f-&gt;is_open())</span>
+<span class="lineNum">      89 </span><span class="lineCov">         40 :         MmReader(std::string _path) : path(_path) {</span>
+<span class="lineNum">      90 </span><span class="lineCov">         40 :           f = new std::ifstream{_path};</span>
+<span class="lineNum">      91 </span><span class="lineCov">         40 :           if (!f-&gt;is_open())</span>
 <span class="lineNum">      92 </span><span class="lineNoCov">          0 :             throw std::invalid_argument(&quot;Could not open file path &quot; + path);</span>
-<a name="93"><span class="lineNum">      93 </span><span class="lineNoCov">          0 :         }</span></a>
+<a name="93"><span class="lineNum">      93 </span><span class="lineCov">         40 :         }</span></a>
 <span class="lineNum">      94 </span>            : 
-<span class="lineNum">      95 </span><span class="lineNoCov">          0 :         virtual ~MmReader() {</span>
-<span class="lineNum">      96 </span><span class="lineNoCov">          0 :           delete f;</span>
-<a name="97"><span class="lineNum">      97 </span><span class="lineNoCov">          0 :         }</span></a>
+<span class="lineNum">      95 </span><span class="lineCov">         40 :         virtual ~MmReader() {</span>
+<span class="lineNum">      96 </span><span class="lineCov">         40 :           delete f;</span>
+<a name="97"><span class="lineNum">      97 </span><span class="lineCov">         80 :         }</span></a>
 <span class="lineNum">      98 </span>            : 
 <span class="lineNum">      99 </span><span class="lineNoCov">          0 :         std::vector&lt;double&gt; readVector() {</span>
 <span class="lineNum">     100 </span><span class="lineNoCov">          0 :           parseHeader();</span>
@@ -193,42 +193,42 @@
 <span class="lineNum">     131 </span>            :         // - the values will be adjusted to 0 based indexing
 <a name="132"><span class="lineNum">     132 </span>            :         // - for symmetric matrices, the symmetric entries are also included</a>
 <span class="lineNum">     133 </span>            :         // - Triplets will be sorted in lexicographical order of their coordinates (row, column)
-<span class="lineNum">     134 </span><span class="lineNoCov">          0 :         spark::sparse::SparkCooMatrix&lt;value_type&gt; mmreadMatrix(std::string path) {</span>
-<span class="lineNum">     135 </span><span class="lineNoCov">          0 :           parseHeader();</span>
+<span class="lineNum">     134 </span><span class="lineCov">         40 :         spark::sparse::SparkCooMatrix&lt;value_type&gt; mmreadMatrix(std::string path) {</span>
+<span class="lineNum">     135 </span><span class="lineCov">         40 :           parseHeader();</span>
 <span class="lineNum">     136 </span>            : 
-<span class="lineNum">     137 </span><span class="lineNoCov">          0 :           if (!matrix)</span>
+<span class="lineNum">     137 </span><span class="lineCov">         40 :           if (!matrix)</span>
 <span class="lineNum">     138 </span><span class="lineNoCov">          0 :             throw std::invalid_argument(&quot;Matrix has only one column ==&gt; Use readVector&quot;);</span>
 <span class="lineNum">     139 </span>            : 
 <span class="lineNum">     140 </span>            :           // skip comments
-<span class="lineNum">     141 </span><span class="lineNoCov">          0 :           std::vector&lt;CoordType&gt; values;</span>
-<span class="lineNum">     142 </span><span class="lineNoCov">          0 :           std::string line;</span>
-<span class="lineNum">     143 </span><span class="lineNoCov">          0 :           for (int i = 0; i &lt; nnzs; i++) {</span>
-<span class="lineNum">     144 </span><span class="lineNoCov">          0 :             if (!getline(*f, line))</span>
+<span class="lineNum">     141 </span><span class="lineCov">         40 :           std::vector&lt;CoordType&gt; values;</span>
+<span class="lineNum">     142 </span><span class="lineCov">         80 :           std::string line;</span>
+<span class="lineNum">     143 </span><span class="lineCov">     768637 :           for (int i = 0; i &lt; nnzs; i++) {</span>
+<span class="lineNum">     144 </span><span class="lineCov">     768597 :             if (!getline(*f, line))</span>
 <span class="lineNum">     145 </span><span class="lineNoCov">          0 :               throw std::invalid_argument(&quot;File has less than given nonzeros!&quot;);</span>
-<span class="lineNum">     146 </span><span class="lineNoCov">          0 :             auto tpl = mmparse(line);</span>
-<span class="lineNum">     147 </span><span class="lineNoCov">          0 :             values.push_back(tpl);</span>
-<span class="lineNum">     148 </span><span class="lineNoCov">          0 :             auto row = std::get&lt;0&gt;(tpl);</span>
-<span class="lineNum">     149 </span><span class="lineNoCov">          0 :             auto col = std::get&lt;1&gt;(tpl);</span>
-<span class="lineNum">     150 </span><span class="lineNoCov">          0 :             if (symmetric &amp;&amp; row != col)</span>
-<span class="lineNum">     151 </span><span class="lineNoCov">          0 :               values.push_back(</span>
+<span class="lineNum">     146 </span><span class="lineCov">     768597 :             auto tpl = mmparse(line);</span>
+<span class="lineNum">     147 </span><span class="lineCov">     768597 :             values.push_back(tpl);</span>
+<span class="lineNum">     148 </span><span class="lineCov">     768597 :             auto row = std::get&lt;0&gt;(tpl);</span>
+<span class="lineNum">     149 </span><span class="lineCov">     768597 :             auto col = std::get&lt;1&gt;(tpl);</span>
+<span class="lineNum">     150 </span><span class="lineCov">     768597 :             if (symmetric &amp;&amp; row != col)</span>
+<span class="lineNum">     151 </span><span class="lineCov">     207973 :               values.push_back(</span>
 <span class="lineNum">     152 </span>            :                   std::make_tuple(
-<span class="lineNum">     153 </span><span class="lineNoCov">          0 :                     std::get&lt;1&gt;(tpl),</span>
-<span class="lineNum">     154 </span><span class="lineNoCov">          0 :                     std::get&lt;0&gt;(tpl),</span>
-<span class="lineNum">     155 </span><span class="lineNoCov">          0 :                     std::get&lt;2&gt;(tpl)));</span>
+<span class="lineNum">     153 </span><span class="lineCov">     207973 :                     std::get&lt;1&gt;(tpl),</span>
+<span class="lineNum">     154 </span><span class="lineCov">     207973 :                     std::get&lt;0&gt;(tpl),</span>
+<span class="lineNum">     155 </span><span class="lineCov">     207973 :                     std::get&lt;2&gt;(tpl)));</span>
 <span class="lineNum">     156 </span>            :           }
 <span class="lineNum">     157 </span>            : 
-<a name="158"><span class="lineNum">     158 </span><span class="lineNoCov">          0 :           auto start = std::chrono::high_resolution_clock::now();</span></a>
-<span class="lineNum">     159 </span><span class="lineNoCov">          0 :           std::sort(values.begin(), values.end(),</span>
-<span class="lineNum">     160 </span><span class="lineNoCov">          0 :               [](CoordType x, CoordType y) {</span>
+<a name="158"><span class="lineNum">     158 </span><span class="lineCov">         40 :           auto start = std::chrono::high_resolution_clock::now();</span></a>
+<span class="lineNum">     159 </span><span class="lineCov">         40 :           std::sort(values.begin(), values.end(),</span>
+<span class="lineNum">     160 </span><span class="lineCov">   20956167 :               [](CoordType x, CoordType y) {</span>
 <span class="lineNum">     161 </span>            :               return
-<span class="lineNum">     162 </span><span class="lineNoCov">          0 :               std::get&lt;0&gt;(x) &lt; std::get&lt;0&gt;(y) ||</span>
-<span class="lineNum">     163 </span><span class="lineNoCov">          0 :               (std::get&lt;0&gt;(x) == std::get&lt;0&gt;(y) &amp;&amp; std::get&lt;1&gt;(x) &lt; std::get&lt;1&gt;(y));</span>
-<span class="lineNum">     164 </span><span class="lineNoCov">          0 :               });</span>
-<span class="lineNum">     165 </span><span class="lineNoCov">          0 :           dfesnippets::timing::print_clock_diff(&quot;Sorting took: &quot;, start);</span>
+<span class="lineNum">     162 </span><span class="lineCov">   41912334 :               std::get&lt;0&gt;(x) &lt; std::get&lt;0&gt;(y) ||</span>
+<span class="lineNum">     163 </span><span class="lineCov">   22633174 :               (std::get&lt;0&gt;(x) == std::get&lt;0&gt;(y) &amp;&amp; std::get&lt;1&gt;(x) &lt; std::get&lt;1&gt;(y));</span>
+<span class="lineNum">     164 </span><span class="lineCov">   64545588 :               });</span>
+<span class="lineNum">     165 </span><span class="lineCov">         40 :           dfesnippets::timing::print_clock_diff(&quot;Sorting took: &quot;, start);</span>
 <span class="lineNum">     166 </span>            : 
-<span class="lineNum">     167 </span><span class="lineNoCov">          0 :           spark::sparse::SparkCooMatrix&lt;value_type&gt; m(nrows, ncols);</span>
-<span class="lineNum">     168 </span><span class="lineNoCov">          0 :           m.data = values;</span>
-<span class="lineNum">     169 </span><span class="lineNoCov">          0 :           return m;</span>
+<span class="lineNum">     167 </span><span class="lineCov">         40 :           spark::sparse::SparkCooMatrix&lt;value_type&gt; m(nrows, ncols);</span>
+<span class="lineNum">     168 </span><span class="lineCov">         40 :           m.data = values;</span>
+<span class="lineNum">     169 </span><span class="lineCov">         80 :           return m;</span>
 <span class="lineNum">     170 </span>            :         }
 <span class="lineNum">     171 </span>            :       };
 <span class="lineNum">     172 </span>            :   }

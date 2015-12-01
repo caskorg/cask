@@ -31,18 +31,18 @@
             <td class="headerValue">final.info</td>
             <td></td>
             <td class="headerItem">Lines:</td>
-            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">9</td>
             <td class="headerCovTableEntry">19</td>
-            <td class="headerCovTableEntryLo">0.0 %</td>
+            <td class="headerCovTableEntryLo">47.4 %</td>
           </tr>
           <tr>
             <td class="headerItem">Date:</td>
-            <td class="headerValue">2015-11-30</td>
+            <td class="headerValue">2015-12-01</td>
             <td></td>
             <td class="headerItem">Functions:</td>
-            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">5</td>
             <td class="headerCovTableEntry">12</td>
-            <td class="headerCovTableEntryLo">0.0 %</td>
+            <td class="headerCovTableEntryLo">41.7 %</td>
           </tr>
           <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
         </table>
@@ -72,7 +72,7 @@
 <span class="lineNum">      10 </span>            :   namespace spmv {
 <a name="11"><span class="lineNum">      11 </span>            : </a>
 <span class="lineNum">      12 </span>            :     // A generic architecture for SpMV
-<span class="lineNum">      13 </span><span class="lineNoCov">          0 :     class SpmvArchitecture {</span>
+<span class="lineNum">      13 </span><span class="lineCov">         40 :     class SpmvArchitecture {</span>
 <a name="14"><span class="lineNum">      14 </span>            : </a>
 <span class="lineNum">      15 </span>            :       public:
 <span class="lineNum">      16 </span><span class="lineNoCov">          0 :         double getEstimatedGFlops() {</span>
@@ -99,11 +99,11 @@
 <span class="lineNum">      37 </span><span class="lineNoCov">          0 :         virtual ~SpmvArchitecture() {}</span>
 <a name="38"><span class="lineNum">      38 </span>            : </a>
 <span class="lineNum">      39 </span>            :       protected:
-<span class="lineNum">      40 </span><span class="lineNoCov">          0 :         virtual spark::sparse::CsrMatrix preprocessBlock(</span>
+<span class="lineNum">      40 </span><span class="lineCov">        492 :         virtual spark::sparse::CsrMatrix preprocessBlock(</span>
 <span class="lineNum">      41 </span>            :             const spark::sparse::CsrMatrix&amp; in,
 <span class="lineNum">      42 </span>            :             int blockNumber,
 <span class="lineNum">      43 </span>            :             int nBlocks) {
-<span class="lineNum">      44 </span><span class="lineNoCov">          0 :           return in;</span>
+<span class="lineNum">      44 </span><span class="lineCov">        492 :           return in;</span>
 <span class="lineNum">      45 </span>            :         }
 <span class="lineNum">      46 </span>            :         virtual bool equals(const SpmvArchitecture&amp; a) const = 0;
 <span class="lineNum">      47 </span>            :     };
@@ -131,13 +131,13 @@
 <span class="lineNum">      69 </span>            :     };
 <a name="70"><span class="lineNum">      70 </span>            : </a>
 <span class="lineNum">      71 </span>            :     template&lt;typename T&gt;
-<span class="lineNum">      72 </span><span class="lineNoCov">          0 :       void align(std::vector&lt;T&gt;&amp; v, int widthInBytes) {</span>
-<span class="lineNum">      73 </span><span class="lineNoCov">          0 :         int limit = widthInBytes / sizeof(T);</span>
-<span class="lineNum">      74 </span><span class="lineNoCov">          0 :         while ((v.size() * sizeof(T)) % widthInBytes != 0 &amp;&amp; limit != 0) {</span>
-<span class="lineNum">      75 </span><span class="lineNoCov">          0 :           v.push_back(T{});</span>
-<span class="lineNum">      76 </span><span class="lineNoCov">          0 :           limit--;</span>
+<span class="lineNum">      72 </span><span class="lineCov">       1384 :       void align(std::vector&lt;T&gt;&amp; v, int widthInBytes) {</span>
+<span class="lineNum">      73 </span><span class="lineCov">       1384 :         int limit = widthInBytes / sizeof(T);</span>
+<span class="lineNum">      74 </span><span class="lineCov">     119870 :         while ((v.size() * sizeof(T)) % widthInBytes != 0 &amp;&amp; limit != 0) {</span>
+<span class="lineNum">      75 </span><span class="lineCov">     117102 :           v.push_back(T{});</span>
+<span class="lineNum">      76 </span><span class="lineCov">     117102 :           limit--;</span>
 <span class="lineNum">      77 </span>            :         }
-<span class="lineNum">      78 </span><span class="lineNoCov">          0 :       }</span>
+<span class="lineNum">      78 </span><span class="lineCov">       1384 :       }</span>
 <span class="lineNum">      79 </span>            : 
 <span class="lineNum">      80 </span>            : }
 <span class="lineNum">      81 </span>            : }
