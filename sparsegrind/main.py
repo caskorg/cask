@@ -240,7 +240,7 @@ def plot_matrices(list_of_matrices):
     for i, m in enumerate(list_of_matrices):
         pl.subplot(nplots, 1, i + 1)
         pl.spy(m)
-    pl.show()
+    pl.savefig('sparsity.png')
 
 
 def most_common_covered(counter, dict_size, nnzs):
@@ -322,6 +322,9 @@ def grind_matrix(file, args):
         compression_analysis_precision(realms[0], name, args.tolerance)
     elif args.analysis == 'summary':
         summary_analysis(realms[0], name)
+    elif args.analysis == 'plot':
+        print 'Ploting matrix', realms[0]
+        plot_matrices([realms[0]])
     else:
         print 'Unspported analysis'
         return
@@ -341,6 +344,7 @@ def main():
                                  'reordering',
                                  'compress_bcsrvi',
                                  'reduce_precision',
+                                 'plot',
                                  'summary'],
                         help='Analysis to run')
     parser.add_argument('-t', '--timestep',
