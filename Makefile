@@ -6,11 +6,23 @@ TRASH=latex
 
 help:
 	@ echo "Available targets are"
+	@ echo "  sim-test      -- run simulation tests"
+	@ echo "  "
 	@ echo "  mock          -- build mock designs"
-	@ echo "  mock-coverage -- run tests and coverage checks"
-	@ echo "  doc           -- generate documentation"
+	@ echo "  "
+	@ echo "  coverage      -- run tests (sim, unit, mock) and coverage checks"
+	@ echo "  "
 	@ echo "  upd-doc       -- push doc"
 	@ echo "  upd-coverage  -- push updated coverage information"
+
+sim:
+	rm -rf build
+	mkdir -p build
+	cd build && cmake -DCMAKE_BUILD_TYPE=Release ..
+	cd scripts && python spark.py -t sim -p ../params.json -b ../test-benchmark
+
+sim-test: sim
+	cd build && ctest -R sim*
 
 mock:
 	mkdir -p build
@@ -18,10 +30,11 @@ mock:
 	cd scripts && python spark.py -t dfe_mock -p ../params.json -b ../test-benchmark && cd ..
 	cd build && make -j12
 
-mock-coverage:
-	mkdir -p build
+coverage:
+	rm -rf build && mkdir -p build
 	cd build && cmake -DCMAKE_BUILD_TYPE=Debug ..
 	cd scripts && python spark.py -t dfe_mock -p ../params.json -b ../test-benchmark && cd ..
+	cd scripts && python spark.py -t sim -p ../params.json -b ../test-benchmark && cd ..
 	cd build && make -j12
 	bash gen_cov
 

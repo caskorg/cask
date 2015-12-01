@@ -8,6 +8,7 @@ lcov -d . -i -c --output base.info
 
 # TODO Run all tests
 ./build/unit_test_spmv
+cd build && ctest -R sim && cd ..
 
 lcov -d . -c --output-file run.info
 

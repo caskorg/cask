@@ -125,7 +125,7 @@ if (DEFINED ENV{MAXCOMPILERDIR} AND DEFINED ENV{MAXELEROSDIR})
     -lmaxeleros)
 
   # -- Hardware tests
-  add_executable(test_spmv_dfe tests/test_spmv.cpp)
+  add_executable(test_spmv_dfe EXCLUDE_FROM_ALL tests/test_spmv.cpp)
   target_link_libraries(test_spmv_dfe
     SparkCpuLib SparkCpuLib SpmvImplLib
     -L../lib-generated -lSpmv_dfe -ldl
