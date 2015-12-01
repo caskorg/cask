@@ -22,6 +22,9 @@ TARGET_DFE_MOCK = 'dfe_mock'
 TARGET_DFE = 'dfe'
 TARGET_SIM = 'sim'
 
+BENCHMARK_NONE = 'none'
+BENCHMARK_BEST = 'best'
+BENCHMARK_ALL_TO_ALL = 'all'
 
 class PrjConfig:
   def __init__(self, p, t, n, prj_id):
@@ -299,7 +302,7 @@ class Spark:
 
       f.write('\n}')
 
-  def runBuilds(self, prjs, benchmark, benchmark_all_to_all, sim):
+  def runBuilds(self, prjs, benchmark, benchmark_mode, sim):
 
     if self.target != TARGET_DFE_MOCK:
       # run MC builds in parallel
@@ -314,7 +317,10 @@ class Spark:
 
     buildClient(self.target)
 
-    if benchmark_all_to_all:
+    if benchmark_mode == BENCHMARK_NONE:
+      return
+
+    if benchmark_mode == BENCHMARK_ALL_TO_ALL:
       for p in prjs:
         runClient(benchmark, self.target, p)
     else:
@@ -329,7 +335,9 @@ def main():
   parser.add_argument('-p', '--param-file', required=True)
   parser.add_argument('-b', '--benchmark-dir', required=True)
   parser.add_argument('-m', '--max-builds', type=int)
-  parser.add_argument('-bm', '--benchmarking-mode', choices=['best-fit', 'all'], default='best-fit')
+  parser.add_argument('-bm', '--benchmarking-mode',
+      choices=[BENCHMARK_BEST, BENCHMARK_ALL_TO_ALL, BENCHMARK_NONE],
+      default=BENCHMARK_NONE)
   args = parser.parse_args()
 
   PRJ = 'Spmv'
@@ -366,7 +374,7 @@ def main():
   spark.runBuilds(
           ps,
           benchmark,
-          args.benchmarking_mode == 'all',
+          args.benchmarking_mode,
           args.target == 'sim')
 
 
