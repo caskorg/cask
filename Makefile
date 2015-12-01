@@ -1,7 +1,9 @@
 TMP_PATH="/tmp/spark_html_doc"
 HTML_DIR="html"
 COV_DIR="coverage"
+MAT_DIR="matrices_html"
 TMP_COV_PATH="/tmp/spark_coverage"
+TMP_MAT_PATH="/tmp/spark_matrices"
 TRASH=latex
 
 help:
@@ -29,6 +31,12 @@ mock:
 	cd build && cmake ..
 	cd scripts && python spark.py -t dfe_mock -p ../params.json -b ../test-benchmark && cd ..
 	cd build && make -j12
+
+matrix:
+	# TODO must run build beforehand
+	bash gen_matrix.sh
+	rm -rf matrices_html && mkdir -p matrices_html
+	python gen_matrix_html.py
 
 coverage:
 	rm -rf build && mkdir -p build
@@ -75,6 +83,19 @@ upd-coverage: coverage
 	git commit -m "Update coverage"
 	git push -u origin gh-pages
 	rm -rf ${TMP_COV_PATH}
+	git checkout master
+
+upd-matrix: matrix
+	rm -rf ${TMP_MAT_PATH}
+	cp ${MAT_DIR} ${TMP_MAT_PATH} -R && rm -rf ${MAT_DIR}
+	git fetch
+	git checkout gh-pages
+	mkdir -p matrices
+	cp ${TMP_MAT_PATH}/* matrices/ -R
+	git add matrices/
+	git commit -m "Update matrix data"
+	git push -u origin gh-pages
+	rm -rf ${TMP_MAT_PATH}
 	git checkout master
 
 .PHONY: doc update-doc tags
