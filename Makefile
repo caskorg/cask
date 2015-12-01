@@ -64,7 +64,7 @@ upd-doc: doc
 	rm -rf ${TMP_PATH}
 	git checkout master
 
-upd-cov: mock-coverage
+upd-coverage: coverage
 	rm -rf ${TMP_COV_PATH}
 	cp ${COV_DIR} ${TMP_COV_PATH} -R && rm -rf ${COV_DIR}
 	git fetch
