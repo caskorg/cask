@@ -323,7 +323,6 @@ def grind_matrix(file, args):
     elif args.analysis == 'summary':
         summary_analysis(realms[0], name)
     elif args.analysis == 'plot':
-        print 'Ploting matrix', realms[0]
         plot_matrices([realms[0]])
     else:
         print 'Unspported analysis'
