@@ -13,12 +13,11 @@ import os.path
 import collections
 
 from math import log, ceil
-from reorder import reorder
-from sparsegrindio import io
-from storage import storage
-from precision import precision
+import sparsegrind.reorder
+import sparsegrind.io
+import sparsegrind.storage
+import sparsegrind.precision
 import os
-import sparsegrindio
 import sys
 
 
@@ -92,7 +91,7 @@ def changes_analysis(matrix_timeline):
     different[0] = prev_m = matrix_timeline[0]
     pos = 1
     for m in matrix_timeline[1:]:
-        if (m != prev_m).data.any():
+        if (m != prev_m):
             different[pos] = m
         prev_m = m
         pos += 1

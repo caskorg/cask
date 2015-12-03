@@ -37,9 +37,9 @@ def csr(matrix, mantissa_bitwidth = 52, index_bitwidth = 32):
 
     return (metadata_bitsize/8.0,
             (nnz * bits_per_custom_data)/8.0,
-            "CSR: {:2d} bit data and ".format(bits_per_custom_data) +
-            str(index_bitwidth) + " bit index")
-
+            "CSR {:2d} bits data {} bit index".format(
+              bits_per_custom_data,
+              index_bitwidth))
 
 
 def dia(matrix):

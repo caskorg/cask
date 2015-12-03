@@ -1,11 +1,11 @@
-from sparsegrind.sparsegrindio import io
-from sparsegrind.storage import storage
-from sparsegrind import main
-
 import os
 import unittest
 import numpy as np
 from numpy import testing
+
+from sparsegrind import io
+from sparsegrind import main
+from sparsegrind import storage
 
 
 def path_to(file):
@@ -48,7 +48,7 @@ class TestMain(unittest.TestCase):
 
         self.assertEquals(
             storage.csr(self.csr_matrix),
-            (4 * (8 + 6), 64, 'CSR'))
+            (4 * (8 + 6), 64, 'CSR 64 bits data 32 bit index'))
 
         self.assertEquals(
             storage.csc(self.csr_matrix),
