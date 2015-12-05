@@ -128,7 +128,7 @@ if (DEFINED ENV{MAXCOMPILERDIR} AND DEFINED ENV{MAXELEROSDIR})
   add_executable(test_spmv_dfe EXCLUDE_FROM_ALL tests/test_spmv.cpp)
   target_link_libraries(test_spmv_dfe
     SparkCpuLib SparkCpuLib SpmvImplLib
-    -L../lib-generated -lSpmv_dfe -ldl
+    -L../lib-generated -lSpmv_dfe -ldl -lboost_filesystem
     -lmaxeleros)
 
   if (NOT SparseLib_DisableTesting)

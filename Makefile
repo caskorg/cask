@@ -5,6 +5,7 @@ MAT_DIR="matrices_html"
 TMP_COV_PATH="/tmp/spark_coverage"
 TMP_MAT_PATH="/tmp/spark_matrices"
 TRASH=latex
+ROOT_PATH=$(shell pwd)
 
 help:
 	@ echo "Available targets are"
@@ -17,14 +18,23 @@ help:
 	@ echo "  upd-doc       -- push doc"
 	@ echo "  upd-coverage  -- push updated coverage information"
 
-sim:
+# make this depend on source files?
+build/main:
 	rm -rf build
 	mkdir -p build
-	cd build && cmake -DCMAKE_BUILD_TYPE=Release ..
-	cd scripts && python spark.py -t sim -p ../params.json -b ../test-benchmark
+	cd build && cmake -DCMAKE_BUILD_TYPE=Release .. && make main -j
+
+hw: build/main
+	cd scripts && python spark.py -t dfe -p ../params.json -b ../test-benchmark -d -bm best
+
+sim: build/main
+	cd scripts && python spark.py -t sim -p ../params.json -b ../test-benchmark -d
 
 sim-test: sim
 	cd build && ctest -R sim*
+
+graphs:
+	cd scripts && PYTHONPATH=$(PYTHONPATH):$(ROOT_PATH)/sparsegrind python render_graphs.py
 
 mock:
 	mkdir -p build
