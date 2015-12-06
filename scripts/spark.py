@@ -10,6 +10,9 @@ import multiprocessing
 import pprint
 import numpy as np
 import matplotlib.pyplot as plt
+from termcolor import colored
+
+
 
 from os import listdir
 from os.path import isfile, join
@@ -154,11 +157,12 @@ def runClient(benchmark, target, prj=None):
       cmd = ['bash', 'simrunner', '../build/test_spmv_sim', p]
     elif target == TARGET_DFE_MOCK:
       cmd = ['bash', 'mockrunner', '../build/test_spmv_dfe_mock', p]
+    outF = 'run_' + target + '_'
     if prj:
       cmd.append(str(prj.prj_id))
-      outF = 'run_' + prj.buildName()
+      outF += prj.buildName()
     else:
-      outF = 'run_benchmark_best'
+      outF += 'benchmark_best'
     outF += '_' + os.path.basename(p)
     print '      -->', p, 'outFile =', outF
     try:
@@ -179,8 +183,9 @@ def runClient(benchmark, target, prj=None):
 
 class Spark:
 
-  def __init__(self, target):
+  def __init__(self, target, prjs):
     self.target = target
+    self.prjs =prjs
 
   def runLibraryBuild(self, prjs, libName):
     print '     ---- Building Library ----'
@@ -302,29 +307,30 @@ class Spark:
 
       f.write('\n}')
 
-  def runBuilds(self, prjs, benchmark, benchmark_mode, sim):
+  def runBuilds(self):
 
     if self.target != TARGET_DFE_MOCK:
       # run MC builds in parallel
       pool = Pool(4)
-      pool.map(runMaxCompilerBuild, prjs)
+      pool.map(runMaxCompilerBuild, self.prjs)
       pool.close()
       pool.join()
 
     # library generation is sequential
-    self.generateImplementationHeader(prjs)
-    self.runLibraryBuild(prjs, 'libSpmv_' + self.target + '.so')
-
+    self.generateImplementationHeader(self.prjs)
+    self.runLibraryBuild(self.prjs, 'libSpmv_' + self.target + '.so')
     buildClient(self.target)
 
+  def runBenchmark(self, benchmark, benchmark_mode):
     if benchmark_mode == BENCHMARK_NONE:
       return
 
     if benchmark_mode == BENCHMARK_ALL_TO_ALL:
-      for p in prjs:
+      for p in self.prjs:
         runClient(benchmark, self.target, p)
     else:
       runClient(benchmark, self.target)
+
 
 
 def main():
@@ -338,6 +344,7 @@ def main():
   parser.add_argument('-bm', '--benchmarking-mode',
       choices=[BENCHMARK_BEST, BENCHMARK_ALL_TO_ALL, BENCHMARK_NONE],
       default=BENCHMARK_NONE)
+  parser.add_argument('-rb', '--run-builds', default=False, action='store_true')
   args = parser.parse_args()
 
   PRJ = 'Spmv'
@@ -347,11 +354,12 @@ def main():
   ## Run DSE pass
   params = []
   if args.dse:
-    print 'Running DSE flow'
+    print colored('Running DSE flow', 'red')
     # the DSE tool produces a JSON file with architectures to be built
     params = runDse(args.benchmark_dir, args.param_file)
     # builds = [buildName + b for b in builds]
   else:
+    # load default parameters values from param_file
     with open(args.param_file) as f:
       data = json.load(f)
       ps = {}
@@ -363,20 +371,20 @@ def main():
   for i in range(len(params)):
     prjs.append(PrjConfig(params[i], args.target, PRJ, i))
 
-  print 'Running builds'
   p = os.path.abspath(args.benchmark_dir)
   benchmark = [ join(p, f) for f in listdir(p) if isfile(join(p,f)) ]
 
-
   ps = prjs[:args.max_builds] if args.max_builds else prjs
 
-  spark = Spark(args.target)
-  spark.runBuilds(
-          ps,
-          benchmark,
-          args.benchmarking_mode,
-          args.target == 'sim')
+  spark = Spark(args.target, ps)
 
+  if args.run_builds:
+    print colored('Running builds', 'red')
+    spark.runBuilds()
+
+  if args.benchmarking_mode != BENCHMARK_NONE:
+    print colored('Running benchmark', 'red')
+    spark.runBenchmark(benchmark, args.benchmarking_mode)
 
 if __name__ == '__main__':
   main()
