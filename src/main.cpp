@@ -64,7 +64,10 @@ void write_dse_results(
     pt::ptree archJson;
     archJson.put("name", arch_name);
     archJson.put("estimated_gflops", arch->getEstimatedGFlops());
+    archJson.put("estimated_clock_cycles", arch->getEstimatedClockCycles());
+
     archJson.add_child("architecture_params", arch->write_params());
+    archJson.add_child("estimated_impl_params", arch->write_est_impl_params());
 
     pt::ptree matrices;
     for (int i = 0; i < dseResult.matrices.size(); i++) {

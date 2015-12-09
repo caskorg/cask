@@ -28,6 +28,8 @@ BENCHMARK_NONE = 'none'
 BENCHMARK_BEST = 'best'
 BENCHMARK_ALL_TO_ALL = 'all'
 
+DSE_LOG_FILE = 'dse_run.log'
+
 class PrjConfig:
   def __init__(self, p, t, n, prj_id):
     self.params = p
@@ -96,16 +98,40 @@ def preProcessBenchmark(benchDirPath):
     entries.append(info)
   return sorted(entries, key=lambda x : x[-1], reverse=True)
 
+def execute(command, logfile):
+  print 'Executing ', ' '.join(command)
+  popen = subprocess.Popen(command, stdout=subprocess.PIPE)
+  lines_iterator = iter(popen.stdout.readline, b"")
+  with open(logfile, 'w') as log:
+    for line in lines_iterator:
+      log.write(line)
+      log.flush()
+
 def runDse(benchFile, paramsFile):
-  dseLog = subprocess.check_output(
-      ["../build/main", benchFile, paramsFile])
+  execute(['../build/main', benchFile, paramsFile], DSE_LOG_FILE)
   dseFile = "dse_out.json"
   params = []
+  architectures = []
   with open(dseFile) as f:
     data = json.load(f)
     for arch in data['best_architectures']:
-      params.append(arch['architecture_params'])
-  return params
+      ps = arch['architecture_params']
+      est_impl_ps = arch['estimated_impl_params']
+      matrix = arch['matrices'][0]
+      params.append(ps)
+      architectures.append(
+          [ os.path.basename(matrix).replace('.mtx', ''),
+            int(ps['cache_size']), int(ps['input_width']),
+            int(ps['num_pipes']), int(ps['max_rows']),
+            float(est_impl_ps['memory_bandwidth']),
+            int(est_impl_ps['BRAMs']),
+            int(est_impl_ps['LUTs']),
+            int(est_impl_ps['FFs']),
+            int(est_impl_ps['DSPs']),
+            arch['estimated_gflops'], ])
+  pp = pprint.PrettyPrinter(indent=4)
+  pp.pprint(architectures)
+  return params, architectures
 
 
 def runMaxCompilerBuild(prj):
@@ -379,7 +405,8 @@ def main():
   if args.dse:
     print colored('Running DSE flow', 'red')
     # the DSE tool produces a JSON file with architectures to be built
-    params = runDse(args.benchmark_dir, args.param_file)
+    params, archs = runDse(args.benchmark_dir, args.param_file)
+    logTexTable(sorted(archs, key=lambda x: x[1]), 'dse_architectures.tex')
     # builds = [buildName + b for b in builds]
   else:
     # load default parameters values from param_file
@@ -390,6 +417,7 @@ def main():
         ps[k] = str(v['default'])
     params = [ps]
 
+  return
   prjs = []
   for i in range(len(params)):
     prjs.append(PrjConfig(params[i], args.target, PRJ, i))

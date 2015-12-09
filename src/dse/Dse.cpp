@@ -36,7 +36,7 @@ std::shared_ptr<SpmvArchitecture> dse_run(
   int it = 0;
 
   // for virtex 6
-  double alpha = 0.9; // aim to fit about 90% of the chip
+  double alpha = 0.7; // aim to fit about alpha% of the chip
   const LogicResourceUsage maxResources(LogicResourceUsage{297600, 297600, 1064, 2016} * alpha);
 
   const ImplementationParameters maxParams{maxResources, 39};
@@ -134,6 +134,9 @@ std::vector<DseResult> spark::dse::SparkDse::run (
           dse_run(basename, sas, *eigenMatrix, params));
     }
 
+    if (!bestOverall)
+      continue;
+
     for (int i = 0; i < factories.size(); i++)
       delete(factories[i]);
 
@@ -148,20 +151,22 @@ std::vector<DseResult> spark::dse::SparkDse::run (
     std::cout << " BestOverall " << std::endl;
 
 
-    auto a = all_architectures.find(bestOverall);
-    if ( a != all_architectures.end()) {
-      a->second.push_back(path);
-    } else {
-      all_architectures.insert(
-          std::make_pair(bestOverall, std::vector<std::string>{path}));
-    }
+    //auto a = all_architectures.find(bestOverall);
+    //if ( a != all_architectures.end()) {
+      //a->second.push_back(path);
+    //} else {
+      //all_architectures.insert(
+          //std::make_pair(bestOverall, std::vector<std::string>{path}));
+    //}
+
+    bestArchitectures.push_back(DseResult{path, bestOverall});
   }
 
-  for (const auto& a : all_architectures) {
-    DseResult result{a.first};
-    result.matrices = a.second;
-    bestArchitectures.push_back(result);
-  }
+  //for (const auto& a : all_architectures) {
+    //DseResult result{a.first};
+    //result.matrices = a.second;
+    //bestArchitectures.push_back(result);
+  //}
 
   return bestArchitectures;
 }

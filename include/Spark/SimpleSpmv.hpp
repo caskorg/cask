@@ -79,6 +79,17 @@ namespace spark {
             maxRows == other.maxRows;
         }
 
+        virtual boost::property_tree::ptree write_est_impl_params() override {
+          auto params = getImplementationParameters();
+          boost::property_tree::ptree tree;
+          tree.put("memory_bandwidth", params.memoryBandwidth);
+          tree.put("BRAMs", params.ru.brams);
+          tree.put("LUTs", params.ru.luts);
+          tree.put("FFs", params.ru.ffs);
+          tree.put("DSPs", params.ru.dsps);
+          return tree;
+        }
+
         virtual boost::property_tree::ptree write_params() override {
           boost::property_tree::ptree tree;
           tree.put("num_pipes", numPipes);
@@ -138,6 +149,8 @@ namespace spark {
         }
 
         // NOTE: only call this after a call to preprocessMatrix
+        // XXX this should be renamed to estimated
+        // XXX This can't really be done at compile time
         virtual spark::model::ImplementationParameters getImplementationParameters() {
           // XXX bram usage for altera in double precision only (512 deep, 40 bits wide, so need 2 BRAMs)
           //int brams = (double)cacheSize * (double)inputWidth / 512.0 * 2.0;
