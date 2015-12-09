@@ -10,10 +10,9 @@ import multiprocessing
 import pprint
 import numpy as np
 import matplotlib.pyplot as plt
+
+from scipy import io, sparse
 from termcolor import colored
-
-
-
 from os import listdir
 from os.path import isfile, join
 from multiprocessing import Pool
@@ -86,6 +85,16 @@ class PrjConfig:
   def sim(self):
     return self.target == TARGET_SIM
 
+def preProcessBenchmark(benchDirPath):
+  entries = []
+  for f in os.listdir(benchDirPath):
+    info = io.mminfo(os.path.join(benchDirPath, f))
+    if info[0] == info[1]:
+      info = list(info[1:])
+    info.append(info[1] / info[0])
+    info.insert(0, f.replace(r'.mtx', ''))
+    entries.append(info)
+  return sorted(entries, key=lambda x : x[-1], reverse=True)
 
 def runDse(benchFile, paramsFile):
   dseLog = subprocess.check_output(
@@ -331,7 +340,17 @@ class Spark:
     else:
       runClient(benchmark, self.target)
 
+def logTexTable(entries, fpath):
 
+  rows = []
+  for e in entries:
+    rows.append(' & '.join(map(str, e)))
+  table = '\\begin{{tabular}}{{{}}} \n{}\n\end{{tabular}}'.format(
+      'l' * len(entries[0]),
+      ' \\\\\n'.join(rows))
+
+  with open(fpath, 'w') as f:
+    f.write(table)
 
 def main():
 
@@ -353,6 +372,10 @@ def main():
 
   ## Run DSE pass
   params = []
+
+  entries = preProcessBenchmark(args.benchmark_dir)
+  logTexTable(entries, 'benchmark.tex')
+
   if args.dse:
     print colored('Running DSE flow', 'red')
     # the DSE tool produces a JSON file with architectures to be built
