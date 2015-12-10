@@ -408,7 +408,8 @@ def main():
   parser.add_argument('-t', '--target', choices=[TARGET_DFE, TARGET_SIM, TARGET_DFE_MOCK], required=True)
   parser.add_argument('-p', '--param-file', required=True)
   parser.add_argument('-b', '--benchmark-dir', required=True)
-  parser.add_argument('-m', '--max-builds', type=int)
+  parser.add_argument('-st', '--build_start', type=int, default=None)
+  parser.add_argument('-en', '--build_end', type=int, default=None)
   parser.add_argument('-bm', '--benchmarking-mode',
       choices=[BENCHMARK_BEST, BENCHMARK_ALL_TO_ALL, BENCHMARK_NONE],
       default=BENCHMARK_NONE)
@@ -446,7 +447,9 @@ def main():
   p = os.path.abspath(args.benchmark_dir)
   benchmark = [ join(p, f) for f in listdir(p) if isfile(join(p,f)) ]
 
-  ps = prjs[:args.max_builds] if args.max_builds else prjs
+  ps = prjs
+  if args.build_start != None and args.build_end != None:
+    ps = prjs[args.build_start:args.build_end]
 
   spark = Spark(args.target, ps)
 
