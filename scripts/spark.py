@@ -2,9 +2,7 @@
 import argparse
 import itertools
 import json
-import matplotlib.pyplot as plt
 import multiprocessing
-import numpy as np
 import os
 import pprint
 import re
@@ -100,11 +98,7 @@ def preProcessBenchmark(benchDirPath):
     entries.append(info)
   return sorted(entries, key=lambda x : x[-1], reverse=True)
 
-def execute(command, logfile=None, silent=True):
-  if not silent:
-    print 'Executing ', ' '.join(command)
-  popen = subprocess.Popen(command, stdout=subprocess.PIPE)
-  lines_iterator = iter(popen.stdout.readline, b"")
+def print_from_iterator(lines_iterator, logfile=None):
   if logfile:
     with open(logfile, 'w') as log:
       for line in lines_iterator:
@@ -113,10 +107,23 @@ def execute(command, logfile=None, silent=True):
   else:
     for line in lines_iterator:
       print line
+
+def execute(command, logfile=None, silent=True):
+  if not silent:
+    print 'Executing ', ' '.join(command)
+  popen = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+  if logfile:
+    print_from_iterator(iter(popen.stdout.readline, b"") , logfile)
+    print_from_iterator(iter(popen.stderr.readline,  b""), logfile + '.err')
+
   popen.wait()
   if popen.returncode != 0:
     if silent:
       print 'Executed ', ' '.join(command)
+    if logfile:
+      print 'log: ', logfile
+      print 'errlog:  ', logfile + '.err'
     print colored('  --> Error! Non-zero return code ' + str(popen.returncode) , 'red')
 
 def runDse(benchFile, paramsFile, skipExecution=False):
@@ -289,10 +296,10 @@ class Spark:
       # Include maxfile headers
       if self.target != TARGET_DFE_MOCK:
         for p in prjs:
-          f.write('#include <{}.h>\n'.format(p.name))
+          f.write('#include <{0}.h>\n'.format(p.name))
 
       # Defines struct formats
-      f.write('#include <Spark/{}>\n'.format('GeneratedImplSupport.hpp'))
+      f.write('#include <Spark/{0}>\n'.format('GeneratedImplSupport.hpp'))
 
       f.write('using namespace spark::runtime;\n')
 
@@ -358,11 +365,11 @@ def logTexTable(entries, fpath):
   for e in itertools.chain.from_iterable(entries):
     l = len(str(e))
     if type(e) is float:
-      l = len(('{:' + float_prec + '}').format(e))
+      l = len(('{0:' + float_prec + '}').format(e))
     length = max(length, l)
 
-  fmt = '{:' + str(length) + '}'
-  float_fmt = '{:' + str(length) + float_prec + '}'
+  fmt = '{0:' + str(length) + '}'
+  float_fmt = '{0:' + str(length) + float_prec + '}'
 
   for entry in entries:
     row = fmt.format(entry[0])
@@ -373,7 +380,7 @@ def logTexTable(entries, fpath):
       row += ' &' + f.format(field)
     rows.append(row)
 
-  table = '\\begin{{tabular}}{{{}}} \n{}\n\end{{tabular}}'.format(
+  table = '\\begin{{tabular}}{{{0}}} \n{1}\n\end{{tabular}}'.format(
       'l' * len(entries[0]),
       ' \\\\\n'.join(rows) + r' \\' )
 
