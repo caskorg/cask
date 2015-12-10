@@ -95,6 +95,8 @@ def preProcessBenchmark(benchDirPath):
       info = list(info[1:])
     info.append(info[1] / info[0])
     info.insert(0, f.replace(r'.mtx', ''))
+    info[1] = int(info[1])
+    info[2] = int(info[2])
     entries.append(info)
   return sorted(entries, key=lambda x : x[-1], reverse=True)
 
@@ -124,11 +126,11 @@ def runDse(benchFile, paramsFile, skipExecution=False):
           [ os.path.basename(matrix).replace('.mtx', ''),
             int(ps['cache_size']), int(ps['input_width']),
             int(ps['num_pipes']), int(ps['max_rows']),
-            float(est_impl_ps['memory_bandwidth']),
             int(est_impl_ps['BRAMs']),
             int(est_impl_ps['LUTs']),
             int(est_impl_ps['FFs']),
             int(est_impl_ps['DSPs']),
+            float(est_impl_ps['memory_bandwidth']),
             float(arch['estimated_gflops']), ])
   pp = pprint.PrettyPrinter(indent=4)
   pp.pprint(architectures)
@@ -380,7 +382,6 @@ def logTexTable(entries, fpath):
       l = len(('{:' + float_prec + '}').format(e))
     length = max(length, l)
 
-  print 'max length', length
   fmt = '{:' + str(length) + '}'
   float_fmt = '{:' + str(length) + float_prec + '}'
 
@@ -399,6 +400,26 @@ def logTexTable(entries, fpath):
 
   with open(fpath, 'w') as f:
     f.write(table)
+
+
+def logDseResults(log_benchmark, log_archs):
+  # Merge matrix and architecture params information
+  log_merged = map(
+      lambda x: x[0] + x[1],
+      zip(
+        sorted(log_benchmark, key=lambda x: x[0]),
+        sorted(log_archs,  key=lambda x: x[0])))
+  discard = [3, 4, 5, 7] # fields which contain uninteresting information
+  log_merged_final = []
+  for e in log_merged:
+    log_merged_final.append([e[i] for i in range(len(e)) if i not in discard])
+
+  logTexTable(
+      [['Matrix', 'Order', 'NNZs', 'NNZ / row', 'Cx', 'k', 'Np', 'Cb', 'BRAMs', 'LUTs', 'FFs', 'DSPs', 'BWidth', 'GFLOPs' ]]
+      +
+      sorted(log_merged_final, key=lambda x: x[3], reverse=True),
+      'dse_matrix_architectures.tex')
+
 
 def main():
 
@@ -422,15 +443,12 @@ def main():
   ## Run DSE pass
   params = []
 
-  entries = preProcessBenchmark(args.benchmark_dir)
-  logTexTable(entries, 'benchmark.tex')
+  log_benchmark = preProcessBenchmark(args.benchmark_dir)
 
   if args.dse:
     print colored('Running DSE flow', 'red')
     # the DSE tool produces a JSON file with architectures to be built
-    params, archs = runDse(args.benchmark_dir, args.param_file)
-    logTexTable(sorted(archs, key=lambda x: x[1]), 'dse_architectures.tex')
-    # builds = [buildName + b for b in builds]
+    params, log_archs = runDse(args.benchmark_dir, args.param_file, args.dse_skip)
   else:
     # load default parameters values from param_file
     with open(args.param_file) as f:
@@ -440,7 +458,8 @@ def main():
         ps[k] = str(v['default'])
     params = [ps]
 
-  return
+  logDseResults(log_benchmark, log_archs)
+
   prjs = []
   for i in range(len(params)):
     prjs.append(PrjConfig(params[i], args.target, PRJ, i))
