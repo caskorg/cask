@@ -107,8 +107,9 @@ def execute(command, logfile):
       log.write(line)
       log.flush()
 
-def runDse(benchFile, paramsFile):
-  execute(['../build/main', benchFile, paramsFile], DSE_LOG_FILE)
+def runDse(benchFile, paramsFile, skipExecution=False):
+  if not skipExecution:
+    execute(['../build/main', benchFile, paramsFile], DSE_LOG_FILE)
   dseFile = "dse_out.json"
   params = []
   architectures = []
@@ -403,6 +404,7 @@ def main():
 
   parser = argparse.ArgumentParser(description='Run Spark DSE flow')
   parser.add_argument('-d', '--dse', action='store_true', default=False)
+  parser.add_argument('-ds', '--dse-skip', action='store_true', default=False)
   parser.add_argument('-t', '--target', choices=[TARGET_DFE, TARGET_SIM, TARGET_DFE_MOCK], required=True)
   parser.add_argument('-p', '--param-file', required=True)
   parser.add_argument('-b', '--benchmark-dir', required=True)
