@@ -1,23 +1,23 @@
 """Implements the main DSE loop in spark."""
 import argparse
+import itertools
 import json
+import matplotlib.pyplot as plt
+import multiprocessing
+import numpy as np
 import os
+import pprint
 import re
 import shutil
 import subprocess
 import sys
-import multiprocessing
-import pprint
-import numpy as np
-import matplotlib.pyplot as plt
 
-from scipy import io, sparse
-from termcolor import colored
+from multiprocessing import Pool
 from os import listdir
 from os.path import isfile, join
-from multiprocessing import Pool
-
+from scipy import io, sparse
 from subprocess import call
+from termcolor import colored
 
 
 TARGET_DFE_MOCK = 'dfe_mock'
@@ -128,7 +128,7 @@ def runDse(benchFile, paramsFile):
             int(est_impl_ps['LUTs']),
             int(est_impl_ps['FFs']),
             int(est_impl_ps['DSPs']),
-            arch['estimated_gflops'], ])
+            float(arch['estimated_gflops']), ])
   pp = pprint.PrettyPrinter(indent=4)
   pp.pprint(architectures)
   return params, architectures
@@ -367,13 +367,34 @@ class Spark:
       runClient(benchmark, self.target)
 
 def logTexTable(entries, fpath):
-
   rows = []
-  for e in entries:
-    rows.append(' & '.join(map(str, e)))
+
+  float_prec = '.3f'
+
+  # find maximum length
+  length = 0
+  for e in itertools.chain.from_iterable(entries):
+    l = len(str(e))
+    if type(e) is float:
+      l = len(('{:' + float_prec + '}').format(e))
+    length = max(length, l)
+
+  print 'max length', length
+  fmt = '{:' + str(length) + '}'
+  float_fmt = '{:' + str(length) + float_prec + '}'
+
+  for entry in entries:
+    row = fmt.format(entry[0])
+    for field in entry[1:]:
+      f = fmt
+      if type(field) is float:
+        f = float_fmt
+      row += ' &' + f.format(field)
+    rows.append(row)
+
   table = '\\begin{{tabular}}{{{}}} \n{}\n\end{{tabular}}'.format(
       'l' * len(entries[0]),
-      ' \\\\\n'.join(rows))
+      ' \\\\\n'.join(rows) + r' \\' )
 
   with open(fpath, 'w') as f:
     f.write(table)
