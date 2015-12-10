@@ -100,14 +100,24 @@ def preProcessBenchmark(benchDirPath):
     entries.append(info)
   return sorted(entries, key=lambda x : x[-1], reverse=True)
 
-def execute(command, logfile):
-  print 'Executing ', ' '.join(command)
+def execute(command, logfile=None, silent=True):
+  if not silent:
+    print 'Executing ', ' '.join(command)
   popen = subprocess.Popen(command, stdout=subprocess.PIPE)
   lines_iterator = iter(popen.stdout.readline, b"")
-  with open(logfile, 'w') as log:
+  if logfile:
+    with open(logfile, 'w') as log:
+      for line in lines_iterator:
+        log.write(line)
+        log.flush()
+  else:
     for line in lines_iterator:
-      log.write(line)
-      log.flush()
+      print line
+  popen.wait()
+  if popen.returncode != 0:
+    if silent:
+      print 'Executed ', ' '.join(command)
+    print colored('  --> Error! Non-zero return code ' + str(popen.returncode) , 'red')
 
 def runDse(benchFile, paramsFile, skipExecution=False):
   if not skipExecution:
@@ -140,41 +150,17 @@ def runDse(benchFile, paramsFile, skipExecution=False):
 def runMaxCompilerBuild(prj):
   buildParams = "target={0} buildName={1} maxFileName={2} ".format(
       prj.buildTarget(), prj.buildName(), prj.name)
+  print '     --> Building MaxFile ', prj.buildName(), '\n'
 
-  print '  Running build'
+  prjLogFile = 'logs/' + prj.buildName() + '.log'
+  execute(
+      ['make', 'MAX_BUILDPARAMS="' + prj.maxBuildParams() + buildParams + '"',
+      "-C", prj.buildRoot, prj.maxFileTarget()],
+      prjLogFile)
 
-  cmd = [
-      'make',
-      'MAX_BUILDPARAMS="' + prj.maxBuildParams() + buildParams + '"',
-      "-C",
-      prj.buildRoot,
-      prj.maxFileTarget()]
-
-  p = subprocess.Popen(cmd, stdout=subprocess.PIPE)
-  print '     ---- Building MaxFile ----'
-  while p.poll() is None:
-      l = p.stdout.readline()
-      sys.stdout.write('      ')
-      sys.stdout.write(l)
-  for l in p.stdout.read().split('\n'):
-    if l:
-      print '     ', l.rstrip()
-  print ''
-
-  forceTimingScore(prj.maxFileLocation())
-
-
-def forceTimingScore(maxfile):
-  # Might want to find a way to do this in python...
-  oldts=subprocess.check_output(['grep', 'TIMING_SCORE', maxfile])
-  cmd= [
-    'sed', '-i', '-e',
-    r's/PARAM(TIMING_SCORE,.*)/PARAM(TIMING_SCORE, 0)/',
-    maxfile]
-  call(cmd)
-  newts = subprocess.check_output(['grep', 'TIMING_SCORE', maxfile])
-  print '      Changing timing score: {0} --> {1}'.format(oldts.strip(), newts.strip())
-
+  execute(['sed', '-i', '-e', r's/PARAM(TIMING_SCORE,.*)/PARAM(TIMING_SCORE, 0)/',
+    prj.maxFileLocation()
+    ])
 
 
 def buildClient(target):
@@ -298,13 +284,6 @@ class Spark:
     shutil.copy(libName, libDir + '/{}.0'.format(libName))
     shutil.move(libName, libDir)
 
-    # # do a bit of cleanup
-    # if os.path.exists(maxfileO):
-      # os.remove(maxfileO)
-    # if os.path.exists(deviceO):
-      # os.remove(deviceO)
-
-
   def generateImplementationHeader(self, prjs):
     with open('GeneratedImplementations.cpp', 'w') as f:
       # Include maxfile headers
@@ -349,7 +328,7 @@ class Spark:
 
     if self.target != TARGET_DFE_MOCK:
       # run MC builds in parallel
-      pool = Pool(4)
+      pool = Pool(6)
       pool.map(runMaxCompilerBuild, self.prjs)
       pool.close()
       pool.join()
