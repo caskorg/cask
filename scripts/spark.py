@@ -119,17 +119,19 @@ def execute(command, logfile=None, silent=True):
 
   popen.wait()
   if popen.returncode != 0:
-    if silent:
-      print 'Executed ', ' '.join(command)
     if logfile:
       print 'log: ', logfile
       print 'errlog:  ', logfile + '.err'
-    print colored('  --> Error! Non-zero return code ' + str(popen.returncode) , 'red')
+    print colored("Error! '{0}' return code {1}".format(
+      ' '.join(command), str(popen.returncode)) ,
+      'red')
 
 def runDse(benchFile, paramsFile, skipExecution=False):
+  dseFile = "dse_out.json"
   if not skipExecution:
     execute(['../build/main', benchFile, paramsFile], DSE_LOG_FILE)
-  dseFile = "dse_out.json"
+  else:
+    print '  --> Skip DSE run, load results from', dseFile
   params = []
   architectures = []
   with open(dseFile) as f:
@@ -149,15 +151,13 @@ def runDse(benchFile, paramsFile, skipExecution=False):
             int(est_impl_ps['DSPs']),
             float(est_impl_ps['memory_bandwidth']),
             float(arch['estimated_gflops']), ])
-  pp = pprint.PrettyPrinter(indent=4)
-  pp.pprint(architectures)
   return params, architectures
 
 
 def runMaxCompilerBuild(prj):
   buildParams = "target={0} buildName={1} maxFileName={2} ".format(
       prj.buildTarget(), prj.buildName(), prj.name)
-  print '     --> Building MaxFile ', prj.buildName(), '\n'
+  print '  --> Building MaxFile ', prj.buildName(), '\n',
 
   prjLogFile = 'logs/' + prj.buildName() + '.log'
   execute(
@@ -171,11 +171,8 @@ def runMaxCompilerBuild(prj):
 
 
 def buildClient(target):
-  print '     ---- Building Client ----'
-  out = subprocess.check_output(['make',
-    '-C',
-    '../build/',
-    'test_spmv_' + target])
+  print ' >> Building Client ----'
+  execute(['make', '-C', '../build/', 'test_spmv_' + target])
 
 
 def runClient(benchmark, target, prj=None):
@@ -219,7 +216,7 @@ class Spark:
     self.prjs =prjs
 
   def runLibraryBuild(self, prjs, libName):
-    print '     ---- Building Library ----'
+    print ' >> Building Library'
 
     interfaceFile = 'GeneratedImplementations.cpp'
     deviceO = 'SmpvDeviceInterface.o'
@@ -280,10 +277,9 @@ class Spark:
         '-lslic',])
 
     cmd.extend(['-lm', '-lpthread'])
-    out = subprocess.check_output(cmd)
-    print out
+    execute(cmd)
 
-    # # copy the generated library
+    # copy the generated library
     libDir = '../lib-generated'
     if os.path.exists(libDir):
       shutil.rmtree(libDir)
@@ -333,6 +329,7 @@ class Spark:
 
   def runBuilds(self):
 
+    print ' >> Building Hardware Implementations'
     if self.target != TARGET_DFE_MOCK:
       # run MC builds in parallel
       pool = Pool(6)
