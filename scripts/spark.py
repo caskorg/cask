@@ -18,6 +18,7 @@ from scipy import io, sparse
 from subprocess import call
 from termcolor import colored
 
+PRJ = 'Spmv'
 
 TARGET_DFE_MOCK = 'dfe_mock'
 TARGET_DFE = 'dfe'
@@ -149,13 +150,14 @@ def execute(command, logfile=None, silent=True):
       ' '.join(command), str(popen.returncode)) ,
       'red')
 
-def runDse(benchFile, paramsFile, skipExecution=False):
+def runDse(benchFile, paramsFile, target, skipExecution=False):
   dseFile = "dse_out.json"
   if not skipExecution:
     execute(['../build/main', benchFile, paramsFile], DSE_LOG_FILE)
   else:
     print '  --> Skip DSE run, load results from', dseFile
   params = []
+  prjs = []
   architectures = []
   with open(dseFile) as f:
     data = json.load(f)
@@ -164,8 +166,11 @@ def runDse(benchFile, paramsFile, skipExecution=False):
       est_impl_ps = arch['estimated_impl_params']
       matrix = arch['matrices'][0]
       params.append(ps)
+      # XXX Should check for identical architectures before assigning new ID
+      prj_id = len(prjs)
       architectures.append(
           [ os.path.basename(matrix).replace('.mtx', ''),
+            prj_id,
             int(ps['cache_size']), int(ps['input_width']),
             int(ps['num_pipes']), int(ps['max_rows']),
             int(est_impl_ps['BRAMs']),
@@ -174,7 +179,8 @@ def runDse(benchFile, paramsFile, skipExecution=False):
             int(est_impl_ps['DSPs']),
             float(est_impl_ps['memory_bandwidth']),
             float(arch['estimated_gflops']), ])
-  return params, architectures
+      prjs.append(PrjConfig(ps, target, PRJ, prj_id))
+  return prjs, architectures
 
 
 def runMaxCompilerBuild(prj):
@@ -420,7 +426,7 @@ def logDseResults(log_benchmark, log_archs):
   for e in log_merged:
     log_merged_final.append([e[i] for i in range(len(e)) if i not in discard])
 
-  hdrs = ['Matrix', 'Order', 'NNZs', 'NNZ / row', 'Cx', 'k', 'Np', 'Cb', 'BRAMs', 'LUTs', 'FFs', 'DSPs', 'BWidth', 'GFLOPs']
+  hdrs = ['Matrix', 'Order', 'NNZs', 'NNZ / row', 'Id', 'Cx', 'k', 'Np', 'Cb', 'BRAMs', 'LUTs', 'FFs', 'DSPs', 'BWidth', 'GFLOPs']
   data = sorted(log_merged_final, key=lambda x: x[3], reverse=True)
 
   print tabulate(data, headers=hdrs, floatfmt='.4f')
@@ -456,7 +462,6 @@ def main():
   parser.add_argument('-rb', '--run-builds', default=False, action='store_true')
   args = parser.parse_args()
 
-  PRJ = 'Spmv'
   buildName = PRJ + '_' + args.target
   prjs = []
 
@@ -465,14 +470,14 @@ def main():
   check_make_dir('logs')
 
   ## Run DSE pass
-  params = []
+  prjs = []
 
   log_benchmark = preProcessBenchmark(args.benchmark_dir)
 
   if args.dse:
     print colored('Running DSE flow', 'red')
     # the DSE tool produces a JSON file with architectures to be built
-    params, log_archs = runDse(args.benchmark_dir, args.param_file, args.dse_skip)
+    prjs, log_archs = runDse(args.benchmark_dir, args.param_file, args.target, args.dse_skip)
   else:
     # load default parameters values from param_file
     with open(args.param_file) as f:
@@ -480,13 +485,9 @@ def main():
       ps = {}
       for k, v in data['dse_params'].iteritems():
         ps[k] = str(v['default'])
-    params = [ps]
+    params = [PrjConfig(ps, args.target, PRJ, prj_id)]
 
   logDseResults(log_benchmark, log_archs)
-
-  prjs = []
-  for i in range(len(params)):
-    prjs.append(PrjConfig(params[i], args.target, PRJ, i))
 
   p = os.path.abspath(args.benchmark_dir)
   benchmark = [ join(p, f) for f in listdir(p) if isfile(join(p,f)) ]
@@ -502,7 +503,7 @@ def main():
     spark.runBuilds()
 
   prj_info = []
-  header = ['Project ID', 'Logic', 'Logic %', 'DSP', 'DSP %', 'BRAM', 'BRAM %']
+  header = ['Id', 'Logic', 'Logic %', 'DSP', 'DSP %', 'BRAM', 'BRAM %']
   for p in ps:
     resUsage = p.getBuildResourceUsage()
     logic = resUsage['Logic utilization']
