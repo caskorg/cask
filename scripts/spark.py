@@ -89,6 +89,25 @@ class PrjConfig:
   def sim(self):
     return self.target == TARGET_SIM
 
+  def resourceUsageReportDir(self):
+    return os.path.join(self.buildDir(), 'src_annotated')
+
+  def buildLog(self):
+    return os.path.join(self.buildDir(), '_build.log')
+
+  def getBuildResourceUsage(self):
+    usage = {}
+    with open(self.buildLog()) as f:
+      while True:
+        l = f.readline()
+        if l.find('FINAL RESOURCE USAGE') != -1:
+          for i in range(7):
+            m = re.match(r'.*PROGRESS:(.*):\s*(\d*)\s/\s(\d*).*', f.readline())
+            usage[m.group(1).strip()] = (int(m.group(2)), int(m.group(3)))
+          break
+    return usage
+
+
 def preProcessBenchmark(benchDirPath):
   entries = []
   for f in os.listdir(benchDirPath):
@@ -481,6 +500,21 @@ def main():
   if args.run_builds:
     print colored('Running builds', 'red')
     spark.runBuilds()
+
+  prj_info = []
+  header = ['Project ID', 'Logic', 'Logic %', 'DSP', 'DSP %', 'BRAM', 'BRAM %']
+  for p in ps:
+    resUsage = p.getBuildResourceUsage()
+    logic = resUsage['Logic utilization']
+    dsps = resUsage['DSP blocks']
+    brams = resUsage['Block memory (BRAM18)']
+    prj_info.append([
+      p.prj_id,
+      logic[0], logic[0] / float(logic[1]) * 100,
+      dsps[0], dsps[0] / float(dsps[1]) * 100,
+      brams[0], brams[0] / float(brams[1]) * 100
+      ])
+  print tabulate(prj_info, headers=header, floatfmt=".1f")
 
   if args.benchmarking_mode != BENCHMARK_NONE:
     print colored('Running benchmark', 'red')
