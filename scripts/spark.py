@@ -9,6 +9,7 @@ import re
 import shutil
 import subprocess
 import sys
+from tabulate import tabulate
 
 from multiprocessing import Pool
 from os import listdir
@@ -25,6 +26,9 @@ TARGET_SIM = 'sim'
 BENCHMARK_NONE = 'none'
 BENCHMARK_BEST = 'best'
 BENCHMARK_ALL_TO_ALL = 'all'
+
+DIR_PATH_RESULTS = 'results'
+DIR_PATH_LOG = 'logs'
 
 DSE_LOG_FILE = 'dse_run.log'
 
@@ -159,7 +163,7 @@ def runMaxCompilerBuild(prj):
       prj.buildTarget(), prj.buildName(), prj.name)
   print '  --> Building MaxFile ', prj.buildName(), '\n',
 
-  prjLogFile = 'logs/' + prj.buildName() + '.log'
+  prjLogFile = os.path.join(DIR_PATH_LOG, prj.buildName() + '.log')
   execute(
       ['make', 'MAX_BUILDPARAMS="' + prj.maxBuildParams() + buildParams + '"',
       "-C", prj.buildRoot, prj.maxFileTarget()],
@@ -397,11 +401,24 @@ def logDseResults(log_benchmark, log_archs):
   for e in log_merged:
     log_merged_final.append([e[i] for i in range(len(e)) if i not in discard])
 
-  logTexTable(
-      [['Matrix', 'Order', 'NNZs', 'NNZ / row', 'Cx', 'k', 'Np', 'Cb', 'BRAMs', 'LUTs', 'FFs', 'DSPs', 'BWidth', 'GFLOPs' ]]
-      +
-      sorted(log_merged_final, key=lambda x: x[3], reverse=True),
-      'dse_matrix_architectures.tex')
+  hdrs = ['Matrix', 'Order', 'NNZs', 'NNZ / row', 'Cx', 'k', 'Np', 'Cb', 'BRAMs', 'LUTs', 'FFs', 'DSPs', 'BWidth', 'GFLOPs']
+  data = sorted(log_merged_final, key=lambda x: x[3], reverse=True)
+
+  print tabulate(data, headers=hdrs, floatfmt='.4f')
+  write_result('dse_matrix_arch.tex',
+          tabulate(data, headers=hdrs, floatfmt='.4f', tablefmt='latex'))
+  write_result('dse_matrix_arch.html',
+          tabulate(data, headers=hdrs, floatfmt='.4f', tablefmt='html'))
+
+
+def check_make_dir(dirname):
+  if not os.path.exists(dirname):
+    os.makedirs(dirname)
+
+
+def write_result(fname, data):
+  with open(os.path.join(DIR_PATH_RESULTS, fname), 'w') as f:
+      f.write(data)
 
 
 def main():
@@ -423,6 +440,10 @@ def main():
   PRJ = 'Spmv'
   buildName = PRJ + '_' + args.target
   prjs = []
+
+  ## Prepare some directories
+  check_make_dir('results')
+  check_make_dir('logs')
 
   ## Run DSE pass
   params = []
