@@ -30,6 +30,7 @@ BENCHMARK_ALL_TO_ALL = 'all'
 
 DIR_PATH_RESULTS = 'results'
 DIR_PATH_LOG = 'logs'
+DIR_PATH_RUNS = 'runs'
 
 DSE_LOG_FILE = 'dse_run.log'
 
@@ -173,7 +174,8 @@ def runDse(benchFile, paramsFile, target, skipExecution=False):
             prj_id,
             int(ps['cache_size']), int(ps['input_width']),
             int(ps['num_pipes']), int(ps['max_rows']),
-            int(est_impl_ps['BRAMs']),
+            # The model uses BRAM36, the McTools use BRAM18
+            int(est_impl_ps['BRAMs']) * 2,
             int(est_impl_ps['LUTs']),
             int(est_impl_ps['FFs']),
             int(est_impl_ps['DSPs']),
@@ -214,7 +216,7 @@ def runClient(benchmark, target, prj=None):
       cmd = ['bash', 'simrunner', '../build/test_spmv_sim', p]
     elif target == TARGET_DFE_MOCK:
       cmd = ['bash', 'mockrunner', '../build/test_spmv_dfe_mock', p]
-    outF = 'run_' + target + '_'
+    outF = 'runs/run_' + target + '_'
     if prj:
       cmd.append(str(prj.prj_id))
       outF += prj.buildName()
@@ -344,7 +346,8 @@ class Spark:
                 p.getParam('input_width')))
         else:
           f.write(
-              'new GeneratedSpmvImplementation({0}, {1}, {2}, {3}, {4}, {5}, {6}, {7}));'.format(
+              'new GeneratedSpmvImplementation({0}, {1}, {2}, {3}, {4}, {5}, {6}, {7}, {8}));'.format(
+                p.prj_id,
                 p.name,
                 p.name + '_dramWrite',
                 p.name + '_dramRead',
@@ -436,10 +439,48 @@ def logDseResults(log_benchmark, log_archs):
           tabulate(data, headers=hdrs, floatfmt='.4f', tablefmt='html'))
 
 
+def postProcessResults(prjs, benchmark, dirpath):
+  print colored('Post-processing results', 'red')
+  # need to see which architecture is being used (so we can correlate it with
+  # other information we have about it, e.g. hardware/est. resource usage etc.)
+
+  # need to reconstruct a (matrix, architecture) relation from the run files in
+  # this relation we should also store the execution params and results (e.g.
+  # bwidth, gflops), but nothing else
+  matrix_architecture = []
+  for p in os.listdir(dirpath):
+    # for each run file, we need to record the metrics we are interested in and
+    # store them in corresponding project description; note that we don't know a
+    # priori which architectrue will be used (at least in 'best' benchmarking
+    # mode) which is why we need to ensure that project ids are used
+    # consistently, and can be read from the results
+    with open(os.path.join(dirpath, p)) as f:
+      matrix = None
+      archId = None
+      for l in f:
+        m = re.match(r'Config ArchitectureId (\d*).*', l)
+        if m:
+          matrix = int(m.group(1))
+        m = re.match(r'Param MatrixPath ([\w/-]*)', l)
+        if m:
+          archId = os.path.basename(m.group(1))
+        if matrix and archId is not None:
+          matrix_architecture.append([matrix, archId])
+          break
+  print matrix_architecture
+
+  # for p in prjs:
+    # print p.runFile
+
+
 def check_make_dir(dirname):
   if not os.path.exists(dirname):
     os.makedirs(dirname)
 
+def make_clean_dir(dirname):
+  if os.path.exists(dirname):
+    shutil.rmtree(dirname)
+  os.makedirs(dirname)
 
 def write_result(fname, data):
   with open(os.path.join(DIR_PATH_RESULTS, fname), 'w') as f:
@@ -456,6 +497,8 @@ def main():
   parser.add_argument('-b', '--benchmark-dir', required=True)
   parser.add_argument('-st', '--build_start', type=int, default=None)
   parser.add_argument('-en', '--build_end', type=int, default=None)
+  parser.add_argument('-bmst', '--benchmark_start', type=int, default=None)
+  parser.add_argument('-bmen', '--benchmark_end', type=int, default=None)
   parser.add_argument('-bm', '--benchmarking-mode',
       choices=[BENCHMARK_BEST, BENCHMARK_ALL_TO_ALL, BENCHMARK_NONE],
       default=BENCHMARK_NONE)
@@ -468,6 +511,8 @@ def main():
   ## Prepare some directories
   check_make_dir('results')
   check_make_dir('logs')
+  if args.benchmarking_mode != BENCHMARK_NONE:
+    make_clean_dir('runs')
 
   ## Run DSE pass
   prjs = []
@@ -491,6 +536,8 @@ def main():
 
   p = os.path.abspath(args.benchmark_dir)
   benchmark = [ join(p, f) for f in listdir(p) if isfile(join(p,f)) ]
+  if args.benchmark_start != None and args.benchmark_end != None:
+    benchmark = benchmark[args.benchmark_start:args.benchmark_end]
 
   ps = prjs
   if args.build_start != None and args.build_end != None:
@@ -520,6 +567,10 @@ def main():
   if args.benchmarking_mode != BENCHMARK_NONE:
     print colored('Running benchmark', 'red')
     spark.runBenchmark(benchmark, args.benchmarking_mode)
+
+  # Post-process results
+  postProcessResults(ps, benchmark, DIR_PATH_RUNS)
+
 
 if __name__ == '__main__':
   main()

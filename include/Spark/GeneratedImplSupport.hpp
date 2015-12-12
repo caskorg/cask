@@ -38,6 +38,7 @@ namespace spark {
           uint8_t *instream_fromcpu);
 
       protected:
+      const int id;
       const SpmvFunctionPtr runSpmv;
       const SpmvDramWriteFunctionPtr dramWrite;
       const SpmvDramReadFunctionPtr dramRead;
@@ -47,6 +48,7 @@ namespace spark {
       public:
 
       GeneratedSpmvImplementation(
+          int _id,
           SpmvFunctionPtr _fptr,
           SpmvDramWriteFunctionPtr _dramWrite,
           SpmvDramReadFunctionPtr _dramRead,
@@ -56,6 +58,7 @@ namespace spark {
           int _input_width,
           int _dram_reduction_enabled
           ) :
+        id(_id),
         runSpmv(_fptr),
         dramWrite(_dramWrite),
         dramRead(_dramRead),
@@ -103,8 +106,8 @@ namespace spark {
           const int32_t *param_totalCycles,
           const int64_t *param_vStartAddresses) {
 
-        std::cout << "Running on architecture with " << std::endl;
-        std::cout << "   maxRows = " << max_rows << std::endl;
+        // XXX this is probably not the best place to print stuff
+        std::cout << "Config ArchitectureId " << this->id << std::endl;
 
         (*runSpmv)(
           param_nIterations,
@@ -156,7 +159,7 @@ namespace spark {
           int _dram_reduction_enabled
           ) :
         GeneratedSpmvImplementation(
-            nullptr, nullptr, nullptr,
+            -1, nullptr, nullptr, nullptr,
             _max_rows, _num_pipes, _cache_size,
             _input_width, _dram_reduction_enabled) {}
 
@@ -240,9 +243,12 @@ namespace spark {
        */
       GeneratedSpmvImplementation* architectureWithParams(int maxRows) {
         GeneratedSpmvImplementation* bestArch = nullptr;
+        std::cout << "Test" << std::endl;
         for (const auto& a : this->impls) {
           GeneratedSpmvImplementation* simpl = static_cast<GeneratedSpmvImplementation*>(a);
-          if (simpl->maxRows() > maxRows &&
+          std::cout << maxRows << std::endl;
+          std::cout << simpl->maxRows() << std::endl;
+          if (simpl->maxRows() >= maxRows &&
               (!bestArch || simpl->maxRows() < bestArch->maxRows())) {
             bestArch = simpl;
           }
@@ -251,6 +257,7 @@ namespace spark {
       }
 
       GeneratedSpmvImplementation* architectureWithId(int id) {
+        std::cout << "Test" << std::endl;
         return static_cast<GeneratedSpmvImplementation*>(this->impls.at(id));
       }
 
