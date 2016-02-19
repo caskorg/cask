@@ -4,7 +4,6 @@
 #include <Spark/Converters.hpp>
 #include <iostream>
 #include <tuple>
-
 #include <dfesnippets/VectorUtils.hpp>
 #include <dfesnippets/Timing.hpp>
 
@@ -263,15 +262,24 @@ Eigen::VectorXd ssarch::dfespmv(Eigen::VectorXd x)
       &vStartAddresses[0]
       );
   double took = dfesnippets::timing::clock_diff(start) / nIterations;
-  double est =(double) totalCycles[0] / (100.0 * 1e6);
+  // TODO need a consistent, single point way to handle params
+  // must ensure that params match with build parameters
+  double frequency = 100 * 1e6;
+  double est =(double) totalCycles[0] / frequency;
   double gflopsEst = (2.0 * (double)this->mat.nonZeros() / est) / 1E9;
   double gflopsActual = (2.0 * (double)this->mat.nonZeros() / took) / 1E9;
+
+  double bwidthEst = this->numPipes * this->inputWidth * frequency / (1024.0  *
+      1024 * 1024) * (8 + 4);
+  logResult("Input width ", this->inputWidth);
+  logResult("Pipes ", this->numPipes);
 
   logResult("Iterations", nIterations);
   logResult("Took (ms)", took);
   logResult("Est (ms)", est);
   logResult("Gflops (est)", gflopsEst);
   logResult("Gflops (actual)", gflopsActual);
+  logResult("BWidth (est)", bwidthEst);
 
   std::vector<double> total;
   for (size_t i = 0; i < outputStartAddresses.size(); i++) {

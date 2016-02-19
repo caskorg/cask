@@ -9,6 +9,7 @@ import re
 import shutil
 import subprocess
 import sys
+import pandas as pd
 from tabulate import tabulate
 
 from multiprocessing import Pool
@@ -33,6 +34,8 @@ DIR_PATH_LOG = 'logs'
 DIR_PATH_RUNS = 'runs'
 
 DSE_LOG_FILE = 'dse_run.log'
+
+pd.options.display.float_format = '{:.2f}'.format
 
 class PrjConfig:
   def __init__(self, p, t, n, prj_id):
@@ -417,46 +420,25 @@ def logTexTable(entries, fpath):
     f.write(table)
 
 
-def logDseResults(log_benchmark, log_archs):
-  # Merge matrix and architecture params information
-  log_merged = map(
-      lambda x: x[0] + x[1],
-      zip(
-        sorted(log_benchmark, key=lambda x: x[0]),
-        sorted(log_archs,  key=lambda x: x[0])))
-  discard = [3, 4, 5, 7] # fields which contain uninteresting information
-  log_merged_final = []
-  for e in log_merged:
-    log_merged_final.append([e[i] for i in range(len(e)) if i not in discard])
-
-  hdrs = ['Matrix', 'Order', 'NNZs', 'NNZ / row', 'Id', 'Cx', 'k', 'Np', 'Cb', 'BRAMs', 'LUTs', 'FFs', 'DSPs', 'BWidth', 'GFLOPs']
-  data = sorted(log_merged_final, key=lambda x: x[3], reverse=True)
-
-  print tabulate(data, headers=hdrs, floatfmt='.4f')
-  write_result('dse_matrix_arch.tex',
-          tabulate(data, headers=hdrs, floatfmt='.4f', tablefmt='latex'))
-  write_result('dse_matrix_arch.html',
-          tabulate(data, headers=hdrs, floatfmt='.4f', tablefmt='html'))
+def logDseResults(benchmark_df, arch_df):
+  pd.set_option('display.max_columns', 500)
+  pd.set_option('display.width', 1000)
+  df = pd.merge(benchmark_df, arch_df, left_on='Matrix', right_on='Matrix')
+  print df
+  write_result('dse_matrix_arch.tex', df.to_latex())
+  write_result('dse_matrix_arch.html', df.to_html())
 
 
-def postProcessResults(prjs, benchmark, dirpath):
+def postProcessResults(prjs, benchmark, benchmark_df, arch_df, arch_build_df, dirpath):
   print colored('Post-processing results', 'red')
-  # need to see which architecture is being used (so we can correlate it with
-  # other information we have about it, e.g. hardware/est. resource usage etc.)
-
-  # need to reconstruct a (matrix, architecture) relation from the run files in
-  # this relation we should also store the execution params and results (e.g.
-  # bwidth, gflops), but nothing else
-  matrix_architecture = []
+  # need to reconstruct a (matrix, architecture) relation from run files;
+  # this relation also stores execution results (e.g.  bwidth, gflops)
+  df = pd.DataFrame([], columns=['Id', 'Matrix', 'GFLOPs'])
   for p in os.listdir(dirpath):
-    # for each run file, we need to record the metrics we are interested in and
-    # store them in corresponding project description; note that we don't know a
-    # priori which architectrue will be used (at least in 'best' benchmarking
-    # mode) which is why we need to ensure that project ids are used
-    # consistently, and can be read from the results
     with open(os.path.join(dirpath, p)) as f:
       matrix = None
       archId = None
+      gflops = None
       for l in f:
         m = re.match(r'Config ArchitectureId (\d*).*', l)
         if m:
@@ -464,13 +446,25 @@ def postProcessResults(prjs, benchmark, dirpath):
         m = re.match(r'Param MatrixPath ([\w/-]*)', l)
         if m:
           archId = os.path.basename(m.group(1))
-        if matrix and archId is not None:
-          matrix_architecture.append([matrix, archId])
+        m = re.match(r'Result Simple Gflops \(actual\)=(.*),', l)
+        if m:
+          gflops = float(m.group(1))
+        if gflops and matrix and archId is not None:
+          new_df = pd.DataFrame([[matrix, archId, gflops]], columns=['Id', 'Matrix', 'GFLOPs'])
+          df = df.append(new_df, ignore_index=True)
           break
-  print matrix_architecture
 
-  # for p in prjs:
-    # print p.runFile
+  # build a table compare est and measured results
+  df1 = pd.merge(benchmark_df, df, left_on='Matrix', right_on='Matrix')
+  df2 = pd.merge(df1, arch_df, left_on='Id', right_on='Id')
+  df2 = pd.merge(df2, arch_build_df, left_on='Id', right_on='Id')
+
+  # keep only some interesting columns and reorderd them
+  df2 = df2[['Matrix_x', 'Order', 'Nonzeros', 'Nnz/row', 'Cx', 'k', 'Np', 'Cb', 'Logic %', 'DSP %', 'BRAM %', 'BWidth', 'GFLOPs_x', 'GFLOPs_y']]
+  write_result('matrix_arch_before_after.tex', df2.to_latex(index=False))
+  print arch_build_df
+  print df2
+
 
 
 def check_make_dir(dirname):
@@ -517,7 +511,9 @@ def main():
   ## Run DSE pass
   prjs = []
 
-  log_benchmark = preProcessBenchmark(args.benchmark_dir)
+  benchmark_df = pd.DataFrame(
+          preProcessBenchmark(args.benchmark_dir),
+          columns = ['Matrix', 'Order', 'Nonzeros', 'Format', 'Type', 'Pattern', 'Nnz/row'])
 
   if args.dse:
     print colored('Running DSE flow', 'red')
@@ -532,7 +528,9 @@ def main():
         ps[k] = str(v['default'])
     params = [PrjConfig(ps, args.target, PRJ, prj_id)]
 
-  logDseResults(log_benchmark, log_archs)
+  arch_df = pd.DataFrame(log_archs,
+          columns = ['Matrix', 'Id', 'Cx', 'k', 'Np', 'Cb', 'BRAMs', 'LUTs', 'FFs', 'DSPs', 'BWidth', 'GFLOPs'])
+  logDseResults(benchmark_df, arch_df)
 
   p = os.path.abspath(args.benchmark_dir)
   benchmark = [ join(p, f) for f in listdir(p) if isfile(join(p,f)) ]
@@ -549,27 +547,31 @@ def main():
     print colored('Running builds', 'red')
     spark.runBuilds()
 
-  prj_info = []
-  header = ['Id', 'Logic', 'Logic %', 'DSP', 'DSP %', 'BRAM', 'BRAM %']
-  for p in ps:
-    resUsage = p.getBuildResourceUsage()
-    logic = resUsage['Logic utilization']
-    dsps = resUsage['DSP blocks']
-    brams = resUsage['Block memory (BRAM18)']
-    prj_info.append([
-      p.prj_id,
-      logic[0], logic[0] / float(logic[1]) * 100,
-      dsps[0], dsps[0] / float(dsps[1]) * 100,
-      brams[0], brams[0] / float(brams[1]) * 100
-      ])
-  print tabulate(prj_info, headers=header, floatfmt=".1f")
+  if args.target == TARGET_DFE:
+    prj_info = []
+    header = ['Id', 'Logic', 'Logic %', 'DSP', 'DSP %', 'BRAM', 'BRAM %']
+    for p in ps:
+      resUsage = p.getBuildResourceUsage()
+      logic = resUsage['Logic utilization']
+      dsps = resUsage['DSP blocks']
+      brams = resUsage['Block memory (BRAM18)']
+      prj_info.append([
+        p.prj_id,
+        logic[0], logic[0] / float(logic[1]) * 100,
+        dsps[0], dsps[0] / float(dsps[1]) * 100,
+        brams[0], brams[0] / float(brams[1]) * 100
+        ])
+    arch_build_df = pd.DataFrame(prj_info, columns = header)
 
   if args.benchmarking_mode != BENCHMARK_NONE:
     print colored('Running benchmark', 'red')
     spark.runBenchmark(benchmark, args.benchmarking_mode)
 
   # Post-process results
-  postProcessResults(ps, benchmark, DIR_PATH_RUNS)
+  if args.target == TARGET_DFE:
+    postProcessResults(ps, benchmark,
+        benchmark_df, arch_df, arch_build_df,
+        DIR_PATH_RUNS)
 
 
 if __name__ == '__main__':

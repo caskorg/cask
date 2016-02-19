@@ -243,7 +243,6 @@ namespace spark {
        */
       GeneratedSpmvImplementation* architectureWithParams(int maxRows) {
         GeneratedSpmvImplementation* bestArch = nullptr;
-        std::cout << "Test" << std::endl;
         for (const auto& a : this->impls) {
           GeneratedSpmvImplementation* simpl = static_cast<GeneratedSpmvImplementation*>(a);
           std::cout << maxRows << std::endl;
@@ -257,7 +256,6 @@ namespace spark {
       }
 
       GeneratedSpmvImplementation* architectureWithId(int id) {
-        std::cout << "Test" << std::endl;
         return static_cast<GeneratedSpmvImplementation*>(this->impls.at(id));
       }
 

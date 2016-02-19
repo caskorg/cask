@@ -9,6 +9,8 @@ from matplotlib.backends.backend_pdf import PdfPages
 
 import seaborn as sns
 
+from sparsegrind import main
+
 class RunResult:
 
   def __init__(self, outputFile):
