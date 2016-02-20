@@ -48,7 +48,7 @@ class TestMain(unittest.TestCase):
 
         self.assertEquals(
             storage.csr(self.csr_matrix),
-            (4 * (8 + 6), 64, 'CSR'))
+            (4 * (8 + 6), 64, 'CSR 64 bits data 32 bit index'))
 
         self.assertEquals(
             storage.csc(self.csr_matrix),
