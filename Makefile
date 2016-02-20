@@ -1,5 +1,5 @@
 test:
-	py.test --cov=sparsegrind
+	nosetests --with-cov --cov-report html
 
 test-pdb:
 	nosetests --pdb
