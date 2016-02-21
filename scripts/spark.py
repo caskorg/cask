@@ -100,6 +100,9 @@ class PrjConfig:
   def buildLog(self):
     return os.path.join(self.buildDir(), '_build.log')
 
+  def logFile(self):
+    return self.buildName() + '.log'
+
   def getBuildResourceUsage(self):
     usage = {}
     with open(self.buildLog()) as f:
@@ -261,10 +264,9 @@ class Spark:
     if self.target != TARGET_DFE_MOCK:
       for p in prjs:
         objFile = p.name + '.o'
-        out = subprocess.check_output([
-          'sliccompile',
-          p.maxFileLocation(),
-          objFile])
+        execute(
+            ['sliccompile', p.maxFileLocation(), objFile],
+            logfile=p.logFile())
         prj_includes.append('-I' + p.resultsDir())
         obj_files.append(objFile)
 
