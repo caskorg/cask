@@ -47,7 +47,7 @@ public class SpmvManager extends CustomManager{
         addMaxFileConstant("dramReductionEnabled", dramReductionEnabled ? 1 : 0);
 
         ManagerUtils.setDRAMMaxDeviceFrequency(this, ep);
-        //config.setAllowNonMultipleTransitions(true);
+        config.setAllowNonMultipleTransitions(true);
 
         for (int i = 0; i < numPipes; i++)
           addComputePipe(i, inputWidth);
