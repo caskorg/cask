@@ -36,7 +36,7 @@ std::shared_ptr<SpmvArchitecture> dse_run(
   int it = 0;
 
   // for virtex 6
-  double alpha = 0.7; // aim to fit about alpha% of the chip
+  double alpha = 0.9; // aim to fit about alpha% of the chip
   const LogicResourceUsage maxResources(LogicResourceUsage{297600, 297600, 1064, 2016} * alpha);
 
   const ImplementationParameters maxParams{maxResources, 39};
