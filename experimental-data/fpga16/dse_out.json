@@ -1,0 +1,258 @@
+{
+    "date": "Sun Feb 21 22:22:17 2016\n",
+    "took": "126.394378526",
+    "best_architectures": [
+        {
+            "name": "Simple",
+            "estimated_gflops": "3.986399349769711",
+            "estimated_clock_cycles": "14764",
+            "architecture_params": {
+                "num_pipes": "2",
+                "cache_size": "4096",
+                "input_width": "16",
+                "max_rows": "3584"
+            },
+            "estimated_impl_params": {
+                "memory_bandwidth": "38.4",
+                "BRAMs": "588",
+                "LUTs": "86692",
+                "FFs": "119716",
+                "DSPs": "320"
+            },
+            "matrices": [
+                "..\/fpga16-benchmark\/fpga16\/raefsky1.mtx"
+            ]
+        },
+        {
+            "name": "Simple",
+            "estimated_gflops": "6.301538461538462",
+            "estimated_clock_cycles": "133120",
+            "architecture_params": {
+                "num_pipes": "2",
+                "cache_size": "2048",
+                "input_width": "16",
+                "max_rows": "2048"
+            },
+            "estimated_impl_params": {
+                "memory_bandwidth": "38.4",
+                "BRAMs": "456",
+                "LUTs": "86692",
+                "FFs": "119716",
+                "DSPs": "320"
+            },
+            "matrices": [
+                "..\/fpga16-benchmark\/fpga16\/dense.mtx"
+            ]
+        },
+        {
+            "name": "Simple",
+            "estimated_gflops": "0.08472644299690095",
+            "estimated_clock_cycles": "2263605",
+            "architecture_params": {
+                "num_pipes": "1",
+                "cache_size": "14336",
+                "input_width": "16",
+                "max_rows": "171008"
+            },
+            "estimated_impl_params": {
+                "memory_bandwidth": "19.2",
+                "BRAMs": "941",
+                "LUTs": "55346",
+                "FFs": "75858",
+                "DSPs": "160"
+            },
+            "matrices": [
+                "..\/fpga16-benchmark\/fpga16\/scircuit.mtx"
+            ]
+        },
+        {
+            "name": "Simple",
+            "estimated_gflops": "0.186598838127824",
+            "estimated_clock_cycles": "1107695",
+            "architecture_params": {
+                "num_pipes": "1",
+                "cache_size": "15360",
+                "input_width": "16",
+                "max_rows": "116224"
+            },
+            "estimated_impl_params": {
+                "memory_bandwidth": "19.2",
+                "BRAMs": "866",
+                "LUTs": "55346",
+                "FFs": "75858",
+                "DSPs": "160"
+            },
+            "matrices": [
+                "..\/fpga16-benchmark\/fpga16\/torso2.mtx"
+            ]
+        },
+        {
+            "name": "Simple",
+            "estimated_gflops": "1.627371220767826",
+            "estimated_clock_cycles": "291759",
+            "architecture_params": {
+                "num_pipes": "2",
+                "cache_size": "7168",
+                "input_width": "16",
+                "max_rows": "47104"
+            },
+            "estimated_impl_params": {
+                "memory_bandwidth": "38.4",
+                "BRAMs": "950",
+                "LUTs": "86692",
+                "FFs": "119716",
+                "DSPs": "320"
+            },
+            "matrices": [
+                "..\/fpga16-benchmark\/fpga16\/rma10.mtx"
+            ]
+        },
+        {
+            "name": "Simple",
+            "estimated_gflops": "0.8711211211211212",
+            "estimated_clock_cycles": "19980",
+            "architecture_params": {
+                "num_pipes": "2",
+                "cache_size": "10240",
+                "input_width": "8",
+                "max_rows": "10240"
+            },
+            "estimated_impl_params": {
+                "memory_bandwidth": "19.2",
+                "BRAMs": "678",
+                "LUTs": "63236",
+                "FFs": "86756",
+                "DSPs": "160"
+            },
+            "matrices": [
+                "..\/fpga16-benchmark\/fpga16\/t2d_q9_A_01.mtx"
+            ]
+        },
+        {
+            "name": "Simple",
+            "estimated_gflops": "0.6754469703098456",
+            "estimated_clock_cycles": "12361",
+            "architecture_params": {
+                "num_pipes": "3",
+                "cache_size": "8192",
+                "input_width": "8",
+                "max_rows": "8192"
+            },
+            "estimated_impl_params": {
+                "memory_bandwidth": "28.8",
+                "BRAMs": "912",
+                "LUTs": "82854",
+                "FFs": "114134",
+                "DSPs": "240"
+            },
+            "matrices": [
+                "..\/fpga16-benchmark\/fpga16\/dw8192.mtx"
+            ]
+        },
+        {
+            "name": "Simple",
+            "estimated_gflops": "0.07861243592311916",
+            "estimated_clock_cycles": "3239663",
+            "architecture_params": {
+                "num_pipes": "1",
+                "cache_size": "15360",
+                "input_width": "8",
+                "max_rows": "206848"
+            },
+            "estimated_impl_params": {
+                "memory_bandwidth": "9.6",
+                "BRAMs": "803",
+                "LUTs": "43618",
+                "FFs": "59378",
+                "DSPs": "80"
+            },
+            "matrices": [
+                "..\/fpga16-benchmark\/fpga16\/mac_econ_fwd500.mtx"
+            ]
+        },
+        {
+            "name": "Simple",
+            "estimated_gflops": "1.468235294117647",
+            "estimated_clock_cycles": "261120",
+            "architecture_params": {
+                "num_pipes": "2",
+                "cache_size": "12288",
+                "input_width": "8",
+                "max_rows": "49152"
+            },
+            "estimated_impl_params": {
+                "memory_bandwidth": "19.2",
+                "BRAMs": "896",
+                "LUTs": "63236",
+                "FFs": "86756",
+                "DSPs": "160"
+            },
+            "matrices": [
+                "..\/fpga16-benchmark\/fpga16\/conf5_4-8x8-05.mtx"
+            ]
+        },
+        {
+            "name": "Simple",
+            "estimated_gflops": "4.759580468887714",
+            "estimated_clock_cycles": "22692",
+            "architecture_params": {
+                "num_pipes": "2",
+                "cache_size": "4096",
+                "input_width": "16",
+                "max_rows": "3584"
+            },
+            "estimated_impl_params": {
+                "memory_bandwidth": "38.4",
+                "BRAMs": "588",
+                "LUTs": "86692",
+                "FFs": "119716",
+                "DSPs": "320"
+            },
+            "matrices": [
+                "..\/fpga16-benchmark\/fpga16\/psmigr_2.mtx"
+            ]
+        },
+        {
+            "name": "Simple",
+            "estimated_gflops": "1.369680520756067",
+            "estimated_clock_cycles": "877647",
+            "architecture_params": {
+                "num_pipes": "2",
+                "cache_size": "9216",
+                "input_width": "8",
+                "max_rows": "83456"
+            },
+            "estimated_impl_params": {
+                "memory_bandwidth": "19.2",
+                "BRAMs": "932",
+                "LUTs": "63236",
+                "FFs": "86756",
+                "DSPs": "160"
+            },
+            "matrices": [
+                "..\/fpga16-benchmark\/fpga16\/consph.mtx"
+            ]
+        },
+        {
+            "name": "Simple",
+            "estimated_gflops": "0.6852642203157667",
+            "estimated_clock_cycles": "27742",
+            "architecture_params": {
+                "num_pipes": "2",
+                "cache_size": "15360",
+                "input_width": "8",
+                "max_rows": "14848"
+            },
+            "estimated_impl_params": {
+                "memory_bandwidth": "19.2",
+                "BRAMs": "856",
+                "LUTs": "63236",
+                "FFs": "86756",
+                "DSPs": "160"
+            },
+            "matrices": [
+                "..\/fpga16-benchmark\/fpga16\/epb1.mtx"
+            ]
+        }
+    ]
+}
