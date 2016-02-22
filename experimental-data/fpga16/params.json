@@ -1,0 +1,25 @@
+{
+  "dse_params": {
+    "num_pipes": {
+      "start":1,
+      "stop":4,
+      "step":1,
+      "default":2
+    },
+    "cache_size": {
+      "start":2048,
+      "stop":16384,
+      "step":1024,
+      "default": 1024
+    },
+    "input_width": {
+      "start": 8,
+      "stop": 24,
+      "step": 8,
+      "default":  16
+    },
+    "max_rows": {
+      "default": 200000
+    }
+  }
+}
