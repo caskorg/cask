@@ -10,6 +10,7 @@ addons:
       - boost-latest
     packages:
       - libboost1.55-all-dev
+      - g++-4.8
 
 before_script:
   - mkdir build
