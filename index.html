@@ -6,36 +6,23 @@
 
 <body>
   <a href="https://github.com/caskorg/cask"><img style="position: absolute; top: 0; right: 0; border: 0;" src="https://camo.githubusercontent.com/365986a132ccd6a44c23a9169022c0b5c890c387/68747470733a2f2f73332e616d617a6f6e6177732e636f6d2f6769746875622f726962626f6e732f666f726b6d655f72696768745f7265645f6161303030302e706e67" alt="Fork me on GitHub" data-canonical-src="https://s3.amazonaws.com/github/ribbons/forkme_right_red_aa0000.png"></a>
-  <div class="container">
-
+  <div class="container-fluid">
 
     <h1 class="text-center">CASK</h1>
-    <p class="text-center"><strong>Work in progress, tread lightly...</strong></p>
-
-    <div class="col-xs-12" style="height:50px;"></div>
     <h3 class="text-center">Customised Architectures for Sparse Kernels</h3>
-
     <p class="text-center"> CASK can generate, tune and package custom architectures for sparse
     kernels. </p>
+    <ul class="list-inline text-center">
+      <li> <a href="http://github.com/caskorg/cask">source</a> </li>
+      <li> <a href="docs/index.html">docs</a> </li>
+      <li> <a href="coverage/index.html">code coverage</a> </li>
+    </ul>
 
     <p class="text-center">
     <iframe src="https://ghbtns.com/github-btn.html?user=caskorg&repo=cask&type=star&count=true&size=large" frameborder="0" scrolling="0" width="160px" height="30px"></iframe></p>
 
-
-    <div class="col-xs-12" style="height:50px;"></div>
-    <h3 class="text-center"> Useful Links </h3>
-    <p class="text-center"></p>
-    <p class="text-center">
-    <ul class="list-inline text-center">
-      <li> <a href="docs/index.html">docs</a> </li>
-      <li> <a href="coverage/index.html">code coverage</a> </li>
-      <li> <a href="matrices/index.html">matrix data</a> </li>
-      <li> <a href="http://github.com/caskorg/cask">source on GitHub</a> </li>
-    </ul>
-    </p>
-    </p>
-
-    <div class="col-xs-12" style="height:50px;"></div>
+    
+   <div class="col-xs-12" style="height:20px;"></div>
     <h3 class="text-center">Publications</h3>
     <p class="text-center"><em>Feel free to cite any (or all) of these, of course...</em></p>
 
@@ -54,6 +41,296 @@
     Gary Chow, Paul Grigoras, Pavel Burovskiy, Wayne Luk<br/>
      <strong>FPL 2014</strong></p>
 
+    <div class="col-xs-12" style="height:20px;"></div>
+    <h3 class="text-center">Results</h3>
+
+    <p class="text-center">
+    Results based on <a href="https://github.com/caskorg/cask/commits/16ddfebcf6f630152a3a7d222ebfcfcb6273d896">Revision 16ddfeb</a>.
+    Benchmark <a href="https://github.com/caskorg/cask/tree/master/experimental-data/fpga16">details</a>.
+    </p>
+
+    <div class="col-xs-10 col-xs-offset-1">
+    <table border="1" class="table table-striped">
+      <thead>
+        <tr style="text-align: right;">
+          <th></th>
+          <th>Matrix</th>
+          <th>Order</th>
+          <th>Nonzeros</th>
+          <th>Format</th>
+          <th>Type</th>
+          <th>Pattern</th>
+          <th>Nnz/row</th>
+          <th>Id</th>
+          <th>Cx</th>
+          <th>k</th>
+          <th>Np</th>
+          <th>Cb</th>
+          <th>BRAMs</th>
+          <th>LUTs</th>
+          <th>FFs</th>
+          <th>DSPs</th>
+          <th>BWidth</th>
+          <th>GFLOPs</th>
+        </tr>
+      </thead>
+      <tbody>
+      <tr>
+        <th>0</th>
+        <td><a href="matrices/dense.html">dense</a></td>
+        <td>2048</td>
+        <td>4194304</td>
+        <td>coordinate</td>
+        <td>real</td>
+        <td>general</td>
+        <td>2048.00</td>
+        <td>1</td>
+        <td>2048</td>
+        <td>16</td>
+        <td>2</td>
+        <td>2048</td>
+        <td>912</td>
+        <td>86692</td>
+        <td>119716</td>
+        <td>320</td>
+        <td>38.40</td>
+        <td>6.30</td>
+      </tr>
+      <tr>
+        <th>1</th>
+        <td><a href="matrices/psmigr_2.html">psmigr_2</a></td>
+        <td>3140</td>
+        <td>540022</td>
+        <td>coordinate</td>
+        <td>real</td>
+        <td>general</td>
+        <td>171.98</td>
+        <td>9</td>
+        <td>4096</td>
+        <td>16</td>
+        <td>2</td>
+        <td>3584</td>
+        <td>1176</td>
+        <td>86692</td>
+        <td>119716</td>
+        <td>320</td>
+        <td>38.40</td>
+        <td>4.76</td>
+      </tr>
+      <tr>
+        <th>2</th>
+        <td><a href="matrices/raefsky1.html">raefsky1</a></td>
+        <td>3242</td>
+        <td>294276</td>
+        <td>coordinate</td>
+        <td>real</td>
+        <td>general</td>
+        <td>90.77</td>
+        <td>0</td>
+        <td>4096</td>
+        <td>16</td>
+        <td>2</td>
+        <td>3584</td>
+        <td>1176</td>
+        <td>86692</td>
+        <td>119716</td>
+        <td>320</td>
+        <td>38.40</td>
+        <td>3.99</td>
+      </tr>
+      <tr>
+        <th>3</th>
+        <td><a href="matrices/rma10.html">rma10</a></td>
+        <td>46835</td>
+        <td>2374001</td>
+        <td>coordinate</td>
+        <td>real</td>
+        <td>general</td>
+        <td>50.69</td>
+        <td>4</td>
+        <td>7168</td>
+        <td>16</td>
+        <td>2</td>
+        <td>47104</td>
+        <td>1900</td>
+        <td>86692</td>
+        <td>119716</td>
+        <td>320</td>
+        <td>38.40</td>
+        <td>1.63</td>
+      </tr>
+      <tr>
+        <th>4</th>
+        <td><a href="matrices/conf5_4-8x8-05.html">conf5_4-8x8-05</a></td>
+        <td>49152</td>
+        <td>1916928</td>
+        <td>coordinate</td>
+        <td>complex</td>
+        <td>general</td>
+        <td>39.00</td>
+        <td>8</td>
+        <td>12288</td>
+        <td>8</td>
+        <td>2</td>
+        <td>49152</td>
+        <td>1792</td>
+        <td>63236</td>
+        <td>86756</td>
+        <td>160</td>
+        <td>19.20</td>
+        <td>1.47</td>
+      </tr>
+      <tr>
+        <th>5</th>
+        <td><a href="matrices/consph.html">consph</a></td>
+        <td>83334</td>
+        <td>3046907</td>
+        <td>coordinate</td>
+        <td>real</td>
+        <td>symmetric</td>
+        <td>36.56</td>
+        <td>10</td>
+        <td>9216</td>
+        <td>8</td>
+        <td>2</td>
+        <td>83456</td>
+        <td>1864</td>
+        <td>63236</td>
+        <td>86756</td>
+        <td>160</td>
+        <td>19.20</td>
+        <td>1.37</td>
+      </tr>
+      <tr>
+        <th>6</th>
+        <td><a href="matrices/torso2.html">torso2</a></td>
+        <td>115967</td>
+        <td>1033473</td>
+        <td>coordinate</td>
+        <td>real</td>
+        <td>general</td>
+        <td>8.91</td>
+        <td>3</td>
+        <td>15360</td>
+        <td>16</td>
+        <td>1</td>
+        <td>116224</td>
+        <td>1732</td>
+        <td>55346</td>
+        <td>75858</td>
+        <td>160</td>
+        <td>19.20</td>
+        <td>0.19</td>
+      </tr>
+      <tr>
+        <th>7</th>
+        <td><a href="matrices/t2d_q9_A_01.html">t2d_q9_A_01</a></td>
+        <td>9801</td>
+        <td>87025</td>
+        <td>coordinate</td>
+        <td>real</td>
+        <td>general</td>
+        <td>8.88</td>
+        <td>5</td>
+        <td>10240</td>
+        <td>8</td>
+        <td>2</td>
+        <td>10240</td>
+        <td>1356</td>
+        <td>63236</td>
+        <td>86756</td>
+        <td>160</td>
+        <td>19.20</td>
+        <td>0.87</td>
+      </tr>
+      <tr>
+        <th>8</th>
+        <td><a href="matrices/epb1.html">epb1</a></td>
+        <td>14734</td>
+        <td>95053</td>
+        <td>coordinate</td>
+        <td>real</td>
+        <td>general</td>
+        <td>6.45</td>
+        <td>11</td>
+        <td>15360</td>
+        <td>8</td>
+        <td>2</td>
+        <td>14848</td>
+        <td>1712</td>
+        <td>63236</td>
+        <td>86756</td>
+        <td>160</td>
+        <td>19.20</td>
+        <td>0.69</td>
+      </tr>
+      <tr>
+        <th>9</th>
+        <td><a href="matrices/mac_econ_fwd500.html">mac_econ_fwd500</a></td>
+        <td>206500</td>
+        <td>1273389</td>
+        <td>coordinate</td>
+        <td>real</td>
+        <td>general</td>
+        <td>6.17</td>
+        <td>7</td>
+        <td>15360</td>
+        <td>8</td>
+        <td>1</td>
+        <td>206848</td>
+        <td>1606</td>
+        <td>43618</td>
+        <td>59378</td>
+        <td>80</td>
+        <td>9.60</td>
+        <td>0.08</td>
+      </tr>
+      <tr>
+        <th>10</th>
+        <td><a href="matrices/scircuit.html">scircuit</a></td>
+        <td>170998</td>
+        <td>958936</td>
+        <td>coordinate</td>
+        <td>real</td>
+        <td>general</td>
+        <td>5.61</td>
+        <td>2</td>
+        <td>14336</td>
+        <td>16</td>
+        <td>1</td>
+        <td>171008</td>
+        <td>1882</td>
+        <td>55346</td>
+        <td>75858</td>
+        <td>160</td>
+        <td>19.20</td>
+        <td>0.08</td>
+      </tr>
+      <tr>
+        <th>11</th>
+        <td><a href="matrices/dw8192.html">dw8192</a></td>
+        <td>8192</td>
+        <td>41746</td>
+        <td>coordinate</td>
+        <td>real</td>
+        <td>general</td>
+        <td>5.10</td>
+        <td>6</td>
+        <td>8192</td>
+        <td>8</td>
+        <td>3</td>
+        <td>8192</td>
+        <td>1824</td>
+        <td>82854</td>
+        <td>114134</td>
+        <td>240</td>
+        <td>28.80</td>
+        <td>0.68</td>
+      </tr>
+      </tbody>
+    </table>
   </div>
-</body>
-</html>
+
+  </div>
+  </body>
+  </html>

@@ -1,25 +1,27 @@
 <p>Matrix: epb1</p>
-<p style="white-space: pre-wrap;">Name, Order, Nonzeros, Unique Values, Sparsity, MC(2), MC(5), MC(8), MC(10) 
-epb1 14736 95053 73230 0.04377 0.00017 0.00135 0.01077 0.04309 0.31577
-</p>
 <p style="white-space: pre-wrap;">Program arguments:
    ../build/test_spmv_sim
-   ../test-benchmark/epb1.mtx
-File: ../test-benchmark/epb1.mtx
-Sorting took:  took 0.157675 seconds.
-Nonzeros: 95053
+   ../fpga16-benchmark/fpga16/epb1.mtx
+File: ../fpga16-benchmark/fpga16/epb1.mtx
+Sorting took:  took 0.00597172 seconds.
+Param MatrixPath ../fpga16-benchmark/fpga16/epb1.mtx
 Running on DFE
-Result Simple Total cycles=128288,128276,
+Result Simple Total cycles=27742,27739,
 Result Simple Padding cycles=25,25,
-Result Simple Reduction cycles=110505,110505,
-Running on architecture with 
-   maxRows = 200000
+Result Simple Reduction cycles=7367,7367,
+Config ArchitectureId 11
+Result Simple Input width =8,
+Result Simple Pipes =2,
 Result Simple Iterations=1,
-Result Simple Took (ms)=7.24573,
-Result Simple Est (ms)=0.00128288,
-Result Simple Gflops (est)=0.148187,
-Result Simple Gflops (actual)=2.6237e-05,
+Result Simple Took (ms)=1.07369,
+Result Simple Est (ms)=0.00027742,
+Result Simple Gflops (est)=0.685264,
+Result Simple Gflops (actual)=0.000177059,
+Result Simple BWidth (est)=17.8814,
 Test passed!
 All tests passed!
 </p>
 <p><img src="epb1.png"></p>
+<p style="white-space: pre-wrap;">Name, Order, Nonzeros, Unique Values, Sparsity, MC(2), MC(5), MC(8), MC(10) 
+epb1 14736 95053 73230 0.04377 0.00017 0.00135 0.01077 0.04309 0.31577
+</p>
