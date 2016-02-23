@@ -11,6 +11,8 @@ import subprocess
 import sys
 import pandas as pd
 from tabulate import tabulate
+from html import HTML
+from bs4 import BeautifulSoup
 
 from multiprocessing import Pool
 from os import listdir
@@ -426,7 +428,21 @@ def logDseResults(benchmark_df, arch_df):
   pd.set_option('display.max_columns', 500)
   pd.set_option('display.width', 1000)
   df = pd.merge(benchmark_df, arch_df, left_on='Matrix', right_on='Matrix')
-  print df
+  bs = BeautifulSoup(df.to_html())
+  for row in bs.findAll('tr'):
+      cols = row.findAll('td')
+      print cols
+      if cols:
+          matrixName = cols[0].string
+          new_tag = bs.new_tag('a', href='matrices/' + matrixName + '.html')
+          new_tag.string = matrixName
+          cols[0].string = ''
+          cols[0].append(new_tag)
+
+  # import pdb; pdb.set_trace()
+  with open('matrix_index.html', 'w') as f:
+      f.write(str(bs))
+
   write_result('dse_matrix_arch.tex', df.to_latex())
   write_result('dse_matrix_arch.html', df.to_html())
 
