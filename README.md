@@ -1,23 +1,67 @@
-# spark
+# About
 
-`spark` is a tool for exploring customised architectures for sparse linear algebra. It focuses on micro-architectural optimsations for iterative solvers and the sparse matrix vector multiplication kernel.
+`CASK` is a tool for exploring customised architectures for sparse algebra. It
+focuses on micro-architectural optimsations for iterative solvers and the
+sparse matrix vector multiplication kernel.
+
+The main steps in CASK are:
+
+1. Design Space Exploration (DSE) - given a benchmark and a set of
+   architectures find the optimal instantiations for each architecture
+2. Build - generate an implementation library from the architectures which can
+   be used in an application
+3. Benchmark - measure performance of the architectures
+4. Collect and post-process results - collects results of various steps in the
+   process and displays them in a meaningful, user-friendly way
+
+CASK supports three main flows available from the top-level makefile:
+
+1. `mock-flow` - generates CPU based stubs for the architectures; as such it
+   has minimal external dependencies and can run on a local machine without any
+   FPGA vendor tools available; useful for developing the infrastructure as it
+   skips the most expensive steps (building simulation & hardware
+   implementations)
+2. `sim-flow` - build simulation versions of the hardware implementations;
+   these are useful for checking correctness as they will pick up most
+   functional issues
+4. `hw-flow` - build actual hardware (FPGA) implementations for the designs
+
+Each of these flows takes as input:
+- a sparse matrix benchmark
+- a range of design parameters to explore
+
+It produces as output:
+- a shared library with the implementation
+- benchmarking results
+
+## Requirements
+
+All flows run on the local machine and require:
+
+1. `g++ 4.9.2` or higher (for C++11 support)
+2. `Boost 1.55` or higher
+
+To support `sim-flow` the local machine must also have:
+
+1. `Maxeler MaxCompiler 2013.2.2` or higher
+
+To support `hw-flow` the local machine must also have:
+
+1. An installed FPGA card (Maxeler Dataflow Engine such as Vectis or Maia)
+2. MaxelerOS version matching the MaxCompiler version used for the hardware
+   build
+
 
 ## Installation
 
+Clone this repository then run:
+
 ```
-git clone https://github.com/paul-g/spark.git
 git submodule update --init
-cd spark && mkdir build && cd build && cmake ..
+cd cask && mkdir build && cd build && cmake ..
 make -C main
 ```
 
-## Requires
-
-All builds are performed on the local machine which must have:
-
-1. `Maxeler MaxCompiler 2013.2.2` or higher
-2. `g++ 4.9.2` or higher
-3. `Boost 1.55` or higher
 
 ## Usage
 

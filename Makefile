@@ -9,9 +9,9 @@ ROOT_PATH=$(shell pwd)
 
 help:
 	@ echo "Available targets are"
-	@ echo "  sim-test      -- run simulation tests"
+	@ echo "  mock-flow     -- build mock designs"
 	@ echo "  "
-	@ echo "  mock          -- build mock designs"
+	@ echo "  sim-test      -- run simulation tests"
 	@ echo "  "
 	@ echo "  coverage      -- run tests (sim, unit, mock) and coverage checks"
 	@ echo "  "
@@ -36,10 +36,10 @@ sim-test: sim
 graphs:
 	cd scripts && PYTHONPATH=$(PYTHONPATH):$(ROOT_PATH)/sparsegrind python render_graphs.py
 
-mock:
+mock-flow:
 	mkdir -p build
 	cd build && cmake ..
-	cd scripts && python spark.py -t dfe_mock -p ../params.json -b ../test-benchmark && cd ..
+	cd scripts && python spark.py -d -t dfe_mock -p ../params.json -b ../test-benchmark && cd ..
 	cd build && make -j12
 
 matrix:
