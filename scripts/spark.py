@@ -31,6 +31,9 @@ BENCHMARK_NONE = 'none'
 BENCHMARK_BEST = 'best'
 BENCHMARK_ALL_TO_ALL = 'all'
 
+REP_CSV = 'csv'
+REP_HTML  = 'html'
+
 DIR_PATH_RESULTS = 'results'
 DIR_PATH_LOG = 'logs'
 DIR_PATH_RUNS = 'runs'
@@ -132,23 +135,30 @@ def preProcessBenchmark(benchDirPath):
   return sorted(entries, key=lambda x : x[-1], reverse=True)
 
 def print_from_iterator(lines_iterator, logfile=None):
+  output = ''
   if logfile:
     with open(logfile, 'w') as log:
       for line in lines_iterator:
         log.write(line)
         log.flush()
+        output += line
   else:
     for line in lines_iterator:
       print line
+      output += line
+  return output
 
 def execute(command, logfile=None, silent=True):
   if not silent:
     print 'Executing ', ' '.join(command)
   popen = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
-  if logfile:
-    print_from_iterator(iter(popen.stdout.readline, b"") , logfile)
-    print_from_iterator(iter(popen.stderr.readline,  b""), logfile + '.err')
+  output = None
+  output_err = None
+  if logfile or not silent:
+    output = print_from_iterator(iter(popen.stdout.readline, b"") , logfile)
+    err_log = logfile + '.err' if logfile else None
+    output_err = print_from_iterator(iter(popen.stderr.readline,  b""), err_log)
 
   popen.wait()
   if popen.returncode != 0:
@@ -158,6 +168,8 @@ def execute(command, logfile=None, silent=True):
     print colored("Error! '{0}' return code {1}".format(
       ' '.join(command), str(popen.returncode)) ,
       'red')
+
+  return output, output_err
 
 def runDse(benchFile, paramsFile, target, skipExecution=False):
   dseFile = "dse_out.json"
@@ -428,23 +440,9 @@ def logDseResults(benchmark_df, arch_df):
   pd.set_option('display.max_columns', 500)
   pd.set_option('display.width', 1000)
   df = pd.merge(benchmark_df, arch_df, left_on='Matrix', right_on='Matrix')
-  bs = BeautifulSoup(df.to_html())
-  for row in bs.findAll('tr'):
-      cols = row.findAll('td')
-      print cols
-      if cols:
-          matrixName = cols[0].string
-          new_tag = bs.new_tag('a', href='matrices/' + matrixName + '.html')
-          new_tag.string = matrixName
-          cols[0].string = ''
-          cols[0].append(new_tag)
-
-  # import pdb; pdb.set_trace()
-  with open('matrix_index.html', 'w') as f:
-      f.write(str(bs))
-
   write_result('dse_matrix_arch.tex', df.to_latex())
   write_result('dse_matrix_arch.html', df.to_html())
+  return df
 
 
 def postProcessResults(prjs, benchmark, benchmark_df, arch_df, arch_build_df, dirpath):
@@ -499,6 +497,43 @@ def write_result(fname, data):
       f.write(data)
 
 
+def build_html():
+    matrices = []
+    check_make_dir('matrices_html')
+
+    for root, dirs, files in os.walk('matrices'):
+      h = HTML()
+      matrix = os.path.basename(root)
+      if not dirs:
+        print root, dirs, files
+        h.p('Matrix: ' + matrix)
+        sparsity_plot = None
+        for f in files:
+          if not f.endswith('.png'):
+            with open(os.path.join(root, f)) as fin:
+              h.p(fin.read(), style='white-space: pre-wrap;')
+          else:
+            p = h.p()
+            p.img(src=matrix + '.png')
+            sparsity_plot = os.path.join(root, f)
+
+        path = 'matrices_html/' + matrix + '.html'
+        with open(path, 'w') as fout:
+          matrices.append(matrix + '.html')
+          fout.write(str(h))
+          shutil.copyfile(sparsity_plot, 'matrices_html/' + matrix + '.png')
+
+    with open('matrices_html/index.html', 'w') as fout:
+      h = HTML()
+      h.p('matrices: ')
+      l = h.ol
+
+      for m in matrices:
+        l.li.a(m, href=m)
+
+      fout.write(str(h))
+
+
 def main():
 
   parser = argparse.ArgumentParser(description='Run Spark DSE flow')
@@ -515,6 +550,9 @@ def main():
       choices=[BENCHMARK_BEST, BENCHMARK_ALL_TO_ALL, BENCHMARK_NONE],
       default=BENCHMARK_NONE)
   parser.add_argument('-rb', '--run-builds', default=False, action='store_true')
+  parser.add_argument('-rep', '--reporting',
+          choices=[REP_CSV, REP_HTML],
+          default=REP_CSV)
   args = parser.parse_args()
 
   buildName = PRJ + '_' + args.target
@@ -548,7 +586,8 @@ def main():
 
   arch_df = pd.DataFrame(log_archs,
           columns = ['Matrix', 'Id', 'Cx', 'k', 'Np', 'Cb', 'BRAMs', 'LUTs', 'FFs', 'DSPs', 'BWidth', 'GFLOPs'])
-  logDseResults(benchmark_df, arch_df)
+  merged_df = logDseResults(benchmark_df, arch_df)
+  print merged_df
 
   p = os.path.abspath(args.benchmark_dir)
   benchmark = [ join(p, f) for f in listdir(p) if isfile(join(p,f)) ]
@@ -590,6 +629,39 @@ def main():
     postProcessResults(ps, benchmark,
         benchmark_df, arch_df, arch_build_df,
         DIR_PATH_RUNS)
+
+  # Reporting
+  if args.reporting == REP_HTML:
+    print colored('Generating HTML reports', 'red')
+    for p in benchmark:
+      out, out_err = execute(['python', '../sparsegrind/sparsegrind/main.py',
+              '-f', 'mm', '-a', 'summary', p], silent=False)
+      outputDir = os.path.join('matrices', os.path.basename(p).replace('.mtx', ''))
+      summaryFile = os.path.join(outputDir, 'summary.csv')
+      check_make_dir(outputDir)
+      with open(summaryFile, 'w') as f:
+        f.write(out)
+      execute(['python', '../sparsegrind/sparsegrind/main.py',
+              '-f', 'mm', '-a', 'plot', p], silent=False)
+      shutil.copy('sparsity.png', outputDir)
+
+    build_html()
+
+    # TODO also need to add hardware / simulation results to report
+    matrix_sim_run=${matrix_dir}/sim_run.csv
+    cd scripts && bash simrunner ../build/test_spmv_sim ../${f} >> ../${matrix_sim_run} && cd ..
+
+    bs = BeautifulSoup(merged_df.to_html(), 'html.parser')
+    for row in bs.findAll('tr'):
+        cols = row.findAll('td')
+        if cols:
+            matrixName = cols[0].string
+            new_tag = bs.new_tag('a', href='matrices/' + matrixName + '.html')
+            new_tag.string = matrixName
+            cols[0].string = ''
+            cols[0].append(new_tag)
+    with open('matrices_html/matrix_index.html', 'w') as f:
+        f.write(str(bs))
 
 
 if __name__ == '__main__':
