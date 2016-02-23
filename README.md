@@ -1,4 +1,6 @@
-# About
+# CASK - Custom Architectures for Sparse Kernels
+
+[![Build Status](https://travis-ci.org/caskorg/cask.svg?branch=master)](https://travis-ci.org/caskorg/cask/)
 
 `CASK` is a tool for exploring customised architectures for sparse algebra. It
 focuses on micro-architectural optimsations for iterative solvers and the
