@@ -3,6 +3,9 @@ language: cpp
 compiler:
   - gcc
 
+install:
+  bash ci/travis/setup.sh
+
 addons:
   apt:
     sources:
@@ -15,6 +18,6 @@ addons:
 before_script:
   - mkdir build
   - cd build
-  - CXX="g++-4.8" cmake ..
+  - INCLUDE=../ci/travis/eigen CXX="g++-4.8" cmake ..
 
 script: make
