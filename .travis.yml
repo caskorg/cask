@@ -5,6 +5,7 @@ compiler:
 
 install:
   - (cd ci/travis/ && bash setup.sh)
+  - pip install scipy matplotlib networkx beautifulsoup4
 
 addons:
   apt:
@@ -16,6 +17,7 @@ addons:
       - g++-4.8
 
 before_script:
+  - cd scripts && python spark.py -d -t dfe_mock -p ../params.json -b ../test-benchmark -rep html && cd ..
   - mkdir build
   - cd build
   - INCLUDE=../ci/travis/eigen CXX="g++-4.8" cmake ..
