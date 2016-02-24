@@ -43,11 +43,11 @@ endif (NOT Boost_FOUND)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -march=native")
 
-find_path(
-  EIGEN_HEADER
-  Eigen)
+find_path(EIGEN_HEADER Eigen)
+
 if (EIGEN_HEADER)
   message(STATUS "  --> EIGEN ${EIGEN_HEADER}")
+  include_directories(${EIGEN_HEADER})
   add_definitions(-DUSEEIGEN)
   set(SparkCpu_src
     "${SparkCpu_src}"
