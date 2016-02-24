@@ -648,8 +648,8 @@ def main():
     build_html()
 
     # TODO also need to add hardware / simulation results to report
-    matrix_sim_run=${matrix_dir}/sim_run.csv
-    cd scripts && bash simrunner ../build/test_spmv_sim ../${f} >> ../${matrix_sim_run} && cd ..
+    # matrix_sim_run=${matrix_dir}/sim_run.csv
+    # cd scripts && bash simrunner ../build/test_spmv_sim ../${f} >> ../${matrix_sim_run} && cd ..
 
     bs = BeautifulSoup(merged_df.to_html(), 'html.parser')
     for row in bs.findAll('tr'):
