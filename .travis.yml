@@ -5,7 +5,7 @@ compiler:
 
 install:
   - (cd ci/travis/ && bash setup.sh)
-  - pip install scipy matplotlib networkx beautifulsoup4
+  - pip install scipy matplotlib networkx beautifulsoup4 pandas tabulate termcolor html --user
 
 addons:
   apt:

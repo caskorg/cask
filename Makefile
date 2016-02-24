@@ -38,7 +38,7 @@ graphs:
 
 mock-flow:
 	mkdir -p build
-	cd build && cmake ..
+	cd build && cmake .. && make main && cd ..
 	cd scripts && python spark.py -d -t dfe_mock -p ../params.json -b ../test-benchmark -rep html && cd ..
 	cd build && make -j12
 
