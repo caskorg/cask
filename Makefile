@@ -9,8 +9,11 @@ ROOT_PATH=$(shell pwd)
 
 help:
 	@ echo "Available targets are"
-	@ echo "  mock-flow     -- build mock designs"
-	@ echo "  "
+	@ echo "To run the entire flow on a benchmark:"
+	@ echo "  mock-flow    -- flow for mock designs"
+	@ echo "  sim-flow     -- flow for simulation designs"
+	@ echo ""
+	@ echo "To run the tests"
 	@ echo "  sim-test      -- run simulation tests"
 	@ echo "  "
 	@ echo "  coverage      -- run tests (sim, unit, mock) and coverage checks"
@@ -28,7 +31,8 @@ hw: build/main
 	cd scripts && python spark.py -t dfe -p ../params.json -b ../test-benchmark -d -bm best
 
 sim: build/main
-	cd scripts && python spark.py -t sim -p ../params.json -b ../test-benchmark -d
+	cd scripts && python spark.py -t sim -p ../params.json -b ../test-benchmark -d -rb -rep html
+	cd build & make -j12
 
 sim-test: sim
 	cd build && ctest -R sim*
@@ -36,10 +40,15 @@ sim-test: sim
 graphs:
 	cd scripts && PYTHONPATH=$(PYTHONPATH):$(ROOT_PATH)/sparsegrind python render_graphs.py
 
+sim-flow:
+	mkdir -p build
+	cd build && cmake ..
+	cd scripts && python spark.py -d -t dfe_mock -p ../params.json -b ../test-benchmark -rb -rep html -bm best && cd ..
+
 mock-flow:
 	mkdir -p build
 	cd build && cmake .. && make main && cd ..
-	cd scripts && python spark.py -d -t dfe_mock -p ../params.json -b ../test-benchmark -rep html && cd ..
+	cd scripts && python spark.py -d -t dfe_mock -p ../params.json -b ../test-benchmark -rb -rep html && cd ..
 	cd build && make -j12
 
 matrix:
