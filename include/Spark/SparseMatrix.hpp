@@ -1,7 +1,8 @@
 #ifndef SPARSEMATRIX_HPP_1BWMMLC8
 #define SPARSEMATRIX_HPP_1BWMMLC8
 
-#include <Eigen/Sparse>
+#include <tuple>
+#include <vector>
 
 namespace spark {
   namespace sparse {
