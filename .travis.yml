@@ -13,6 +13,10 @@ addons:
       - ubuntu-toolchain-r-test
       - boost-latest
     packages:
+      - libblas-dev
+      - liblapack-dev
+      - libatlas-base-dev
+      - gfortran
       - libboost1.55-all-dev
       - g++-4.8
 
