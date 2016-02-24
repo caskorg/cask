@@ -4,7 +4,7 @@ compiler:
   - gcc
 
 install:
-  bash ci/travis/setup.sh
+  - cd ci/travis/ && bash setup.sh
 
 addons:
   apt:
