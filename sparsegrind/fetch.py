@@ -11,12 +11,7 @@ from HTMLParser import HTMLParser
 
 Matrix=namedtuple('Matrix', ['group', 'name', 'id', 'rows', 'cols', 'nonZeros', 'file', 'valuetype'])
 
-benchmarks=[
-    ('matrix-vector', 'armadillo.cpp', 'g++ armadillo.cpp -o armadillo -O1 -larmadillo', 'armadillo')]
-
-# Max number of matrices to fetch
-MATRIX_LIMIT=460
-
+# TODO all parameters should be command line arguments
 # What groups to fetch matrices from
 MATRIX_GROUPS = []
 
@@ -35,7 +30,7 @@ NonZeros = []
 Rows = []
 
 # The range of legal cols
-Cols = xrange(10000, 100000)
+Cols = None # xrange(10000, 100000)
 
 # Legal values for symmetry
 Sym = []
@@ -48,7 +43,7 @@ def ToInt(stringVal):
     return int(stringVal.replace(',', ''))
 
 
-def ShouldDownload(group, name, rows, cols, nonZeros, spd, sym, valuetype, containing=None):
+def ShouldDownload(group, name, rows, cols, nonZeros, spd, sym, valuetype, containing=None, groupContaining=None):
     if valuetype != ValueType:
         return False
     if Rows and rows not in Rows:
@@ -63,20 +58,24 @@ def ShouldDownload(group, name, rows, cols, nonZeros, spd, sym, valuetype, conta
         return False
     if containing and name.find(containing) == -1:
         return False
+    if groupContaining and group.find(groupContaining) == -1:
+        return False
     return True
 
 
 class MyHtmlParser(HTMLParser):
 
-    def __init__(self, dryrun, containing=None):
+    def __init__(self, args):
         HTMLParser.__init__(self)
         self.state = 'NONE'
         self.skipped_header = False
         self.value_fields = []
         self.downloaded_matrices = 0
         self.matrices = []
-        self.dryrun = dryrun
-        self.containing = containing
+        self.dryrun = args.dryrun
+        self.containing = args.containing
+        self.group = args.group
+        self.args = args
 
     def handle_starttag(self, tag, attrs):
         if self.state == 'FINISHED':
@@ -124,7 +123,7 @@ class MyHtmlParser(HTMLParser):
         spd = fields[10]
         sym = fields[11]
 
-        if ShouldDownload(group, name, rows, cols, nonZeros, spd, sym, valuetype, self.containing):
+        if ShouldDownload(group, name, rows, cols, nonZeros, spd, sym, valuetype, self.containing, self.group):
             url = 'http://www.cise.ufl.edu/research/sparse/MM/' + group + '/' + name + '.tar.gz'
 
             print 'Fetching matrix: ' + group + ' ' + name, valuetype
@@ -136,23 +135,21 @@ class MyHtmlParser(HTMLParser):
             self.downloaded_matrices += 1
             self.matrices.append(Matrix(group, name, matrixId,
                                         rows, cols, nonZeros, filename,
-                                        valuetype
-                                    ))
-            if self.downloaded_matrices >= MATRIX_LIMIT:
+                                        valuetype))
+            print self.downloaded_matrices, self.args.max_matrices, self.downloaded_matrices >= self.args.max_matrices
+            if self.downloaded_matrices >= self.args.max_matrices:
                 self.state = 'FINISHED'
+                print 'STATE FINISHED'
 
     def GetDownloadedMatrices(self):
         return self.matrices
 
 
-def RunBenchmark(matrix):
-    pass
-
-
 def main():
 
     parser = argparse.ArgumentParser(
-        description='Download sparse matrices from UoF Collection.')
+        description='Download sparse matrices from UoF Collection.',
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('-n', '--dryrun',
                         action='store_true',
                         default=False,
@@ -161,8 +158,16 @@ def main():
         '-c', '--containing',
         help='Only download matrices containing provided pattern')
     parser.add_argument(
+        '-g', '--group',
+        help='Only download matrices in a group containing provided pattern')
+    parser.add_argument(
         '-a', '--all',
         help='Fetch all matrices matching default criteria')
+    parser.add_argument(
+        '-m', '--max-matrices',
+        help='Maximum number of matrices to fetch',
+        type=int,
+        default=100)
     parser.add_argument(
         '-f', '--force',
         action='store_true',
@@ -188,7 +193,7 @@ def main():
     if args.containing:
       print '--> Only fetching matrices containing \'', args.containing, '\''
 
-    parser = MyHtmlParser(args.dryrun, args.containing)
+    parser = MyHtmlParser(args)
     parser.feed(f.read())
 
     matrices = parser.GetDownloadedMatrices()
@@ -206,7 +211,6 @@ def main():
         print matrix.file
         shutil.move(matrix.file, 'matrices')
         call(['tar', '-xvzf', 'matrices/' + matrix.file, '-C', 'matrices/'])
-        RunBenchmark(matrix)
 
 if __name__ == '__main__':
     main()
