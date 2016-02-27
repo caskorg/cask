@@ -262,9 +262,10 @@ def runClient(benchmark, target, prj=None):
 
 class Spark:
 
-  def __init__(self, target, prjs):
+  def __init__(self, target, prjs, cppCompiler='g++'):
     self.target = target
     self.prjs =prjs
+    self.cppCompiler = cppCompiler
 
   def runLibraryBuild(self, prjs, libName):
     print ' >> Building Library'
@@ -285,7 +286,7 @@ class Spark:
         obj_files.append(objFile)
 
     cmd =[
-      'g++',
+        self.cppCompiler,
       '-c',
       '-Wall',
       '-std=c++11',
@@ -311,7 +312,7 @@ class Spark:
     out = subprocess.check_output(cmd)
 
     cmd =[
-        'g++',
+        self.cppCompiler,
         '-fPIC',
         '--std=c++11',
         '-shared',
@@ -546,6 +547,7 @@ def main():
   parser.add_argument('-en', '--build_end', type=int, default=None)
   parser.add_argument('-bmst', '--benchmark_start', type=int, default=None)
   parser.add_argument('-bmen', '--benchmark_end', type=int, default=None)
+  parser.add_argument('-cpp', '--cpp_compiler')
   parser.add_argument('-bm', '--benchmarking-mode',
       choices=[BENCHMARK_BEST, BENCHMARK_ALL_TO_ALL, BENCHMARK_NONE],
       default=BENCHMARK_NONE)
@@ -598,7 +600,7 @@ def main():
   if args.build_start != None and args.build_end != None:
     ps = prjs[args.build_start:args.build_end]
 
-  spark = Spark(args.target, ps)
+  spark = Spark(args.target, ps, args.cpp_compiler)
 
   if args.run_builds:
     print colored('Running builds', 'red')

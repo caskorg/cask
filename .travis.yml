@@ -26,4 +26,4 @@ before_script:
   - INCLUDE=../ci/travis/eigen CXX="g++-4.8" cmake ..
   - cd ..
 
-script: make mock-flow
+script: CXX="g++-4.8" make mock-flow
