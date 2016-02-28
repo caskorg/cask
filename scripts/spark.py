@@ -547,7 +547,7 @@ def main():
   parser.add_argument('-en', '--build_end', type=int, default=None)
   parser.add_argument('-bmst', '--benchmark_start', type=int, default=None)
   parser.add_argument('-bmen', '--benchmark_end', type=int, default=None)
-  parser.add_argument('-cpp', '--cpp_compiler')
+  parser.add_argument('-cpp', '--cpp_compiler', default='g++')
   parser.add_argument('-bm', '--benchmarking-mode',
       choices=[BENCHMARK_BEST, BENCHMARK_ALL_TO_ALL, BENCHMARK_NONE],
       default=BENCHMARK_NONE)
