@@ -48,7 +48,7 @@ sim-flow:
 mock-flow:
 	mkdir -p build
 	cd build && cmake .. && make main && cd ..
-	cd scripts && python spark.py -d -t dfe_mock -p ../params.json -b ../test-benchmark -rb -rep html && cd ..
+	cd scripts && python spark.py -d -t dfe_mock -p ../params.json -b ../test-benchmark -rb -rep html --cpp=$(CXX) && cd ..
 	cd build && make -j12
 
 matrix:
