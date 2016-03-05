@@ -1,4 +1,6 @@
 """Implements the main DSE loop in spark."""
+import maxbuild
+
 import argparse
 import itertools
 import json
@@ -41,85 +43,6 @@ DIR_PATH_RUNS = 'runs'
 DSE_LOG_FILE = 'dse_run.log'
 
 pd.options.display.float_format = '{:.2f}'.format
-
-class PrjConfig:
-  def __init__(self, p, t, n, prj_id):
-    self.params = p
-    self.target = t
-    self.name = n + '_' + str(prj_id)
-    self.buildRoot='../src/spmv/build/'
-    self.prj_id = prj_id
-    self.runResults = []
-
-  def buildName(self):
-    bn = self.name + '_' + self.target
-    for k, v in self.params.iteritems():
-      bn += '_' + k.replace('_', '') + v
-    return bn
-
-  def maxfileName(self):
-    return self.name + '.max'
-
-  def __str__(self):
-    return 'params = {0}, target = {1}, name = {2}'.format(
-        self.params, self.target, self.name)
-
-  def __repr__(self):
-    return self.__str__()
-
-  def maxBuildParams(self):
-    params = ''
-    for k, v in self.params.iteritems():
-      params += k + '=' + v + ' '
-    return params
-
-  def getParam(self, p):
-    return self.params[p]
-
-  def buildTarget(self):
-    if self.target == TARGET_SIM:
-      return 'DFE_SIM'
-    return 'DFE'
-
-  def buildDir(self):
-    return os.path.join(self.buildRoot, self.buildName())
-
-  def maxFileLocation(self):
-    return os.path.join(self.resultsDir(), self.maxfileName())
-
-  def maxFileTarget(self):
-    return os.path.join(self.buildName(), 'results', self.maxfileName())
-
-  def resultsDir(self):
-    return os.path.join(self.buildDir(), 'results')
-
-  def libName(self):
-    return 'lib{0}.so'.format(self.buildName())
-
-  def sim(self):
-    return self.target == TARGET_SIM
-
-  def resourceUsageReportDir(self):
-    return os.path.join(self.buildDir(), 'src_annotated')
-
-  def buildLog(self):
-    return os.path.join(self.buildDir(), '_build.log')
-
-  def logFile(self):
-    return self.buildName() + '.log'
-
-  def getBuildResourceUsage(self):
-    usage = {}
-    with open(self.buildLog()) as f:
-      while True:
-        l = f.readline()
-        if l.find('FINAL RESOURCE USAGE') != -1:
-          for i in range(7):
-            m = re.match(r'.*PROGRESS:(.*):\s*(\d*)\s/\s(\d*).*', f.readline())
-            usage[m.group(1).strip()] = (int(m.group(2)), int(m.group(3)))
-          break
-    return usage
-
 
 def preProcessBenchmark(benchDirPath):
   entries = []
@@ -201,24 +124,9 @@ def runDse(benchFile, paramsFile, target, skipExecution=False):
             int(est_impl_ps['DSPs']),
             float(est_impl_ps['memory_bandwidth']),
             float(arch['estimated_gflops']), ])
-      prjs.append(PrjConfig(ps, target, PRJ, prj_id))
+      prjs.append(maxbuild.PrjConfig(ps, target, PRJ, prj_id, '../src/spmv/build/'))
   return prjs, architectures
 
-
-def runMaxCompilerBuild(prj):
-  buildParams = "target={0} buildName={1} maxFileName={2} ".format(
-      prj.buildTarget(), prj.buildName(), prj.name)
-  print '  --> Building MaxFile ', prj.buildName(), '\n',
-
-  prjLogFile = os.path.join(DIR_PATH_LOG, prj.buildName() + '.log')
-  execute(
-      ['make', 'MAX_BUILDPARAMS="' + prj.maxBuildParams() + buildParams + '"',
-      "-C", prj.buildRoot, prj.maxFileTarget()],
-      prjLogFile)
-
-  execute(['sed', '-i', '-e', r's/PARAM(TIMING_SCORE,.*)/PARAM(TIMING_SCORE, 0)/',
-    prj.maxFileLocation()
-    ])
 
 
 def buildClient(target):
@@ -383,11 +291,8 @@ class Spark:
 
     print ' >> Building Hardware Implementations'
     if self.target != TARGET_DFE_MOCK:
-      # run MC builds in parallel
-      pool = Pool(6)
-      pool.map(runMaxCompilerBuild, self.prjs)
-      pool.close()
-      pool.join()
+      b = MaxBuildRunner()
+      b.run()
 
     # library generation is sequential
     self.generateImplementationHeader(self.prjs)
@@ -584,7 +489,7 @@ def main():
       ps = {}
       for k, v in data['dse_params'].iteritems():
         ps[k] = str(v['default'])
-    params = [PrjConfig(ps, args.target, PRJ, prj_id)]
+    params = [maxbuild.PrjConfig(ps, args.target, PRJ, prj_id, '../src/spmv/build/')]
 
   arch_df = pd.DataFrame(log_archs,
           columns = ['Matrix', 'Id', 'Cx', 'k', 'Np', 'Cb', 'BRAMs', 'LUTs', 'FFs', 'DSPs', 'BWidth', 'GFLOPs'])
