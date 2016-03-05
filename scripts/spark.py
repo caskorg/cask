@@ -4,7 +4,6 @@ import maxbuild
 import argparse
 import itertools
 import json
-import multiprocessing
 import os
 import pprint
 import re
@@ -16,7 +15,6 @@ from tabulate import tabulate
 from html import HTML
 from bs4 import BeautifulSoup
 
-from multiprocessing import Pool
 from os import listdir
 from os.path import isfile, join
 from scipy import io, sparse
@@ -291,8 +289,8 @@ class Spark:
 
     print ' >> Building Hardware Implementations'
     if self.target != TARGET_DFE_MOCK:
-      b = MaxBuildRunner()
-      b.run()
+      b = maxbuild.MaxBuildRunner()
+      b.runBuilds(self.prjs)
 
     # library generation is sequential
     self.generateImplementationHeader(self.prjs)

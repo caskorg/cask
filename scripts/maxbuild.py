@@ -1,4 +1,9 @@
 """This module contains useful functions and classes for creating and managing MaxCompiler builds"""
+import os
+import multiprocessing
+from multiprocessing import Pool
+from os.path import isfile, join
+
 class PrjConfig:
   def __init__(self, p, t, n, prj_id, buildRoot):
     self.params = p
