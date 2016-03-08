@@ -5,6 +5,7 @@ from scipy.sparse import linalg
 import numpy as np
 import os
 import sys
+from termcolor import colored
 
 import scipy.sparse.linalg as spla
 
@@ -17,7 +18,7 @@ def runSolver(solver, system, rhs, squeeze=True):
   print np.linalg.norm(np.subtract(got, check))
 
 def check(msg, exp, got):
-  print msg, np.linalg.norm(np.subtract(got, exp))
+  print msg, 'L2 norm:', np.linalg.norm(np.subtract(got, exp))
 
 
 def main():
@@ -59,30 +60,40 @@ def main():
   system = sparse.csr_matrix(io.mmread(matrix_path))
   rhs = io.mmread(vec_path)
 
+  print colored('Testing system ' + matrix_path, 'red')
+  n = system.shape[0]
+  print system.shape, system.nnz, float(system.nnz) / n
+
   # -- Direct solver
   dir_sol = scipy.sparse.linalg.spsolve(system, rhs)
   check('Direct Solver', np.squeeze(rhs.toarray()), system.dot(dir_sol))
 
   # -- CG Solver
   for solver in [spla.bicgstab, spla.cg, spla.gmres, spla.bicg, spla.cgs, spla.minres, spla.qmr]:
-    for fill_factor in [10]: # 10000, 1000, 100, 10]:
+    # We can try these out in higher ranges, but for now it seems that ideal values
+    # are around 100 for the fill_factor and 1e-12 for the drop tollerance
+    for fill_factor in [100]: # 10000, 1000, 100, 10]:
       for drop_tol in [1e-12, 1e-8, 1e-6]:
         approx_inv = scipy.sparse.linalg.spilu(
             sparse.csc_matrix(system),
             fill_factor = fill_factor,
-            drop_tol = drop_tol
-            )
-        n = system.shape[0]
+            drop_tol = drop_tol)
         # print approx_inv
         M = scipy.sparse.linalg.LinearOperator(
-            (n, n), lambda x: approx_inv.solve(x))
+           (n, n), lambda x: approx_inv.solve(x))
+        # M = scipy.sparse.linalg.inv(approx_inv)
 
-        sol = solver(system, rhs.toarray(), M=M, maxiter=n)
+        precon = True
+        if solver not in [spla.bicg, spla.minres, spla.qmr]:
+          sol = solver(system, rhs.toarray(), M=M, maxiter=2000)
+        else:
+          precon = False
+          sol = solver(system, rhs.toarray(), maxiter=n)
         result = sol[0]
         # print 'Direct solution', dir_sol
         # print 'Iterative', result
-        check('fill_factor {:4} drop_top {:4} solver {:10}'.format(
-          fill_factor, drop_tol, solver),
+        check('fill_factor {:4}, drop_tol {:4}, solver {:40}, precon {}'.format(
+          fill_factor, drop_tol, solver, precon),
           np.squeeze(rhs.toarray()), system.dot(result))
 
 if __name__ == '__main__':
