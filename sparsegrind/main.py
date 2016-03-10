@@ -377,7 +377,7 @@ def main():
         for root, dirs, files in os.walk(parent_dir):
             for f in files:
                 if f.endswith('.mtx'):
-                  if args.ignore and not f.endswith(args.ignore):
+                  if not args.ignore or f.endswith(args.ignore):
                     grind_matrix(os.path.join(root, f), args)
         return
 
