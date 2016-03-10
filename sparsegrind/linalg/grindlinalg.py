@@ -1,3 +1,4 @@
+import time
 import argparse
 import scipy
 from scipy import io, sparse
@@ -20,6 +21,13 @@ def runSolver(solver, system, rhs, squeeze=True):
 def check(msg, exp, got):
   print msg, 'L2 norm:', np.linalg.norm(np.subtract(got, exp))
 
+class SolverInfo(object):
+  def __init__(self):
+    self.iterations = 0
+
+  def printer(self, x):
+    # print x
+    self.iterations += 1
 
 def main():
   parser = argparse.ArgumentParser(
@@ -29,30 +37,30 @@ def main():
       help='Path to matrix to use (in Matrix Market Format')
   parser.add_argument('-b',
       help='Path to RHS to use (in Matrix Market format)')
+  parser.add_argument('-p', '--precon',
+      default=False, action='store_true',
+      help='Use preconditioner')
   parser.add_argument('-d', '--directory',
       help='Path to directory to load vector & matrix from')
+  parser.add_argument('-ms', '--maxsize',
+                      type=int, help='Maximum system size')
   args = parser.parse_args()
 
   if args.directory:
     files = os.listdir(args.directory)
     # Check we have a matrix (name.mtx) and a corresponding RHS (name_b.mtx)
-    if len(files) != 2:
-      print 'Error! Expecting exactly 2 files'
-      sys.exit(1)
-    if len(files[0]) < len(files[1]):
-      mat, vec = files[0], files[1]
-    else:
-      mat, vec = files[1], files[0]
-
+    mat = min(files, key=len)
     mat_basename = os.path.basename(mat).replace('.mtx', '')
-    vec_basename = os.path.basename(vec).replace('.mtx', '')
-
-    if mat_basename + "_b" != vec_basename:
-      print 'Error! Matrix, vector should be named: matrix.mtx, matrix_b.mtx'
-      sys.exit(1)
-
+    vec = mat_basename + '_b.mtx'
+    sol = mat_basename + '_x.mtx'
+    if os.path.exists(os.path.join(args.directory, sol)):
+      print 'Warning! Ignoring provided solution vector', sol
     matrix_path = os.path.join(args.directory, mat)
     vec_path = os.path.join(args.directory, vec)
+    if not os.path.exists(matrix_path) or not os.path.exists(vec_path):
+      print 'Error expecting at least a matrix and a vector file'
+      print 'Check {} and {}'.format(matrix_path, vec_path)
+      sys.exit(1)
   else:
     matrix_path = args.matrix_path
     vector_path = args.b
@@ -60,41 +68,58 @@ def main():
   system = sparse.csr_matrix(io.mmread(matrix_path))
   rhs = io.mmread(vec_path)
 
-  print colored('Testing system ' + matrix_path, 'red')
   n = system.shape[0]
-  print system.shape, system.nnz, float(system.nnz) / n
+  print args.maxsize
+  if args.maxsize and n > args.maxsize:
+    print colored('System too large ignoring')
+    sys.exit(1)
+
+  print colored('Testing system ' + matrix_path, 'red')
+  print io.mminfo(matrix_path), io.mminfo(vec_path), float(system.nnz) / n
 
   # -- Direct solver
+
+  t0 = time.time()
   dir_sol = scipy.sparse.linalg.spsolve(system, rhs)
-  check('Direct Solver', np.squeeze(rhs.toarray()), system.dot(dir_sol))
+  t1 = time.time()
+  directSolveTime = t1 - t0
+  if type(rhs) is not np.ndarray:
+    rhs = rhs.toarray()
+  check('Direct Solver', np.squeeze(rhs), system.dot(dir_sol))
 
   # -- CG Solver
-  for solver in [spla.bicgstab, spla.cg, spla.gmres, spla.bicg, spla.cgs, spla.minres, spla.qmr]:
+  for solver in [spla.bicgstab]: #, spla.cg, spla.gmres]: #, spla.bicg, spla.cgs, spla.minres, spla.qmr]:
     # We can try these out in higher ranges, but for now it seems that ideal values
     # are around 100 for the fill_factor and 1e-12 for the drop tollerance
-    for fill_factor in [100]: # 10000, 1000, 100, 10]:
-      for drop_tol in [1e-12, 1e-8, 1e-6]:
+    for fill_factor in [10, 100]: # 10000, 1000, 100, 10]:
+      for drop_tol in [1e-6, 1e-12]: #, 1e-8, 1e-6]:
+        t0 = time.time()
         approx_inv = scipy.sparse.linalg.spilu(
             sparse.csc_matrix(system),
             fill_factor = fill_factor,
             drop_tol = drop_tol)
+        t1 = time.time()
+        preconTime = t1 - t0
         # print approx_inv
         M = scipy.sparse.linalg.LinearOperator(
            (n, n), lambda x: approx_inv.solve(x))
         # M = scipy.sparse.linalg.inv(approx_inv)
 
-        precon = True
-        if solver not in [spla.bicg, spla.minres, spla.qmr]:
-          sol = solver(system, rhs.toarray(), M=M, maxiter=2000)
+        precon = args.precon and solver not in [spla.bicg, spla.minres, spla.qmr]
+        solverInfo = SolverInfo()
+        t0 = time.time()
+        if precon:
+          sol = solver(system, rhs, M=M, maxiter=2000, callback=solverInfo.printer)
         else:
-          precon = False
-          sol = solver(system, rhs.toarray(), maxiter=n)
+          sol = solver(system, rhs, maxiter=n)
+        t1 = time.time()
+        iterativeSolverTime = t1 - t0
         result = sol[0]
         # print 'Direct solution', dir_sol
         # print 'Iterative', result
-        check('fill_factor {:4}, drop_tol {:4}, solver {:40}, precon {}'.format(
-          fill_factor, drop_tol, solver, precon),
-          np.squeeze(rhs.toarray()), system.dot(result))
+        check('fill_factor {:4}, drop_tol {:4}, solver {:40}, precon {}, iterations {}, direct(s) {}, precon()s {} iterative(s) {}'.format(
+          fill_factor, drop_tol, solver, precon, solverInfo.iterations, directSolveTime, preconTime, iterativeSolverTime),
+          np.squeeze(rhs), system.dot(result))
 
 if __name__ == '__main__':
   main()
