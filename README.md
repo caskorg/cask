@@ -6,6 +6,23 @@
 focuses on micro-architectural optimsations for iterative solvers and the
 sparse matrix vector multiplication kernel.
 
+`CASK` is released under the MIT license - use it as you please, but we assume
+no responsibility. Also, if you find the work interesting and this project
+useful, we kindly ask that you cite the following:
+
+_Paul Grigoras, Pavel Burovskiy, Wayne Luk_, [CASK: Open-Source Custom
+Architectures for Sparse Kernels](http://dl.acm.org/citation.cfm?doid=2847263.2847338). FPGA 2016.
+
+```
+@inproceedings{grigoras2015cask,
+  author = {Grigoras, Paul and Burovskiy, Pavel and Luk, Wayne},
+  title = {{CASK}: Open-Source Custom Architectures for Sparse Kernels},
+  booktitle = FPGA,
+  year = {2016},
+  pages = {179--184},
+}
+```
+
 The main steps in CASK are:
 
 1. Design Space Exploration (DSE) - given a benchmark and a set of
@@ -121,4 +138,4 @@ Then you can:
 2. Run hardware simulation tests with `ctest -R sim`
 3. Run hardware tests with `ctest -R hw`
 
-__Note__ Some simulation tests may take a long time to run (`~60s), particularly if a large architecture is  simulated. 
+__Note__ Some simulation tests may take a long time to run (`~60s), particularly if a large architecture is  simulated.
