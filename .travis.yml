@@ -5,7 +5,13 @@ compiler:
 
 install:
   - (cd ci/travis/ && bash setup.sh)
-  - pip install scipy matplotlib networkx beautifulsoup4 pandas tabulate termcolor html --user
+  - travis_wait pip install scipy --user
+  - pip install matplotlib --user
+  - pip install networkx --user
+  - pip install beautifulsoup4 --user
+  - travis_wait pip install pandas --user
+  - pip install tabulate --user
+  - pip install termcolor html --user
 
 sudo: false
 
