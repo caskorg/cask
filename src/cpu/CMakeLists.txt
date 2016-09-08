@@ -1,9 +1,8 @@
-find_path(EIGEN_HEADER Eigen)
+find_package(Eigen REQUIRED)
 
-
-if (EIGEN_HEADER)
-  message(STATUS "Found EIGEN --> ${EIGEN_HEADER}")
-  include_directories(${EIGEN_HEADER})
+if (LibEIGEN_INCLUDE_DIRS)
+  message(STATUS "Found EIGEN --> ${LibEIGEN_INCLUDE_DIRS}")
+  include_directories(${LibEIGEN_INCLUDE_DIRS})
   add_executable(BicgStabEigen BicgStabEigen.cpp)
 endif()
 
