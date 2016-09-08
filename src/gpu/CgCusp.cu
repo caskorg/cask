@@ -19,8 +19,8 @@ typedef float ValueType;
 
 // Reads an array from a Matrix Market sparse matrix file
 void read_array_from_mm_file(array1d<ValueType,
-                             MemorySpace> &array, const char* filename,
-                             bool readAsMmFile) {
+    MemorySpace> &array, const char* filename,
+    bool readAsMmFile) {
   ifstream f(filename);
 
   string line;
