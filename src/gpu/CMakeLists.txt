@@ -12,4 +12,8 @@ if (CUDA_INCLUDE_DIRS)
       CgCusp.cu
     )
   endif()
+    cuda_add_executable(
+      CudaVersion
+      version.cu
+    )
 endif()
