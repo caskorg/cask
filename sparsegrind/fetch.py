@@ -1,81 +1,95 @@
 import os
 import shutil
-import sys
 import wget
 import argparse
 import sys
+from tabulate import tabulate
 
-from collections import namedtuple
 from subprocess import call
 from HTMLParser import HTMLParser
 
-Matrix=namedtuple('Matrix', ['group', 'name', 'id', 'rows', 'cols', 'nonZeros', 'file', 'valuetype'])
+class Matrix(object):
+    def __init__(self, group, name, id, rows, cols, nonZeros, file, valuetype, spd, sym, hasRhs):
+       self.group = group
+       self.name = name
+       self.id = id
+       self.rows = rows
+       self.cols = cols
+       self.nonZeros=nonZeros
+       self.file=file
+       self.valuetype=valuetype
+       self.spd=spd
+       self.sym=sym
+       self.hasRhs=hasRhs
 
-# TODO all parameters should be command line arguments
-# What groups to fetch matrices from
-MATRIX_GROUPS = []
+    def fullName(self):
+        return self.group + '/' + self.name
 
-# What matrices to fetch
-MATRIX_NAMES = []
+    def __str__(self):
+        return "group={} name={} id={} rows={} cols={} nonZeros={} file={} valuetype={} spd={} sym={} hasRhs={}".format(
+               self.group, self.name, self.id, self.rows, self.cols,
+               self.nonZeros, self.file, self.valuetype, self.spd, self.sym, self.hasRhs)
 
-# Max row and col sizes to fetch. Set to None if no limit is required
-MAX_NON_ZEROS = 1E9
+    def __repr__(self):
+        return self.__str__()
 
-ValueType = 'real' # 'real', 'integer', 'complex', 'binary'
 
-# The range of legal non-zero values
-NonZeros = []
+class MatrixCollection(object):
 
-# The range of legal rows
-Rows = []
+  def __init__(self, matrixList):
+    self.matrixList = matrixList
 
-# The range of legal cols
-Cols = None # xrange(10000, 100000)
+  def select(self, predicate):
+    return MatrixCollection(filter(predicate, self.matrixList))
 
-# Legal values for symmetry
-Sym = []
+  def sorted(self, keyList, reverse=False):
+    return MatrixCollection(
+        sorted(self.matrixList,
+          key=lambda x: tuple([getattr(x, f) for f in keyList]),
+          reverse=not reverse))
 
-# Legal values for positive definite
-Spd = []
+  def download(self):
+    for matrix in self.matrixList:
+      url = 'http://www.cise.ufl.edu/research/sparse/MM/' + matrix.group + '/' + matrix.name + '.tar.gz'
+      filename = wget.download(url)
+
+  def each(self, function):
+    pass
+
+  def __str__(self):
+    keys = ['group', 'name', 'id', 'rows', 'cols', 'nonZeros', 'file', 'valuetype', 'spd', 'sym', 'hasRhs']
+    return tabulate(
+        [[getattr(m, k) for k in keys] for m in self.matrixList],
+        keys
+    )
+
+  def getSpdLinearSystems(self):
+    return self.select(lambda x: x.hasRhs and x.sym =='yes' and x.spd == 'yes' )
+
+  def __repr__(self):
+    return self.__str__()
 
 
 def ToInt(stringVal):
     return int(stringVal.replace(',', ''))
 
 
-def ShouldDownload(group, name, rows, cols, nonZeros, spd, sym, valuetype, containing=None, groupContaining=None):
-    if valuetype != ValueType:
-        return False
-    if Rows and rows not in Rows:
-        return False
-    if Cols and cols not in Cols:
-        return False
-    if Spd and not spd in Spd:
-        return False
-    if Sym and not sym in Sym:
-        return False
-    if MAX_NON_ZEROS and nonZeros > MAX_NON_ZEROS:
-        return False
-    if containing and name.find(containing) == -1:
-        return False
-    if groupContaining and group.find(groupContaining) == -1:
-        return False
-    return True
-
+def fetchOtherProperties(matrices):
+    with open('uof_rhs_names.txt') as f:
+        names = set(map(lambda x : x.strip(), f.readlines()))
+        for m in matrices:
+            if m.fullName() in names:
+                m.hasRhs = True;
+    return matrices
 
 class MyHtmlParser(HTMLParser):
 
-    def __init__(self, args):
+    def __init__(self):
         HTMLParser.__init__(self)
         self.state = 'NONE'
         self.skipped_header = False
         self.value_fields = []
-        self.downloaded_matrices = 0
         self.matrices = []
-        self.dryrun = args.dryrun
-        self.containing = args.containing
-        self.group = args.group
-        self.args = args
 
     def handle_starttag(self, tag, attrs):
         if self.state == 'FINISHED':
@@ -111,38 +125,38 @@ class MyHtmlParser(HTMLParser):
                 self.value_fields.append(data)
 
     def handle_matrix_entry(self):
-
         fields = self.value_fields
-        group = fields[0]
-        name = fields[1]
-        matrixId = fields[2]
-        rows = ToInt(fields[6])
-        cols = ToInt(fields[7])
-        nonZeros = ToInt(fields[8])
-        valuetype = fields[9].split()[0]
-        spd = fields[10]
-        sym = fields[11]
+        self.matrices.append(
+            Matrix(
+              group=fields[0],
+              name=fields[1],
+              id=fields[2],
+              rows=ToInt(fields[6]),
+              cols=ToInt(fields[7]),
+              nonZeros=ToInt(fields[8]),
+              file='',
+              valuetype=fields[9].split()[0],
+              sym=fields[10],
+              spd=fields[11],
+              hasRhs=None
+            )
+        )
 
-        if ShouldDownload(group, name, rows, cols, nonZeros, spd, sym, valuetype, self.containing, self.group):
-            url = 'http://www.cise.ufl.edu/research/sparse/MM/' + group + '/' + name + '.tar.gz'
 
-            print 'Fetching matrix: ' + group + ' ' + name, valuetype
+def fetch(force=False):
+    filename = 'list_by_nnz.html'
+    if not os.path.isfile(filename) or force:
+        print 'Fetching matrix list...'
+        url = 'http://www.cise.ufl.edu/research/sparse/matrices/list_by_nnz.html'
+        filename = wget.download(url)
+        print 'Done'
+    else:
+        print '--> Using cached', filename, '; to force refetch, use the -f option'
 
-            filename = None
-            if not self.dryrun:
-                filename = wget.download(url)
-                print '... Done'
-            self.downloaded_matrices += 1
-            self.matrices.append(Matrix(group, name, matrixId,
-                                        rows, cols, nonZeros, filename,
-                                        valuetype))
-            print self.downloaded_matrices, self.args.max_matrices, self.downloaded_matrices >= self.args.max_matrices
-            if self.downloaded_matrices >= self.args.max_matrices:
-                self.state = 'FINISHED'
-                print 'STATE FINISHED'
-
-    def GetDownloadedMatrices(self):
-        return self.matrices
+    f = open(filename)
+    parser = MyHtmlParser()
+    parser.feed(f.read())
+    return MatrixCollection(fetchOtherProperties(parser.matrices))
 
 
 def main():
@@ -179,24 +193,15 @@ def main():
         parser.print_help()
         return
 
-    filename = 'list_by_nnz.html'
-    if not os.path.isfile(filename) or args.force:
-        print 'Fetching matrix list...'
-        url = 'http://www.cise.ufl.edu/research/sparse/matrices/list_by_nnz.html'
-        filename = wget.download(url)
-        print 'Done'
-    else:
-        print '--> Using cached', filename, '; to force refetch, use the -f option'
-
-    f = open(filename)
-
     if args.containing:
       print '--> Only fetching matrices containing \'', args.containing, '\''
 
-    parser = MyHtmlParser(args)
-    parser.feed(f.read())
-
-    matrices = parser.GetDownloadedMatrices()
+    matrices = fetch(args.dryrun,
+       args.containing,
+       args.group,
+       args.all,
+       args.max_matrices,
+       args.force).matrixList
 
     # print matrices
     print 'Fetched {} matrices'.format(len(matrices))
