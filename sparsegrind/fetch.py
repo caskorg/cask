@@ -2,9 +2,7 @@ import os
 import shutil
 import wget
 import argparse
-import sys
 from tabulate import tabulate
-
 from subprocess import call
 from HTMLParser import HTMLParser
 
@@ -21,14 +19,15 @@ class Matrix(object):
        self.spd=spd
        self.sym=sym
        self.hasRhs=hasRhs
+       self.rhsFile = None
 
     def fullName(self):
         return self.group + '/' + self.name
 
     def __str__(self):
-        return "group={} name={} id={} rows={} cols={} nonZeros={} file={} valuetype={} spd={} sym={} hasRhs={}".format(
+        return "group={} name={} id={} rows={} cols={} nonZeros={} file={} valuetype={} spd={} sym={} hasRhs={} rhsFile={}".format(
                self.group, self.name, self.id, self.rows, self.cols,
-               self.nonZeros, self.file, self.valuetype, self.spd, self.sym, self.hasRhs)
+               self.nonZeros, self.file, self.valuetype, self.spd, self.sym, self.hasRhs, self.rhsFile)
 
     def __repr__(self):
         return self.__str__()
@@ -48,20 +47,33 @@ class MatrixCollection(object):
           key=lambda x: tuple([getattr(x, f) for f in keyList]),
           reverse=not reverse))
 
-  def download(self):
-    for matrix in self.matrixList:
-      url = 'http://www.cise.ufl.edu/research/sparse/MM/' + matrix.group + '/' + matrix.name + '.tar.gz'
-      filename = wget.download(url)
+  def download(self, dir='matrices'):
+    shutil.rmtree(dir, True)
+    os.mkdir(dir)
+    for m in self.matrixList:
+      print 'Fetching {}'.format(m.fullName())
+      url = 'http://www.cise.ufl.edu/research/sparse/MM/' + m.fullName() + '.tar.gz'
+      m.file = wget.download(url)
+      print
+      shutil.move(m.file, dir)
+      print 'Extracting...'
+      call(['tar', '-xvzf', os.path.join(dir, m.file), '-C', dir])
+      m.file = os.path.abspath(os.path.join(dir, m.name, m.name + '.mtx'))
+      if not os.path.exists(m.file):
+          print 'Warning! unexpected name for matrix', m.name()
+      if m.hasRhs:
+          m.rhsFile = os.path.abspath(os.path.join(dir, m.name, m.name + '_b.mtx'))
+          if not os.path.exists(m.rhsFile):
+              print 'Warning! unexpected name for RHS of system', m.name()
+      print m
+      print
 
   def each(self, function):
     pass
 
   def __str__(self):
-    keys = ['group', 'name', 'id', 'rows', 'cols', 'nonZeros', 'file', 'valuetype', 'spd', 'sym', 'hasRhs']
-    return tabulate(
-        [[getattr(m, k) for k in keys] for m in self.matrixList],
-        keys
-    )
+    keys = ['group', 'name', 'id', 'rows', 'cols', 'nonZeros', 'valuetype', 'spd', 'sym', 'hasRhs']
+    return tabulate([[getattr(m, k) for k in keys] for m in self.matrixList], keys)
 
   def getSpdLinearSystems(self):
     return self.select(lambda x: x.hasRhs and x.sym =='yes' and x.spd == 'yes' )
@@ -175,9 +187,6 @@ def main():
         '-g', '--group',
         help='Only download matrices in a group containing provided pattern')
     parser.add_argument(
-        '-a', '--all',
-        help='Fetch all matrices matching default criteria')
-    parser.add_argument(
         '-m', '--max-matrices',
         help='Maximum number of matrices to fetch',
         type=int,
@@ -189,33 +198,16 @@ def main():
         help='Force a refetch of the list_by_nnz.html file containing the index of all matrices')
     args = parser.parse_args()
 
-    if len(sys.argv) == 1:
-        parser.print_help()
+    matrices = fetch(args.force).select(
+        lambda x : (not args.containing or args.containing in x.name) and (not args.group or args.group in x.group))
+    matrices = MatrixCollection(matrices.matrixList[:args.max_matrices])
+
+    if args.dryrun:
+        print matrices
+        print 'Fetched {} matrices'.format(len(matrices))
         return
 
-    if args.containing:
-      print '--> Only fetching matrices containing \'', args.containing, '\''
-
-    matrices = fetch(args.dryrun,
-       args.containing,
-       args.group,
-       args.all,
-       args.max_matrices,
-       args.force).matrixList
-
-    # print matrices
-    print 'Fetched {} matrices'.format(len(matrices))
-
-    # prepare matrices (move to directory, extract archive...)
-    shutil.rmtree('matrices', True)
-    os.mkdir('matrices')
-
-    for matrix in matrices:
-        if not matrix.file:
-            continue
-        print matrix.file
-        shutil.move(matrix.file, 'matrices')
-        call(['tar', '-xvzf', 'matrices/' + matrix.file, '-C', 'matrices/'])
+    matrices.download()
 
 if __name__ == '__main__':
     main()
