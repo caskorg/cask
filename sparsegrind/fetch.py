@@ -65,7 +65,6 @@ class MatrixCollection(object):
           m.rhsFile = os.path.abspath(os.path.join(dir, m.name, m.name + '_b.mtx'))
           if not os.path.exists(m.rhsFile):
               print 'Warning! unexpected name for RHS of system', m.name()
-      print m
       print
 
   def each(self, function):

@@ -43,14 +43,20 @@ def runCgSolvers(matrix_path, vec_path, use_precon=True, max_size=None):
     sys.exit(1)
   print colored('Testing system ' + matrix_path, 'red')
   print io.mminfo(matrix_path), io.mminfo(vec_path), float(system.nnz) / n
-  # -- Direct solver
-  t0 = time.time()
-  dir_sol = scipy.sparse.linalg.spsolve(system, rhs)
-  t1 = time.time()
-  directSolveTime = t1 - t0
+
+  directSolveTime = None
+  try:
+    t0 = time.time()
+    dir_sol = scipy.sparse.linalg.spsolve(system, rhs)
+    t1 = time.time()
+    directSolveTime = t1 - t0
+  except RuntimeError as e:
+    print 'Exception', e
+
   if type(rhs) is not np.ndarray:
     rhs = rhs.toarray()
   check('Direct Solver', np.squeeze(rhs), system.dot(dir_sol))
+
   # -- CG Solver
   resultsList = []
   for solver in [spla.bicgstab]:  # , spla.cg, spla.gmres]: #, spla.bicg, spla.cgs, spla.minres, spla.qmr]:
@@ -58,39 +64,42 @@ def runCgSolvers(matrix_path, vec_path, use_precon=True, max_size=None):
     # are around 100 for the fill_factor and 1e-12 for the drop tollerance
     for fill_factor in [10, 100]:  # 10000, 1000, 100, 10]:
       for drop_tol in [1e-6, 1e-12]:  # , 1e-8, 1e-6]:
-        t0 = time.time()
-        approx_inv = scipy.sparse.linalg.spilu(
-          sparse.csc_matrix(system),
-          fill_factor=fill_factor,
-          drop_tol=drop_tol)
-        t1 = time.time()
-        preconTime = t1 - t0
-        # print approx_inv
-        M = scipy.sparse.linalg.LinearOperator(
-          (n, n), lambda x: approx_inv.solve(x))
-        # M = scipy.sparse.linalg.inv(approx_inv)
+        try:
+            t0 = time.time()
+            approx_inv = scipy.sparse.linalg.spilu(
+              sparse.csc_matrix(system),
+              fill_factor=fill_factor,
+              drop_tol=drop_tol)
+            t1 = time.time()
+            preconTime = t1 - t0
+            # print approx_inv
+            M = scipy.sparse.linalg.LinearOperator(
+              (n, n), lambda x: approx_inv.solve(x))
+            # M = scipy.sparse.linalg.inv(approx_inv)
 
-        precon = use_precon and solver not in [spla.bicg, spla.minres, spla.qmr]
-        solverInfo = SolverInfo()
-        t0 = time.time()
-        if precon:
-          sol = solver(system, rhs, M=M, maxiter=2000, callback=solverInfo.printer)
-        else:
-          sol = solver(system, rhs, maxiter=n)
-        t1 = time.time()
-        iterativeSolverTime = t1 - t0
-        result = sol[0]
-        # print 'Direct solution', dir_sol
-        # print 'Iterative', result
-        resultsList.append(
-          [
-            fill_factor, drop_tol, solver, precon, solverInfo.iterations,
-            directSolveTime, preconTime, iterativeSolverTime, preconTime + iterativeSolverTime,
-            l2norm(np.squeeze(rhs), system.dot(result))
-          ]
-        )
+            precon = use_precon and solver not in [spla.bicg, spla.minres, spla.qmr]
+            solverInfo = SolverInfo()
+            t0 = time.time()
+            if precon:
+              sol = solver(system, rhs, M=M, maxiter=2000, callback=solverInfo.printer)
+            else:
+              sol = solver(system, rhs, maxiter=n)
+            t1 = time.time()
+            iterativeSolverTime = t1 - t0
+            result = sol[0]
+            # print 'Direct solution', dir_sol
+            # print 'Iterative', result
+            resultsList.append(
+              [
+                fill_factor, drop_tol, solver, precon, solverInfo.iterations,
+                directSolveTime, preconTime, iterativeSolverTime, preconTime + iterativeSolverTime,
+                l2norm(np.squeeze(rhs), system.dot(result))
+              ]
+            )
+        except RuntimeError as inst:
+            print 'Exception', inst
+
   headers = ['fill_factor', 'drop_tol', 'solver', 'precon', 'iterations', 'direct(s)', 'precon(s)', 'it(s)', 'itTotal(s)', 'l2norm']
-#  print tabulate(resultsList, headers)
   return resultsList, headers
 
 
