@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# enough to set mpi path, but also load:
+# Currently Loaded Modulefiles:
+#   1) intel-suite/2015.3    2) mpi/intel-5.0.2.044
+./configure --PETSC_ARCH=linux-intel-2015.3-mkl-opt --CFLAGS="-O3 -xHost -mkl -lz" --CXXFLAGS="-O3 -xHost -mkl -lz" --FFLAGS="-O3 -xHost -mkl -lz" --with-fortran-interfaces=1 --with-mpi-dir=/apps/intel/impi/5.0.2.044 --known-mpi-shared-libraries=1 --with-blas-lapack-lib="/apps/intel/2015.3/mkl/lib/intel64/libmkl_blas95_lp64 /apps/intel/2015.3/mkl/lib/intel64/libmkl_lapack95_lp64" --with-scalapack-lib="/apps/intel/2015.3/mkl/lib/intel64/libmkl_scalapack_lp64 /apps/intel/2015.3/mkl/lib/intel64/libmkl_blacs_intelmpi_lp64" --with-valgrind-dir=/apps/valgrind/3.5.0 --with-hypre-dir=/apps/hypre/2.9.1a --with-hdf5-dir=/apps/hdf5/1.8.14/parallel --with-ptscotch-dir=/apps/scotch/6.0.3 --download-fblaslapack=0 --download-blacs=0 --download-scalapack=0 --download-ptscotch=0 --download-mumps=1 --download-hypre=0 --download-parmetis=1 --download-metis=1 --download-ml=0 --download-suitesparse=1 --download-mpich=0 --download-openmpi=0 --download-pastix --download-superlu --download-superlu_dist --with-debugging=0
