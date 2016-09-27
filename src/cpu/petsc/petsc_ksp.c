@@ -16,7 +16,8 @@ int main(int argc,char **args) {
   if (size != 1) SETERRQ(PETSC_COMM_WORLD,1,"This is a uniprocessor example only!");
 
   // --- Load system matrix
-  ierr = PetscOptionsGetString(NULL,"-fin",filein,PETSC_MAX_PATH_LEN,NULL);CHKERRQ(ierr);
+  PetscBool found;
+  ierr = PetscOptionsGetString(NULL,NULL,"-fin",filein,PETSC_MAX_PATH_LEN,&found);CHKERRQ(ierr);
   ierr = PetscFOpen(PETSC_COMM_SELF,filein,"r",&file);CHKERRQ(ierr);
   // TODO should use mmread library
   do fgets(buf,PETSC_MAX_PATH_LEN-1,file);
@@ -42,7 +43,6 @@ int main(int argc,char **args) {
   fclose(file);
 
   ierr = MatCreate(PETSC_COMM_SELF,&A);CHKERRQ(ierr);
-  ierr = MatSetType(A,MATSBAIJ);CHKERRQ(ierr);
   ierr = MatSetSizes(A,PETSC_DECIDE,PETSC_DECIDE,m,n);CHKERRQ(ierr);
   ierr = MatSetFromOptions(A);CHKERRQ(ierr);
   ierr = MatSeqSBAIJSetPreallocation(A,1,0,rownz);CHKERRQ(ierr);
@@ -67,7 +67,7 @@ int main(int argc,char **args) {
   ierr = VecSetFromOptions(x);CHKERRQ(ierr);
   ierr = VecDuplicate(x,&b);CHKERRQ(ierr);
   ierr = VecDuplicate(x,&u);CHKERRQ(ierr);
-  ierr = PetscOptionsGetString(NULL,"-vin",vfilein,PETSC_MAX_PATH_LEN,NULL);CHKERRQ(ierr);
+  ierr = PetscOptionsGetString(NULL,NULL,"-vin",vfilein,PETSC_MAX_PATH_LEN,&found);CHKERRQ(ierr);
   ierr = PetscFOpen(PETSC_COMM_SELF,vfilein,"r",&file);CHKERRQ(ierr);
   do fgets(buf,PETSC_MAX_PATH_LEN-2,file);
   while (buf[0] == '%');
