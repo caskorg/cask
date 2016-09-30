@@ -45,7 +45,8 @@ int main(int argc,char **args) {
   ierr = MatCreate(PETSC_COMM_SELF,&A);CHKERRQ(ierr);
   ierr = MatSetSizes(A,PETSC_DECIDE,PETSC_DECIDE,m,n);CHKERRQ(ierr);
   ierr = MatSetFromOptions(A);CHKERRQ(ierr);
-  ierr = MatSeqSBAIJSetPreallocation(A,1,0,rownz);CHKERRQ(ierr);
+  //ierr = MatSeqSBAIJSetPreallocation(A,1,0,rownz);CHKERRQ(ierr);
+  ierr = MatSeqAIJSetPreallocation(A,0,rownz); CHKERRQ(ierr);
   ierr = MatSetUp(A);CHKERRQ(ierr);
 
   /* Add zero to diagonals, in case the matrix missing diagonals */
@@ -58,7 +59,7 @@ int main(int argc,char **args) {
   ierr = MatAssemblyBegin(A,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
   ierr = MatAssemblyEnd(A,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
   // MatView(A, PETSC_VIEWER_DRAW_SELF);
-  ierr = PetscPrintf(PETSC_COMM_SELF,"Assemble SBAIJ matrix completes.\n");CHKERRQ(ierr);
+  ierr = PetscPrintf(PETSC_COMM_SELF,"Matrix assembled.\n");CHKERRQ(ierr);
 
   // --- Load RHS
   ierr = VecCreate(PETSC_COMM_WORLD,&x);CHKERRQ(ierr);
