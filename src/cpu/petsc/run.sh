@@ -1,8 +1,8 @@
 #!/bin/sh
 
 ## ask PBS for time (format hh:mm:ss)
-#PBS -l walltime=02:00:0
-#PBS -l select=1:ncpus=1:mem=16gb
+#PBS -l walltime=10:00:0
+#PBS -l select=1:ncpus=1:mem=32gb
 
 ##load application modules if available
 if hash module 2>/dev/null; then
@@ -11,24 +11,24 @@ if hash module 2>/dev/null; then
 fi
 
 matrixBasePath=$HOME/matrices-eigen
+#matrixBasePath=$HOME/test-matrices
 if [ "$#" -eq 1 ]; then
   matrixList=$1
 else
-  matrixList=$(find . ${matrixBasePath} -name "*.mtx" -not -name "*_b.mtx" -exec basename {} \; | sed 's/_SPD.mtx//g' | head -n 1)
+  matrixList=$(find . ${matrixBasePath} -name "*.mtx" -not -name "*_b.mtx" -exec basename {} \; | sed 's/_SPD.mtx//g')
 fi
-
 
 ##command line
 precList="ilu jacobi none"
-factorSolverPackages="pastix superlu_dist superlu mumps umfpack klu cholmod"
+factorSolverPackages="superlu mumps umfpack klu" # cholmod pastix superlu_dist
 
-source setup.sh
 cd $HOME/workspaces/sparse-bench/src/cpu/petsc
+source setup.sh
+petscCommonFlags="-ksp_view -ksp_converged_reason -ksp_monitor_true_residual -ksp_initial_guess_nonzero -log_view"
 
 for m in $matrixList; do
-  matrixName=$m
-  matrix=${matrixBasePath}/${matrixName}_SPD.mtx
-  vector=${matrixBasePath}/${matrixName}_b.mtx
+  matrix=${matrixBasePath}/${m}_SPD.mtx
+  vector=${matrixBasePath}/${m}_b.mtx
 
   if [ ! -f $matrix ]; then
     echo "Error! Could not find file $matrix"
@@ -44,18 +44,16 @@ for m in $matrixList; do
 
   for p in $precList; do
     echo "Run parameters matrix='$m', precon='$p' solver='CG'"
-    bash run.sh $m $p
+    ./petsc_ksp -fin ${matrix} -vin ${vector} -ksp_type cg -pc_type ${p} ${petscCommonFlags}
   done
-  ./petsc_ksp -fin ${matrix} -vin ${vector} -ksp_type cg -ksp_view -ksp_converged_reason -ksp_monitor_true_residual -ksp_initial_guess_nonzero -log_view -pc_type ${pcType}
-
 
   # --- Direct solvers
   echo "Run parameters matrix='$m', precon='lu', solver='PETSC LU'"
-  ./petsc_ksp -fin ${matrix} -vin ${vector} -ksp_type preonly -ksp_view -ksp_converged_reason -ksp_monitor_true_residual -ksp_initial_guess_nonzero -log_view -pc_type lu
+  ./petsc_ksp -fin ${matrix} -vin ${vector} -ksp_type preonly -pc_type lu ${petscCommonFlags}
 
   for s in $factorSolverPackages; do
     echo "Run parameters matrix='$m', precon='lu', solver='$s'"
-    ./petsc_ksp -fin ${matrix} -vin ${vector} -ksp_type preonly -ksp_view -ksp_converged_reason -ksp_monitor_true_residual -ksp_initial_guess_nonzero -log_view -pc_type lu -pc_factor_mat_solver_package $s
+    ./petsc_ksp -fin ${matrix} -vin ${vector} -ksp_type preonly -pc_type lu -pc_factor_mat_solver_package $s ${petscCommonFlags}
   done
 
 done
