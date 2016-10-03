@@ -1,6 +1,7 @@
 from sparsegrind.sparsegrindio import io
 from sparsegrind.storage import storage
 from sparsegrind import main
+from sparsegrind.linalg import grindlinalg
 
 import os
 import unittest
@@ -12,12 +13,23 @@ def path_to(file):
     return os.path.join(os.path.dirname(__file__), file)
 
 
+def remove(file):
+    try:
+        os.remove(file)
+    except OSError as e:
+        print 'Warning, issue removing file', e
+
+
 class TestMain(unittest.TestCase):
 
     def setUp(self):
         self.csr_matrix = io.read_matrix_market(path_to("small.mtx"))
         self.timeline = io.read_matlab_matrix_timeline(
             path_to("small.matlabtl"))
+
+    def tearDown(self):
+        remove("test.mtx")
+        remove("test_b.mtx")
 
     def testCountLines(self):
         self.assertEquals(
@@ -67,6 +79,22 @@ class TestMain(unittest.TestCase):
         self.assertEquals(-280, minCell)
         self.assertEquals(250.5, maxCell)
         self.assertEquals(7, unique)
+
+    def testLinalg(self):
+        size = 5
+        A = grindlinalg.generate(size, 0.5, spd=True, file="test.mtx")
+        self.assertEquals(A.shape[0], size)
+        self.assertEquals(A.shape[1], size)
+
+        vec = grindlinalg.generate_vec(A.shape[1], 5, "test_b.mtx")
+        sol = grindlinalg.solve("test.mtx")
+        res = grindlinalg.residual(A, sol, vec)
+        self.assertAlmostEqual(res, 0)
+
+        print '==> Matrix\n {}\n==> Lhs\n {}\n==> Rhs\n {}\n==> Residual\n {}'.format(
+           A.todense(), sol, vec, res
+        )
+
 
 if __name__ == '__main__':
     unittest.main()

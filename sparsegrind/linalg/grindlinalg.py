@@ -7,6 +7,7 @@ import numpy as np
 import os
 import sys
 import warnings
+
 from termcolor import colored
 from tabulate import tabulate
 
@@ -35,33 +36,48 @@ class SolverInfo(object):
     self.iterations += 1
 
 
-def generate(n, ratio, spd=False):
+def residual(matrix, sol, rhs):
+    return l2norm(matrix * sol, rhs)
+
+
+def generate_vec(n, value=0.0, file=None):
+    res = np.array([float(value)] * n)
+    if file:
+        io.mmwrite(file, res.reshape(n, 1))
+    return res
+
+
+def generate(n, ratio, spd=False, maxTries=10, file=None):
   if n > 1000:
     print 'Warning! Routine not optimised for large matrices'
 
-  prevErr = np.geterr()
-  np.seterr(all='warn')
-  warnings.filterwarnings('error') # not a great idea
   nonSingular = True
 
   A = None
-  while nonSingular:
+  count = 0
+  while nonSingular and count < maxTries:
     nonSingular = False
     try:
-      A = scipy.sparse.rand(n, n, ratio)
-      invA = scipy.sparse.linalg.inv(A)
-    except (Warning, RuntimeError) as e:
+      A = sparse.csr_matrix(scipy.sparse.rand(n, n, ratio))
+      invA = scipy.linalg.inv(A.todense())
+    except np.linalg.LinAlgError as e:
       nonSingular = True
-      print 'Warning, error occurred generating matrix; giving it another shot'
+      print 'Warning, error occurred generating matrix - not singular; giving it another shot'
       print e
+      count += 1
 
-  if not spd:
-    return A
+  if count == maxTries:
+      raise RuntimeError('Could not generate matrix')
 
-  # A nonsingular ==> A.T * A is positive definite
-  # https://en.wikipedia.org/wiki/Positive-definite_matrix
-  # Also, A.T * A is symmetric
-  return A.transpose() * A
+  res = A
+  if spd:
+    # A nonsingular ==> A.T * A is positive definite
+    # https://en.wikipedia.org/wiki/Positive-definite_matrix
+    # Also, A.T * A is symmetric
+    res = A.transpose() * A
+
+  io.mmwrite(file, res, field='real')
+  return res
 
 
 def solve(matrix_path, vec_path=None, sol_path=None, writeToFile=False, checkResidual=False):
@@ -73,19 +89,11 @@ def solve(matrix_path, vec_path=None, sol_path=None, writeToFile=False, checkRes
     system = sparse.csr_matrix(io.mmread(matrix_path))
     rhs = io.mmread(vec_path)
     rhs = np.reshape(rhs, len(rhs))
-
-    print l2norm(system.dot(rhs), rhs)
-    print type(rhs)
-    print len(rhs)
     if sol_path:
         sol = io.mmread(sol_path)
         sol = np.reshape(sol, len(sol))
-        print sol
         print 'Solution residual', l2norm(system.dot(sol), rhs)
-        print rhs
-        print 'Sol out', system.dot(sol)
     res = scipy.sparse.linalg.spsolve(system, rhs)
-    print type(res)
 
     if writeToFile:
         file = os.path.join(matrixDir, matrixName + "_x.mtx")
@@ -93,11 +101,10 @@ def solve(matrix_path, vec_path=None, sol_path=None, writeToFile=False, checkRes
             for r in res:
                 f.write("{}\n".format(r))
     if checkResidual:
-        print 'Checking residual...'
         system = sparse.csr_matrix(io.mmread(matrix_path))
         got = system.dot(res)
         resNorm = l2norm(rhs, got)
-        print "Residual norm =", resNorm
+        print 'Residual norm =', resNorm
     return res
 
 
@@ -197,9 +204,9 @@ def main():
       sys.exit(1)
   else:
     matrix_path = args.matrix_path
-    vector_path = args.b
+    vec_path = args.b
 
-  runCgSolvers(args, matrix_path, vec_path)
+  runSolvers(args, matrix_path, vec_path)
 
 
 if __name__ == '__main__':
