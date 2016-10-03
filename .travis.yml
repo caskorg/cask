@@ -4,4 +4,10 @@ python:
 
 install: pip install -r requirements.txt
 
+addons:
+  apt:
+    packages:
+      - libblas-dev
+      - liblapack-dev
+
 script: nosetests
