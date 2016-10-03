@@ -38,6 +38,9 @@ class MatrixCollection(object):
   def __init__(self, matrixList):
     self.matrixList = matrixList
 
+  def head(self, n):
+    return MatrixCollection(self.matrixList[:n])
+
   def select(self, predicate):
     return MatrixCollection(filter(predicate, self.matrixList))
 
