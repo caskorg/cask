@@ -1,4 +1,6 @@
-from scipy import io, sparse
+import scipy
+import scipy.io
+import scipy.sparse
 import numpy as np
 
 
@@ -67,11 +69,11 @@ def read_matlab_matrix_timeline(file_path, ntimepoints=None, matrixsize=None):
 
 
 def tl_to_csr(matrix_timeline):
-    return [sparse.csr_matrix(m) for m in matrix_timeline]
+    return [scipy.sparse.csr_matrix(m) for m in matrix_timeline]
 
 
 def read_matrix_market(file_path):
-    return sparse.csr_matrix(io.mmread(file_path))
+    return scipy.sparse.csr_matrix(scipy.io.mmread(file_path))
 
 
 def write_org_table_header(header):

@@ -12,7 +12,7 @@ import os.path
 import collections
 
 from math import log, ceil
-from sparsegrind import storage, precision, reorder, io
+import storage, precision, reorder, matrixio
 import os
 
 
@@ -268,12 +268,12 @@ def grind_matrix(file, args):
 
     # read in matrix data
     if args.format == 'matlabtl':
-        matrices, realms, imagms = io.read_matlab_matrix_timeline(
+        matrices, realms, imagms = matrixio.read_matlab_matrix_timeline(
             file,
             args.timestep + 1
         )
     elif args.format == 'mm':
-        realms = [io.read_matrix_market(file)]
+        realms = [matrixio.read_matrix_market(file)]
     else:
         print 'Unsupported format'
         return

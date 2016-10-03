@@ -1,7 +1,8 @@
-from sparsegrind.sparsegrindio import io
-from sparsegrind.storage import storage
+import sparsegrind
+from sparsegrind import matrixio
+from sparsegrind import storage
 from sparsegrind import main
-from sparsegrind.linalg import grindlinalg
+from sparsegrind import grindlinalg
 
 import os
 import unittest
@@ -23,8 +24,8 @@ def remove(file):
 class TestMain(unittest.TestCase):
 
     def setUp(self):
-        self.csr_matrix = io.read_matrix_market(path_to("small.mtx"))
-        self.timeline = io.read_matlab_matrix_timeline(
+        self.csr_matrix = matrixio.read_matrix_market(path_to("small.mtx"))
+        self.timeline = matrixio.read_matlab_matrix_timeline(
             path_to("small.matlabtl"))
 
     def tearDown(self):
@@ -33,7 +34,7 @@ class TestMain(unittest.TestCase):
 
     def testCountLines(self):
         self.assertEquals(
-            io.count_lines(path_to("small.matlabtl")),
+            matrixio.count_lines(path_to("small.matlabtl")),
             2)
 
     def testCsrRead(self):

@@ -1,12 +1,11 @@
 import time
 import argparse
 import scipy
-from scipy import io, sparse
-from scipy.sparse import linalg
+import scipy.io
+import scipy.sparse
 import numpy as np
 import os
 import sys
-import warnings
 
 from termcolor import colored
 from tabulate import tabulate
@@ -43,7 +42,7 @@ def residual(matrix, sol, rhs):
 def generate_vec(n, value=0.0, file=None):
     res = np.array([float(value)] * n)
     if file:
-        io.mmwrite(file, res.reshape(n, 1))
+        scipy.io.mmwrite(file, res.reshape(n, 1))
     return res
 
 
@@ -58,7 +57,7 @@ def generate(n, ratio, spd=False, maxTries=10, file=None):
   while nonSingular and count < maxTries:
     nonSingular = False
     try:
-      A = sparse.csr_matrix(scipy.sparse.rand(n, n, ratio))
+      A = scipy.sparse.csr_matrix(scipy.sparse.rand(n, n, ratio))
       invA = scipy.linalg.inv(A.todense())
     except np.linalg.LinAlgError as e:
       nonSingular = True
@@ -76,7 +75,7 @@ def generate(n, ratio, spd=False, maxTries=10, file=None):
     # Also, A.T * A is symmetric
     res = A.transpose() * A
 
-  io.mmwrite(file, res, field='real')
+  scipy.io.mmwrite(file, res, field='real')
   return res
 
 
@@ -86,11 +85,11 @@ def solve(matrix_path, vec_path=None, sol_path=None, writeToFile=False, checkRes
     if not vec_path:
         vec_path = os.path.join(matrixDir, matrixName + "_b.mtx")
 
-    system = sparse.csr_matrix(io.mmread(matrix_path))
-    rhs = io.mmread(vec_path)
+    system = scipy.sparse.csr_matrix(scipy.io.mmread(matrix_path))
+    rhs = scipy.io.mmread(vec_path)
     rhs = np.reshape(rhs, len(rhs))
     if sol_path:
-        sol = io.mmread(sol_path)
+        sol = scipy.io.mmread(sol_path)
         sol = np.reshape(sol, len(sol))
         print 'Solution residual', l2norm(system.dot(sol), rhs)
     res = scipy.sparse.linalg.spsolve(system, rhs)
@@ -101,7 +100,7 @@ def solve(matrix_path, vec_path=None, sol_path=None, writeToFile=False, checkRes
             for r in res:
                 f.write("{}\n".format(r))
     if checkResidual:
-        system = sparse.csr_matrix(io.mmread(matrix_path))
+        system = scipy.sparse.csr_matrix(scipy.io.mmread(matrix_path))
         got = system.dot(res)
         resNorm = l2norm(rhs, got)
         print 'Residual norm =', resNorm
@@ -109,14 +108,14 @@ def solve(matrix_path, vec_path=None, sol_path=None, writeToFile=False, checkRes
 
 
 def runSolvers(matrix_path, vec_path, use_precon=True, max_size=None):
-  system = sparse.csr_matrix(io.mmread(matrix_path))
-  rhs = io.mmread(vec_path)
+  system = scipy.sparse.csr_matrix(scipy.io.mmread(matrix_path))
+  rhs = scipy.io.mmread(vec_path)
   n = system.shape[0]
   if max_size and n > max_size:
     print colored('System too large ignoring')
     sys.exit(1)
   print colored('Testing system ' + matrix_path, 'red')
-  print io.mminfo(matrix_path), io.mminfo(vec_path), float(system.nnz) / n
+  print scipy.io.mminfo(matrix_path), scipy.io.mminfo(vec_path), float(system.nnz) / n
 
   directSolveTime = None
   resultsList = []
@@ -136,7 +135,7 @@ def runSolvers(matrix_path, vec_path, use_precon=True, max_size=None):
       for drop_tol in [1e-6, 1e-12]:  # , 1e-8, 1e-6]:
          t0 = time.time()
          approx_inv = scipy.sparse.linalg.spilu(
-           sparse.csc_matrix(system),
+           scipy.sparse.csc_matrix(system),
            fill_factor=fill_factor,
            drop_tol=drop_tol)
          t1 = time.time()
