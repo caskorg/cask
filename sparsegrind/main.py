@@ -8,18 +8,12 @@ A module for analysing sparse matrices. Can be used to analyse:
 import argparse
 import numpy as np
 import matplotlib.pylab as pl
-import os
 import os.path
 import collections
 
 from math import log, ceil
-from reorder import reorder
-from sparsegrindio import io
-from storage import storage
-from precision import precision
+from sparsegrind import storage, precision, reorder, io
 import os
-import sparsegrindio
-import sys
 
 
 def storage_analysis(matrix):
