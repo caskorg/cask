@@ -9,5 +9,7 @@ addons:
     packages:
       - libblas-dev
       - liblapack-dev
+      - libatlas-base-dev
+      - gfortran
 
 script: nosetests

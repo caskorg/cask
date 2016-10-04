@@ -1,6 +1,8 @@
 sparsegrind
 ===========
 
+[![Build Status](https://travis-ci.org/paul-g/sparsegrind.svg?branch=master)](https://travis-ci.org/paul-g/sparsegrind/)
+
 Analyse sparse matrices for possible optimisations.
 
 ## Installation
