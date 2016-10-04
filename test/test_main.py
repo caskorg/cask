@@ -105,6 +105,8 @@ class TestMain(unittest.TestCase):
            A.todense(), sol, vec, res
         )
 
+        grindlinalg.runOnDirectory('test/systems/')
+
 
 if __name__ == '__main__':
     unittest.main()

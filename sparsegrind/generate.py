@@ -15,7 +15,7 @@ def generate_system(n, ratio, spd=False, maxTries=10, name="tmp"):
         matrix_name = name + ".mtx"
 
     A = generate_matrix(n, ratio, spd, maxTries, file=matrix_name)
-    rhs = generate_vec(n, value=5.5, file=rhs_name)
+    rhs = generate_vec(n, file=rhs_name)
     lhs = grindlinalg.solve(matrix_path=matrix_name, vec_path=rhs_name, writeToFile=True)
     return A, lhs, rhs
 
@@ -55,8 +55,8 @@ def generate_matrix(n, ratio, spd=False, maxTries=10, file=None):
     return res
 
 
-def generate_vec(n, value=0.0, file=None):
-    res = np.array([float(value)] * n)
+def generate_vec(n, value=None, file=None):
+    res = np.array([float(value)] * n) if value else np.random.rand(n)
     if file:
         scipy.io.mmwrite(file, res.reshape(n, 1))
     return res

@@ -67,6 +67,26 @@ def solve(matrix_path, vec_path=None, sol_path=None, writeToFile=False, checkRes
     return res
 
 
+def runOnDirectory(dir_path):
+    """
+    Naming convention:
+    1. directory contains several systems: name.mtx, name_b.mtx, name_x.mtx
+    2. SPD systems should be named: name_SPD.mtx, name_SPD_b.mtx, name_SPD_x.mtx
+
+    This function will load the systems from teh directory, solve them and check against the provided solution.
+    """
+    names = set()
+    for a in os.listdir(dir_path):
+        names.add(a.replace(".mtx", "").replace("_x", "").replace("_b", ""))
+
+    for matrix in names:
+        print 'Solving for matrix: ', matrix
+        matrix_path = matrix + ".mtx"
+        vec_path = matrix + "_b.mtx"
+        sol_path = matrix + "_x.mtx"
+        solve(matrix_path, vec_path=vec_path, sol_path=sol_path, writeToFile=False, checkResidual=True)
+
+
 def runSolvers(matrix_path, vec_path, use_precon=True, max_size=None):
     system = scipy.sparse.csr_matrix(scipy.io.mmread(matrix_path))
     rhs = scipy.io.mmread(vec_path)
