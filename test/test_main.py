@@ -1,4 +1,5 @@
 import sparsegrind
+import sparsegrind.generate
 from sparsegrind import matrixio
 from sparsegrind import storage
 from sparsegrind import main
@@ -83,11 +84,19 @@ class TestMain(unittest.TestCase):
 
     def testLinalg(self):
         size = 5
-        A = grindlinalg.generate(size, 0.5, spd=True, file="test.mtx")
+        A = sparsegrind.generate.generate(size, 0.5)
         self.assertEquals(A.shape[0], size)
         self.assertEquals(A.shape[1], size)
 
-        vec = grindlinalg.generate_vec(A.shape[1], 5, "test_b.mtx")
+        A = sparsegrind.generate.generate(size, 0.5, spd=True)
+        self.assertEquals(A.shape[0], size)
+        self.assertEquals(A.shape[1], size)
+
+        A = sparsegrind.generate.generate(size, 0.5, spd=True, file="test.mtx")
+        self.assertEquals(A.shape[0], size)
+        self.assertEquals(A.shape[1], size)
+
+        vec = sparsegrind.generate.generate_vec(A.shape[1], 5, "test_b.mtx")
         sol = grindlinalg.solve("test.mtx")
         res = grindlinalg.residual(A, sol, vec)
         self.assertAlmostEqual(res, 0)
