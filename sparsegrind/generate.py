@@ -5,9 +5,22 @@ import sys
 import scipy.sparse
 import scipy.linalg
 import scipy.io
+import grindlinalg
 
 
-def generate(n, ratio, spd=False, maxTries=10, file=None):
+def generate_system(n, ratio, spd=False, maxTries=10, name="tmp"):
+    if name:
+        lhs_name = name + "_x.mtx"
+        rhs_name = name + "_b.mtx"
+        matrix_name = name + ".mtx"
+
+    A = generate_matrix(n, ratio, spd, maxTries, file=matrix_name)
+    rhs = generate_vec(n, value=5.5, file=rhs_name)
+    lhs = grindlinalg.solve(matrix_path=matrix_name, vec_path=rhs_name, writeToFile=True)
+    return A, lhs, rhs
+
+
+def generate_matrix(n, ratio, spd=False, maxTries=10, file=None):
     if n > 1000:
         print 'Warning! Routine not optimised for large matrices'
 

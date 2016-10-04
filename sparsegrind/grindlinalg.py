@@ -58,9 +58,7 @@ def solve(matrix_path, vec_path=None, sol_path=None, writeToFile=False, checkRes
 
     if writeToFile:
         file = os.path.join(matrixDir, matrixName + "_x.mtx")
-        with open(file, 'w') as f:
-            for r in res:
-                f.write("{}\n".format(r))
+        scipy.io.mmwrite(file, res.reshape(len(res), 1))
     if checkResidual:
         system = scipy.sparse.csr_matrix(scipy.io.mmread(matrix_path))
         got = system.dot(res)
