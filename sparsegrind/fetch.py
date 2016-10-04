@@ -6,82 +6,82 @@ from tabulate import tabulate
 from subprocess import call
 from HTMLParser import HTMLParser
 
+
 class Matrix(object):
     def __init__(self, group, name, id, rows, cols, nonZeros, file, valuetype, spd, sym, hasRhs):
-       self.group = group
-       self.name = name
-       self.id = id
-       self.rows = rows
-       self.cols = cols
-       self.nonZeros=nonZeros
-       self.file=file
-       self.valuetype=valuetype
-       self.spd=spd
-       self.sym=sym
-       self.hasRhs=hasRhs
-       self.rhsFile = None
+        self.group = group
+        self.name = name
+        self.id = id
+        self.rows = rows
+        self.cols = cols
+        self.nonZeros = nonZeros
+        self.file = file
+        self.valuetype = valuetype
+        self.spd = spd
+        self.sym = sym
+        self.hasRhs = hasRhs
+        self.rhsFile = None
 
     def fullName(self):
         return self.group + '/' + self.name
 
     def __str__(self):
         return "group={} name={} id={} rows={} cols={} nonZeros={} file={} valuetype={} spd={} sym={} hasRhs={} rhsFile={}".format(
-               self.group, self.name, self.id, self.rows, self.cols,
-               self.nonZeros, self.file, self.valuetype, self.spd, self.sym, self.hasRhs, self.rhsFile)
+            self.group, self.name, self.id, self.rows, self.cols,
+            self.nonZeros, self.file, self.valuetype, self.spd, self.sym, self.hasRhs, self.rhsFile)
 
     def __repr__(self):
         return self.__str__()
 
 
 class MatrixCollection(object):
+    def __init__(self, matrixList):
+        self.matrixList = matrixList
 
-  def __init__(self, matrixList):
-    self.matrixList = matrixList
+    def head(self, n):
+        return MatrixCollection(self.matrixList[:n])
 
-  def head(self, n):
-    return MatrixCollection(self.matrixList[:n])
+    def select(self, predicate):
+        return MatrixCollection(filter(predicate, self.matrixList))
 
-  def select(self, predicate):
-    return MatrixCollection(filter(predicate, self.matrixList))
+    def sorted(self, keyList, reverse=False):
+        return MatrixCollection(
+            sorted(self.matrixList,
+                   key=lambda x: tuple([getattr(x, f) for f in keyList]),
+                   reverse=not reverse))
 
-  def sorted(self, keyList, reverse=False):
-    return MatrixCollection(
-        sorted(self.matrixList,
-          key=lambda x: tuple([getattr(x, f) for f in keyList]),
-          reverse=not reverse))
+    def download(self, dir='matrices'):
+        shutil.rmtree(dir, True)
+        os.mkdir(dir)
+        for m in self.matrixList:
+            print 'Fetching {}'.format(m.fullName())
+            url = 'http://www.cise.ufl.edu/research/sparse/MM/' + m.fullName() + '.tar.gz'
+            m.file = wget.download(url)
+            print
+            shutil.move(m.file, dir)
+            print 'Extracting...'
+            call(['tar', '-xvzf', os.path.join(dir, m.file), '-C', dir])
+            m.file = os.path.abspath(os.path.join(dir, m.name, m.name + '.mtx'))
+            if not os.path.exists(m.file):
+                print 'Warning! unexpected name for matrix', m.name()
+            if m.hasRhs:
+                m.rhsFile = os.path.abspath(os.path.join(dir, m.name, m.name + '_b.mtx'))
+                if not os.path.exists(m.rhsFile):
+                    print 'Warning! unexpected name for RHS of system', m.name()
+            print
 
-  def download(self, dir='matrices'):
-    shutil.rmtree(dir, True)
-    os.mkdir(dir)
-    for m in self.matrixList:
-      print 'Fetching {}'.format(m.fullName())
-      url = 'http://www.cise.ufl.edu/research/sparse/MM/' + m.fullName() + '.tar.gz'
-      m.file = wget.download(url)
-      print
-      shutil.move(m.file, dir)
-      print 'Extracting...'
-      call(['tar', '-xvzf', os.path.join(dir, m.file), '-C', dir])
-      m.file = os.path.abspath(os.path.join(dir, m.name, m.name + '.mtx'))
-      if not os.path.exists(m.file):
-          print 'Warning! unexpected name for matrix', m.name()
-      if m.hasRhs:
-          m.rhsFile = os.path.abspath(os.path.join(dir, m.name, m.name + '_b.mtx'))
-          if not os.path.exists(m.rhsFile):
-              print 'Warning! unexpected name for RHS of system', m.name()
-      print
+    def each(self, function):
+        pass
 
-  def each(self, function):
-    pass
+    def __str__(self):
+        keys = ['group', 'name', 'id', 'rows', 'cols', 'nonZeros', 'valuetype', 'spd', 'sym', 'hasRhs']
+        return tabulate([[getattr(m, k) for k in keys] for m in self.matrixList], keys)
 
-  def __str__(self):
-    keys = ['group', 'name', 'id', 'rows', 'cols', 'nonZeros', 'valuetype', 'spd', 'sym', 'hasRhs']
-    return tabulate([[getattr(m, k) for k in keys] for m in self.matrixList], keys)
+    def getSpdLinearSystems(self):
+        return self.select(lambda x: x.hasRhs and x.sym == 'yes' and x.spd == 'yes')
 
-  def getSpdLinearSystems(self):
-    return self.select(lambda x: x.hasRhs and x.sym =='yes' and x.spd == 'yes' )
-
-  def __repr__(self):
-    return self.__str__()
+    def __repr__(self):
+        return self.__str__()
 
 
 def ToInt(stringVal):
@@ -90,14 +90,14 @@ def ToInt(stringVal):
 
 def fetchOtherProperties(matrices):
     with open('uof_rhs_names.txt') as f:
-        names = set(map(lambda x : x.strip(), f.readlines()))
+        names = set(map(lambda x: x.strip(), f.readlines()))
         for m in matrices:
             if m.fullName() in names:
-                m.hasRhs = True;
+                m.hasRhs = True
     return matrices
 
-class MyHtmlParser(HTMLParser):
 
+class MyHtmlParser(HTMLParser):
     def __init__(self):
         HTMLParser.__init__(self)
         self.state = 'NONE'
@@ -111,7 +111,7 @@ class MyHtmlParser(HTMLParser):
         if tag == 'table':
             self.state = 'PARSING_TABLE'
         elif tag == 'td':
-            self.state ='PARSING_VALUE'
+            self.state = 'PARSING_VALUE'
         elif tag == 'tr':
             if self.skipped_header:
                 self.state = 'PARSING_ENTRY'
@@ -122,7 +122,7 @@ class MyHtmlParser(HTMLParser):
         if self.state == 'FINISHED':
             return
         if tag == 'table':
-            self.state ='FINISHED'
+            self.state = 'FINISHED'
         elif tag == 'td':
             self.state = 'PARSING_ENTRY'
         elif tag == 'tr':
@@ -142,17 +142,17 @@ class MyHtmlParser(HTMLParser):
         fields = self.value_fields
         self.matrices.append(
             Matrix(
-              group=fields[0],
-              name=fields[1],
-              id=fields[2],
-              rows=ToInt(fields[6]),
-              cols=ToInt(fields[7]),
-              nonZeros=ToInt(fields[8]),
-              file='',
-              valuetype=fields[9].split()[0],
-              sym=fields[10],
-              spd=fields[11],
-              hasRhs=None
+                group=fields[0],
+                name=fields[1],
+                id=fields[2],
+                rows=ToInt(fields[6]),
+                cols=ToInt(fields[7]),
+                nonZeros=ToInt(fields[8]),
+                file='',
+                valuetype=fields[9].split()[0],
+                sym=fields[10],
+                spd=fields[11],
+                hasRhs=None
             )
         )
 
@@ -174,7 +174,6 @@ def fetch(force=False):
 
 
 def main():
-
     parser = argparse.ArgumentParser(
         description='Download sparse matrices from UoF Collection.',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -201,7 +200,7 @@ def main():
     args = parser.parse_args()
 
     matrices = fetch(args.force).select(
-        lambda x : (not args.containing or args.containing in x.name) and (not args.group or args.group in x.group))
+        lambda x: (not args.containing or args.containing in x.name) and (not args.group or args.group in x.group))
     matrices = MatrixCollection(matrices.matrixList[:args.max_matrices])
 
     if args.dryrun:
@@ -210,6 +209,7 @@ def main():
         return
 
     matrices.download()
+
 
 if __name__ == '__main__':
     main()

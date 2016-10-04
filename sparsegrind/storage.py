@@ -24,7 +24,8 @@ def csc(matrix):
             nnz * bytes_per_double_data,
             'CSC')
 
-def csr(matrix, mantissa_bitwidth = 52, index_bitwidth = 32):
+
+def csr(matrix, mantissa_bitwidth=52, index_bitwidth=32):
     '''
        Compute storage size for CSR matrix with IEEE 745 values with 11 bit
        exponent (as for IEEE double) and custom bitwidth of mantissa.
@@ -35,11 +36,10 @@ def csr(matrix, mantissa_bitwidth = 52, index_bitwidth = 32):
     bits_per_custom_data = (mantissa_bitwidth + 12)
     metadata_bitsize = (len(matrix.indptr) + nnz) * index_bitwidth
 
-    return (metadata_bitsize/8.0,
-            (nnz * bits_per_custom_data)/8.0,
+    return (metadata_bitsize / 8.0,
+            (nnz * bits_per_custom_data) / 8.0,
             "CSR {:2d} bits data {} bit index".format(
                 bits_per_custom_data, index_bitwidth))
-
 
 
 def dia(matrix):

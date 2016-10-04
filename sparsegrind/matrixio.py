@@ -54,7 +54,6 @@ def read_matlab_matrix_timeline(file_path, ntimepoints=None, matrixsize=None):
     f = open(file_path)
     matline = 0
     for line in f:
-        #print matline,'/', matrixsize
         values = line.split(',')
         for t in xrange(ntimepoints):
             for i in xrange(matrixsize):

@@ -6,14 +6,18 @@ A module for analysing sparse matrices. Can be used to analyse:
 """
 
 import argparse
-import numpy as np
-import matplotlib.pylab as pl
-import os.path
 import collections
-
-from math import log, ceil
-import storage, precision, reorder, matrixio
+import numpy as np
 import os
+import os.path
+from math import log, ceil
+
+import matplotlib.pylab as pl
+
+import matrixio
+import precision
+import reorder
+import storage
 
 
 def storage_analysis(matrix):
@@ -71,7 +75,7 @@ def range_analysis(csr_matrix):
     prec = [1E-3, 1E-6, 1E-9, 1E-12]
     for p in prec:
         print '{} bits to represent with {} precision'.format(
-            long(ceil(log((maxCell - minCell)/p, 2))), p)
+            long(ceil(log((maxCell - minCell) / p, 2))), p)
 
     sorted_values = sorted(value_dict.values(), reverse=True)
     print 'Highest frequencies: ', sorted_values[0:10]
@@ -122,18 +126,17 @@ def compression_analysis_bcsrvi(matrix, name):
     bcsrv_reference_values = res[0]
     bcsrv_reference_unique_values = len(res[1])
     # only for Virtex 6 BRAMs
-    bram_size = 512 # double precision values in one BRAM
+    bram_size = 512  # double precision values in one BRAM
     bcsrv_reference_brams = ceil(bcsrv_reference_unique_values / bram_size)
-
 
     counter = collections.Counter()
     for v in matrix.data:
         counter[v] += 1
 
     print name,
-    for decoding_table_bitwidth in [12]: # range(1, 17):
+    for decoding_table_bitwidth in [12]:  # range(1, 17):
         res = storage.bounded_dictionary(n, matrix.data,
-                                          decoding_table_bitwidth, counter)
+                                         decoding_table_bitwidth, counter)
         bcsr = res[0]
         bcsrv_total = bcsr + csr[0]
         print "{:2f} {:2f} {:2f}".format(csr_values / bcsr,
@@ -142,11 +145,12 @@ def compression_analysis_bcsrvi(matrix, name):
         bcsrv_unique_values = min(len(res[1]), 1 << decoding_table_bitwidth)
         bcsrv_brams = ceil(float(bcsrv_unique_values) / bram_size)
         print "{:2f} {:2f} {:2f} {:2f}".format(
-                bcsrv_reference_unique_values,
-                bcsrv_reference_brams,
-                bcsrv_unique_values,
-                bcsrv_brams),
+            bcsrv_reference_unique_values,
+            bcsrv_reference_brams,
+            bcsrv_unique_values,
+            bcsrv_brams),
         print "{:2f}".format(bcsrv_reference_brams / bcsrv_brams)
+
 
 def compression_analysis_precision(matrix, name, tolerance):
     """Evenly reduce precision of matrix entries and check if it is still fine for iterative method"""
@@ -162,7 +166,7 @@ def compression_analysis_precision(matrix, name, tolerance):
     csr = storage.csr(matrix)
     csr_values = csr[1]
     csr_total = csr[0] + csr[1]
-    norm_orig     = precision.matrix_norms(matrix)
+    norm_orig = precision.matrix_norms(matrix)
     status, orig_iterations, sol_orig = precision.solve_cg(matrix, tolerance)
 
     n = len(matrix.indptr)
@@ -173,57 +177,57 @@ def compression_analysis_precision(matrix, name, tolerance):
     orig_flop_count = matrix.nnz * orig_iterations
     # Total traffic: fetching matrix, vectors x and y and a diagonal
     # preconditioner @ each iteration.
-    orig_traffic = (csr_total + 3*n) * orig_iterations
+    orig_traffic = (csr_total + 3 * n) * orig_iterations
 
     np.set_printoptions(precision=2)
-    print name,"\n"
-    for mantissa_bitwidth in [8,16,20,24,32,36,42,48]:
-      print "| mantissa {:2d} bits:".format(mantissa_bitwidth),
+    print name, "\n"
+    for mantissa_bitwidth in [8, 16, 20, 24, 32, 36, 42, 48]:
+        print "| mantissa {:2d} bits:".format(mantissa_bitwidth),
 
-      reduced_matrix, error = precision.reduce_elementwise(n, matrix, mantissa_bitwidth)
+        reduced_matrix, error = precision.reduce_elementwise(n, matrix, mantissa_bitwidth)
 
-      # analyse precision loss
-      status, iterations, sol_reduced = precision.solve_cg(reduced_matrix, tolerance)
-      # ignore this precision if not even converged at all
-      if status != 0: print "did not converge"; continue
-      # did we ever converge to a sensible solution?
-      l2error       = precision.l2_error(sol_orig, sol_reduced)
-      # ignore this precision if converged to something completely different
-      # let's accept 10 times worse accuracy for reduced precision
-      if l2error > 10*tolerance: print "converged to a wrong solution"; continue
+        # analyse precision loss
+        status, iterations, sol_reduced = precision.solve_cg(reduced_matrix, tolerance)
+        # ignore this precision if not even converged at all
+        if status != 0: print "did not converge"; continue
+        # did we ever converge to a sensible solution?
+        l2error = precision.l2_error(sol_orig, sol_reduced)
+        # ignore this precision if converged to something completely different
+        # let's accept 10 times worse accuracy for reduced precision
+        if l2error > 10 * tolerance: print "converged to a wrong solution"; continue
 
-      # this should stand for poor man estimation of reduction consequences,
-      # as _substitute_ to actually solving matrix problem. Matrix norms should
-      # be indicative to convergence rates.
-      norm_reduced  = precision.matrix_norms(reduced_matrix)
+        # this should stand for poor man estimation of reduction consequences,
+        # as _substitute_ to actually solving matrix problem. Matrix norms should
+        # be indicative to convergence rates.
+        norm_reduced = precision.matrix_norms(reduced_matrix)
 
-      additional_iterations = iterations - orig_iterations
+        additional_iterations = iterations - orig_iterations
 
-      print "iterations {:2d} {:2d} {:2d}, l1 norm {:2f} {:2f} {:2f} ".format(
-                                       orig_iterations, iterations, additional_iterations,
-                                       norm_orig[0], norm_reduced[0],
-                                       norm_orig[0]-norm_reduced[0],)
+        print "iterations {:2d} {:2d} {:2d}, l1 norm {:2f} {:2f} {:2f} ".format(
+            orig_iterations, iterations, additional_iterations,
+            norm_orig[0], norm_reduced[0],
+            norm_orig[0] - norm_reduced[0], )
 
-      csr_custom = storage.csr(matrix, mantissa_bitwidth=mantissa_bitwidth, index_bitwidth=np.array([16,32]))
-      reduced_total_storage = csr_custom[0] + csr_custom[1]
-      value_compression_rate = csr_values/csr_custom[1]
-      total_compression_rate = csr_total/reduced_total_storage
+        csr_custom = storage.csr(matrix, mantissa_bitwidth=mantissa_bitwidth, index_bitwidth=np.array([16, 32]))
+        reduced_total_storage = csr_custom[0] + csr_custom[1]
+        value_compression_rate = csr_values / csr_custom[1]
+        total_compression_rate = csr_total / reduced_total_storage
 
-      # OK, we reduced precision and got more iterations. Did we win?
-      reduced_flop_count = matrix.nnz * iterations
-      # Assuming only matrix precision is subject to reduction.
-      reduced_traffic = (reduced_total_storage + 3*n) * iterations
+        # OK, we reduced precision and got more iterations. Did we win?
+        reduced_flop_count = matrix.nnz * iterations
+        # Assuming only matrix precision is subject to reduction.
+        reduced_traffic = (reduced_total_storage + 3 * n) * iterations
 
-      flops_improvement = (orig_flop_count).astype(np.float64)/reduced_flop_count
-      traffic_improvement = (orig_traffic).astype(np.float64)/reduced_traffic
+        flops_improvement = (orig_flop_count).astype(np.float64) / reduced_flop_count
+        traffic_improvement = (orig_traffic).astype(np.float64) / reduced_traffic
 
-      print "  compression: values {:2f}, total ".format(value_compression_rate),
-      for c in total_compression_rate:
-        print "{:2f}".format(c),
-      print "| outcome: flops ratio {:2f}, traffic ratio".format(flops_improvement),
-      for t in traffic_improvement:
-        print "{:2f}".format(t),
-      print
+        print "  compression: values {:2f}, total ".format(value_compression_rate),
+        for c in total_compression_rate:
+            print "{:2f}".format(c),
+        print "| outcome: flops ratio {:2f}, traffic ratio".format(flops_improvement),
+        for t in traffic_improvement:
+            print "{:2f}".format(t),
+        print
 
     print
 
@@ -240,20 +244,21 @@ def plot_matrices(list_of_matrices):
 def most_common_covered(counter, dict_size, nnzs):
     covered = 0
     for v, c in counter.most_common(dict_size):
-            covered += c
+        covered += c
     return float(covered) / float(nnzs)
+
 
 def summary_analysis(matrix, name):
     """Prints generic information about the provided sparse matrix."""
     uniques = len(set(matrix.data))
     n = len(matrix.indptr) + 1
     print name, n, matrix.nnz, uniques,
-    print "{:.5f}".format(float(matrix.nnz) / float(n**2) * 100),
+    print "{:.5f}".format(float(matrix.nnz) / float(n ** 2) * 100),
     # print "{:.5f}".format(uniques / float(matrix.nnz)),
 
     counter = collections.Counter()
     for v in matrix.data:
-            counter[v] += 1
+        counter[v] += 1
 
     print "{:.5f}".format(most_common_covered(counter, 1 << 2, matrix.nnz)),
     print "{:.5f}".format(most_common_covered(counter, 1 << 5, matrix.nnz)),
@@ -263,7 +268,6 @@ def summary_analysis(matrix, name):
 
 
 def grind_matrix(file, args):
-
     name = os.path.basename(file).replace('.mtx', '')
 
     # read in matrix data
@@ -311,7 +315,7 @@ def grind_matrix(file, args):
         print 'Running storage format analysis'
         storage_analysis(realms[0])
     elif args.analysis == 'compress_bcsrvi':
-       compression_analysis_bcsrvi(realms[0], name)
+        compression_analysis_bcsrvi(realms[0], name)
     elif args.analysis == 'reduce_precision':
         compression_analysis_precision(realms[0], name, args.tolerance)
     elif args.analysis == 'summary':
@@ -356,10 +360,10 @@ def main():
     args = parser.parse_args()
 
     if args.analysis == 'compress_bcsrvi':
-      print 'Name, vs CSR Values, vs CSR Total, vs CSRVI',
-      print 'Uniq(CSRVI), BRAMs (CSRVI), Uniq(BCSRVI), BRAMs(BCSRVI), BRAM (CSRVI/BCSRVI)'
+        print 'Name, vs CSR Values, vs CSR Total, vs CSRVI',
+        print 'Uniq(CSRVI), BRAMs (CSRVI), Uniq(BCSRVI), BRAMs(BCSRVI), BRAM (CSRVI/BCSRVI)'
     elif args.analysis == 'summary':
-      print "Name, Order, Nonzeros, Unique Values, Sparsity, MC(2), MC(5), MC(8), MC(10) "
+        print "Name, Order, Nonzeros, Unique Values, Sparsity, MC(2), MC(5), MC(8), MC(10) "
 
     if args.recursive:
         if args.analysis == 'compression':
@@ -371,11 +375,12 @@ def main():
         for root, dirs, files in os.walk(parent_dir):
             for f in files:
                 if f.endswith('.mtx'):
-                  if not args.ignore or f.endswith(args.ignore):
-                    grind_matrix(os.path.join(root, f), args)
+                    if not args.ignore or f.endswith(args.ignore):
+                        grind_matrix(os.path.join(root, f), args)
         return
 
     grind_matrix(args.file, args)
+
 
 if __name__ == '__main__':
     main()

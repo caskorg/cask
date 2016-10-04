@@ -12,8 +12,6 @@
 
 import scipy.sparse.linalg as linalg
 import numpy as np
-import collections
-import math
 from scipy.sparse import csr_matrix
 from scipy.sparse import spdiags
 
