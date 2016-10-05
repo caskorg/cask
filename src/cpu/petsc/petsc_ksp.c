@@ -6,7 +6,7 @@ void readVector(Vec* x, int m, const char* optionName) {
   PetscBool found;
   PetscOptionsGetString(NULL, NULL, optionName, vfilein, PETSC_MAX_PATH_LEN, &found);
   FILE *file;
-  PetscFOpen(PETSC_COMM_SELF, vfilein, "r", &file); 
+  PetscFOpen(PETSC_COMM_SELF, vfilein, "r", &file);
 
   // read header
   const char* supportedFormat = "%%MatrixMarket matrix array real general\n";
@@ -50,19 +50,20 @@ int main(int argc,char **args) {
 
   PetscInitialize(&argc,&args,(char*)0, "Solve linear system in parallel, loaded from Matrix Market format");
   ierr = MPI_Comm_size(PETSC_COMM_WORLD,&size);CHKERRQ(ierr);
-  if (size != 1) SETERRQ(PETSC_COMM_WORLD,1,"This is a uniprocessor example only!");
+  if (size != 1) SETERRQ(PETSC_COMM_WORLD,1,"This is a uniprocessor implementation only!");
 
   // --- Load system matrix
   PetscBool found;
   ierr = PetscOptionsGetString(NULL,NULL,"-fin",filein,PETSC_MAX_PATH_LEN,&found);CHKERRQ(ierr);
   ierr = PetscFOpen(PETSC_COMM_SELF,filein,"r",&file);CHKERRQ(ierr);
-  // TODO should use mmread library
   do fgets(buf,PETSC_MAX_PATH_LEN-1,file);
   while (buf[0] == '%');
   int nnz, m;
   sscanf(buf,"%d %d %d\n",&m,&n,&nnz);
   ierr = PetscPrintf (PETSC_COMM_SELF,"m = %d, n = %d, nnz = %d\n",m,n,nnz); CHKERRQ(ierr);
-  ierr = PetscMalloc4(nnz,&Is,nnz,&Js,nnz,&VALs,m,&rownz);CHKERRQ(ierr); 
+  ierr = PetscMalloc4(nnz,&Is,nnz,&Js,nnz,&VALs,m,&rownz);CHKERRQ(ierr);
+  for (i = 0; i < m; i++)
+    rownz[i] = 0;
 
   for (i=0; i<nnz; i++) {
     ierr = fscanf(file,"%d %d %le\n",&Is[i],&Js[i],(double*)&VALs[i]);
@@ -73,14 +74,17 @@ int main(int argc,char **args) {
     }
     Is[i]--;
     Js[i]--;
+    rownz[Is[i]]++;
+    rownz[Js[i]]++;
   }
-  fclose(file);
+  PetscFClose(PETSC_COMM_SELF, file);
 
-  ierr = MatCreate(PETSC_COMM_SELF,&A);CHKERRQ(ierr);
-  ierr = MatSetSizes(A,PETSC_DECIDE,PETSC_DECIDE,m,n);CHKERRQ(ierr);
-  ierr = MatSetFromOptions(A);CHKERRQ(ierr);
-  ierr = MatSeqSBAIJSetPreallocation(A,1,0,rownz);CHKERRQ(ierr);
-  ierr = MatSetUp(A);CHKERRQ(ierr);
+  MatCreate(PETSC_COMM_SELF,&A);
+  MatSetSizes(A,PETSC_DECIDE,PETSC_DECIDE,m,n);
+  MatSetFromOptions(A);
+  MatSeqBAIJSetPreallocation(A,1,0,rownz);
+  MatSeqAIJSetPreallocation(A,0,rownz);
+  MatSetUp(A);
 
   for (i=0; i<nnz; i++) {
     MatSetValues(A,1,&Is[i],1,&Js[i],&VALs[i],INSERT_VALUES);
