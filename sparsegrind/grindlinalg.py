@@ -84,7 +84,10 @@ def runOnDirectory(dir_path):
         matrix_path = matrix + ".mtx"
         vec_path = matrix + "_b.mtx"
         sol_path = matrix + "_x.mtx"
-        solve(matrix_path, vec_path=vec_path, sol_path=sol_path, writeToFile=False, checkResidual=True)
+        solve(os.path.abspath(matrix_path),
+              vec_path=os.path.abspath(vec_path),
+              sol_path=os.path.abspath(sol_path),
+              writeToFile=False, checkResidual=True)
 
 
 def runSolvers(matrix_path, vec_path, use_precon=True, max_size=None):
