@@ -73,7 +73,8 @@ def runOnDirectory(dir_path):
     1. directory contains several systems: name.mtx, name_b.mtx, name_x.mtx
     2. SPD systems should be named: name_SPD.mtx, name_SPD_b.mtx, name_SPD_x.mtx
 
-    This function will load the systems from teh directory, solve them and check against the provided solution.
+    This function will load the systems from the given directory, solve them
+    and check against the reference solution, if provided.
     """
     names = set()
     for a in os.listdir(dir_path):
@@ -81,13 +82,17 @@ def runOnDirectory(dir_path):
 
     for matrix in names:
         print 'Solving for matrix: ', matrix
-        matrix_path = matrix + ".mtx"
-        vec_path = matrix + "_b.mtx"
-        sol_path = matrix + "_x.mtx"
-        solve(os.path.abspath(matrix_path),
-              vec_path=os.path.abspath(vec_path),
-              sol_path=os.path.abspath(sol_path),
-              writeToFile=False, checkResidual=True)
+        matrix_path=os.path.join(os.path.abspath(dir_path), matrix + ".mtx")
+        vec_path=os.path.join(os.path.abspath(dir_path), matrix + "_b.mtx")
+        sol_path=os.path.join(os.path.abspath(dir_path), matrix + "_x.mtx")
+        if not os.path.exists(sol_path):
+            sol_path=None
+
+        solve(matrix_path=matrix_path,
+              vec_path=vec_path,
+              sol_path=sol_path,
+              writeToFile=not sol_path,
+              checkResidual=True)
 
 
 def runSolvers(matrix_path, vec_path, use_precon=True, max_size=None):
