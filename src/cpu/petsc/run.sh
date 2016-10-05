@@ -29,6 +29,7 @@ petscCommonFlags="-ksp_view -ksp_converged_reason -ksp_monitor_true_residual -ks
 for m in $matrixList; do
   matrix=${matrixBasePath}/${m}_SPD.mtx
   vector=${matrixBasePath}/${m}_b.mtx
+  exp=${matrixBasePath}/${m}_x.mtx
 
   if [ ! -f $matrix ]; then
     echo "Error! Could not find file $matrix"
@@ -44,16 +45,16 @@ for m in $matrixList; do
 
   for p in $precList; do
     echo "Run parameters matrix='$m', precon='$p' solver='CG'"
-    ./petsc_ksp -fin ${matrix} -vin ${vector} -ksp_type cg -pc_type ${p} ${petscCommonFlags}
+    ./petsc_ksp -fin ${matrix} -vin ${vector} -ein ${exp} -ksp_type cg -pc_type ${p} ${petscCommonFlags}
   done
 
   # --- Direct solvers
   echo "Run parameters matrix='$m', precon='lu', solver='PETSC LU'"
-  ./petsc_ksp -fin ${matrix} -vin ${vector} -ksp_type preonly -pc_type lu ${petscCommonFlags}
+  ./petsc_ksp -fin ${matrix} -vin ${vector} -ein ${exp} -ksp_type preonly -pc_type lu ${petscCommonFlags}
 
   for s in $factorSolverPackages; do
     echo "Run parameters matrix='$m', precon='lu', solver='$s'"
-    ./petsc_ksp -fin ${matrix} -vin ${vector} -ksp_type preonly -pc_type lu -pc_factor_mat_solver_package $s ${petscCommonFlags}
+    ./petsc_ksp -fin ${matrix} -vin ${vector} -ein ${exp} -ksp_type preonly -pc_type lu -pc_factor_mat_solver_package $s ${petscCommonFlags}
   done
 
 done
