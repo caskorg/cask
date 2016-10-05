@@ -1,12 +1,49 @@
 #include <petscksp.h>
 
+void readVector(Vec* x, int m, const char* optionName) {
+  char vfilein[PETSC_MAX_PATH_LEN], buf[PETSC_MAX_PATH_LEN];
+
+  PetscBool found;
+  PetscOptionsGetString(NULL, NULL, optionName, vfilein, PETSC_MAX_PATH_LEN, &found);
+  FILE *file;
+  PetscFOpen(PETSC_COMM_SELF, vfilein, "r", &file); 
+
+  // read header
+  const char* supportedFormat = "%%MatrixMarket matrix array real general\n";
+  fgets(buf, PETSC_MAX_PATH_LEN, file);
+  if (strncmp(buf, supportedFormat, PETSC_MAX_PATH_LEN) != 0) {
+    printf("Only supporting: '%s', got '%s'", supportedFormat, buf);
+    PetscFClose(PETSC_COMM_SELF, file);
+    return;
+  }
+
+  VecCreate(PETSC_COMM_WORLD, x);
+  PetscObjectSetName((PetscObject) *x, optionName);
+  VecSetSizes(*x, PETSC_DECIDE, m);
+  VecSetFromOptions(*x);
+
+  // skip comments
+  do
+    fgets(buf, PETSC_MAX_PATH_LEN-2, file);
+  while (buf[0] == '%');
+
+  sscanf(buf,"%d\n",&m);
+  int i;
+  for (i = 0; i < m; i++) {
+    double v;
+    fscanf(file,"%lf", (double*)&v);
+    VecSetValues(*x, 1, &i, &v, ADD_VALUES);
+  }
+
+  PetscFClose(PETSC_COMM_SELF, file);
+}
+
 int main(int argc,char **args) {
-  Vec            x, b, u;
   Mat            A;
   PetscErrorCode ierr;
   PetscInt       i,n,its;
   PetscMPIInt    size;
-  char           filein[PETSC_MAX_PATH_LEN], buf[PETSC_MAX_PATH_LEN], vfilein[PETSC_MAX_PATH_LEN];
+  char           filein[PETSC_MAX_PATH_LEN], buf[PETSC_MAX_PATH_LEN];
   FILE           *file;
   int            *Is, *Js, *rownz;
   PetscScalar    *VALs;
@@ -24,10 +61,8 @@ int main(int argc,char **args) {
   while (buf[0] == '%');
   int nnz, m;
   sscanf(buf,"%d %d %d\n",&m,&n,&nnz);
-  ierr = PetscPrintf (PETSC_COMM_SELF,"m = %d, n = %d, nnz = %d\n",m,n,nnz);
-
-  ierr = PetscMalloc4(nnz,&Is,nnz,&Js,nnz,&VALs,m,&rownz);CHKERRQ(ierr);
-  for (i=0; i<m; i++) rownz[i] = 1; // [> add 0.0 to diagonal entries <]
+  ierr = PetscPrintf (PETSC_COMM_SELF,"m = %d, n = %d, nnz = %d\n",m,n,nnz); CHKERRQ(ierr);
+  ierr = PetscMalloc4(nnz,&Is,nnz,&Js,nnz,&VALs,m,&rownz);CHKERRQ(ierr); 
 
   for (i=0; i<nnz; i++) {
     ierr = fscanf(file,"%d %d %le\n",&Is[i],&Js[i],(double*)&VALs[i]);
@@ -36,9 +71,8 @@ int main(int argc,char **args) {
       nnz = i;
       break;
     }
-    /*if (ierr == EOF) SETERRQ1(PETSC_COMM_SELF,PETSC_ERR_USER,"i=%d, reach EOF\n",i);*/
-    Is[i]--; Js[i]--;    // [> adjust from 1-based to 0-based <]
-    rownz[Js[i]]++;
+    Is[i]--;
+    Js[i]--;    // [> adjust from 1-based to 0-based <]
   }
   fclose(file);
 
@@ -48,41 +82,21 @@ int main(int argc,char **args) {
   ierr = MatSeqSBAIJSetPreallocation(A,1,0,rownz);CHKERRQ(ierr);
   ierr = MatSetUp(A);CHKERRQ(ierr);
 
-  /* Add zero to diagonals, in case the matrix missing diagonals */
-  //for (i=0; i<m; i++){
-  //  ierr = MatSetValues(A,1,&i,1,&i,&zero,INSERT_VALUES);CHKERRQ(ierr);
-  //}
   for (i=0; i<nnz; i++) {
-    ierr = MatSetValues(A,1,&Js[i],1,&Is[i],&VALs[i],INSERT_VALUES);CHKERRQ(ierr);
+    MatSetValues(A,1,&Is[i],1,&Js[i],&VALs[i],INSERT_VALUES);
+    MatSetValues(A,1,&Js[i],1,&Is[i],&VALs[i],INSERT_VALUES);
   }
-  ierr = MatAssemblyBegin(A,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
-  ierr = MatAssemblyEnd(A,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
-  // MatView(A, PETSC_VIEWER_DRAW_SELF);
-  ierr = PetscPrintf(PETSC_COMM_SELF,"Assemble SBAIJ matrix completes.\n");CHKERRQ(ierr);
+  MatAssemblyBegin(A,MAT_FINAL_ASSEMBLY);
+  MatAssemblyEnd(A,MAT_FINAL_ASSEMBLY);
+  MatSetOption(A, MAT_SPD, PETSC_TRUE);
+  PetscPrintf(PETSC_COMM_SELF,"Assemble SBAIJ matrix completes.\n");
 
   // --- Load RHS
-  ierr = VecCreate(PETSC_COMM_WORLD,&x);CHKERRQ(ierr);
-  ierr = PetscObjectSetName((PetscObject) x, "Solution");CHKERRQ(ierr);
-  ierr = VecSetSizes(x,PETSC_DECIDE,m);CHKERRQ(ierr);
-  ierr = VecSetFromOptions(x);CHKERRQ(ierr);
-  ierr = VecDuplicate(x,&b);CHKERRQ(ierr);
-  ierr = VecDuplicate(x,&u);CHKERRQ(ierr);
-  ierr = PetscOptionsGetString(NULL,NULL,"-vin",vfilein,PETSC_MAX_PATH_LEN,&found);CHKERRQ(ierr);
-  ierr = PetscFOpen(PETSC_COMM_SELF,vfilein,"r",&file);CHKERRQ(ierr);
-  do fgets(buf,PETSC_MAX_PATH_LEN-2,file);
-  while (buf[0] == '%');
-  sscanf(buf,"%d\n",&m);
-  for (i = 0; i < m; i++) {
-    double v;
-    int posx;
-    ierr = fscanf(
-        file,"%d %le\n",
-        &posx,(double*)&v);
-    // read value from file
-    // XXX is it  a good idea to se to the value of a local variable?
-    ierr = VecSetValues(b, 1, &i, &v, ADD_VALUES);CHKERRQ(ierr);
-  }
-  fclose(file);
+  Vec x, b, u;
+  readVector(&b, m, "-vin");
+  VecView(b, PETSC_VIEWER_STDOUT_SELF);
+  VecDuplicate(b,&x);
+  VecDuplicate(b,&u);
 
   // --- Solve system
   KSP ksp;
@@ -97,13 +111,25 @@ int main(int argc,char **args) {
   ierr = VecAXPY(u,-1.0,b);CHKERRQ(ierr);
   PetscReal norm;
   ierr = VecNorm(u,NORM_2,&norm);CHKERRQ(ierr);
-  ierr = PetscPrintf(PETSC_COMM_WORLD,"Norm of error %f, Iterations %d\n",(double)norm, its);CHKERRQ(ierr);
-  // VecView(x, PETSC_VIEWER_STDOUT_SELF);
+  ierr = PetscPrintf(PETSC_COMM_WORLD,"Norm of error %lf, Iterations %d\n",(double)norm, its);CHKERRQ(ierr);
+
+  // --- Load exp solution and check norm
+  Vec exp;
+  readVector(&exp, m, "-ein");
+  PetscPrintf(PETSC_COMM_SELF,"==> Computed solution\n");
+  VecView(x, PETSC_VIEWER_STDOUT_SELF);
+  PetscPrintf(PETSC_COMM_SELF,"==> Expected solution\n");
+  VecView(exp, PETSC_VIEWER_STDOUT_SELF);
+  VecAXPY(x,-1.0,exp);
+  VecNorm(x,NORM_2,&norm);
+  PetscPrintf(PETSC_COMM_SELF,"L2 norm: %lf\n", (double)norm);
 
   // --- Clean up
-  ierr = VecDestroy(&x);CHKERRQ(ierr); ierr = VecDestroy(&u);CHKERRQ(ierr);
-  ierr = VecDestroy(&b);CHKERRQ(ierr); ierr = MatDestroy(&A);CHKERRQ(ierr);
-  ierr = KSPDestroy(&ksp);CHKERRQ(ierr);
-  ierr = PetscFinalize();
+  VecDestroy(&x);
+  VecDestroy(&u);
+  VecDestroy(&b);
+  MatDestroy(&A);
+  KSPDestroy(&ksp);
+  PetscFinalize();
   return 0;
 }
