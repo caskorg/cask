@@ -72,7 +72,7 @@ int main(int argc,char **args) {
       break;
     }
     Is[i]--;
-    Js[i]--;    // [> adjust from 1-based to 0-based <]
+    Js[i]--;
   }
   fclose(file);
 
@@ -86,10 +86,11 @@ int main(int argc,char **args) {
     MatSetValues(A,1,&Is[i],1,&Js[i],&VALs[i],INSERT_VALUES);
     MatSetValues(A,1,&Js[i],1,&Is[i],&VALs[i],INSERT_VALUES);
   }
+
   MatAssemblyBegin(A,MAT_FINAL_ASSEMBLY);
   MatAssemblyEnd(A,MAT_FINAL_ASSEMBLY);
   MatSetOption(A, MAT_SPD, PETSC_TRUE);
-  PetscPrintf(PETSC_COMM_SELF,"Assemble SBAIJ matrix completes.\n");
+  PetscPrintf(PETSC_COMM_SELF,"Matrix assembled\n");
 
   // --- Load RHS
   Vec x, b, u;
@@ -111,7 +112,7 @@ int main(int argc,char **args) {
   ierr = VecAXPY(u,-1.0,b);CHKERRQ(ierr);
   PetscReal norm;
   ierr = VecNorm(u,NORM_2,&norm);CHKERRQ(ierr);
-  ierr = PetscPrintf(PETSC_COMM_WORLD,"Norm of error %lf, Iterations %d\n",(double)norm, its);CHKERRQ(ierr);
+  ierr = PetscPrintf(PETSC_COMM_WORLD,"Norm of error %e, Iterations %d\n", norm, its);CHKERRQ(ierr);
 
   // --- Load exp solution and check norm
   Vec exp;
@@ -128,6 +129,7 @@ int main(int argc,char **args) {
   VecDestroy(&x);
   VecDestroy(&u);
   VecDestroy(&b);
+  VecDestroy(&exp);
   MatDestroy(&A);
   KSPDestroy(&ksp);
   PetscFinalize();
