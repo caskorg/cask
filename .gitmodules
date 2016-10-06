@@ -1,0 +1,3 @@
+[submodule "src/cpu/eigen/eigen"]
+	path = src/cpu/eigen/eigen
+	url = https://github.com/paul-g/eigen.git
