@@ -17,11 +17,18 @@ echo "Binary dir   => ${binaryDir}"
 
 binaries="CgEigen BicgStabEigen" # CgMklExplicit CgMklRci CgMklThreeTerm"
 
+matrices="test/systems/tiny test/systems/tinysym"
+
 for b in ${binaries}; do
   fullBinaryPath=${binaryDir}/$b
   echo -e "${txtpur}Testing ${fullBinaryPath}${txtrst}\n"
-  matrix=$(readlink -f test/systems/tiny.mtx)
-  lhs=$(readlink -f test/systems/tiny_sol.mtx)
-  rhs=$(readlink -f test/systems/tiny_b.mtx)
-  ${fullBinaryPath} -mat ${matrix}  -rhs ${rhs}  -lhs ${lhs}
+
+  for m in ${matrices}; do
+    echo -e "${txtcyn}Running on ${m}${txtrst}\n"
+    matrix=$(readlink -f ${m}.mtx)
+    lhs=$(readlink -f ${m}_sol.mtx)
+    rhs=$(readlink -f ${m}_b.mtx)
+    ${fullBinaryPath} -mat ${matrix}  -rhs ${rhs}  -lhs ${lhs}
+  done
+
 done

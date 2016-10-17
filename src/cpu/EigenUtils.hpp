@@ -36,9 +36,7 @@ EigenSparseMatrix readMatrix(const std::string path) {
       trips.push_back(Eigen::Triplet<double>(col, row, aval[i]));
   }
   A.setFromTriplets(trips.begin(), trips.end());
-  // std::cout << A << std::endl;
   fclose(f);
-  std::cout << "matrix read" << std::endl;
   return A;
 }
 
