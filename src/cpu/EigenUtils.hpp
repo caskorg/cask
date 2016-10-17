@@ -6,6 +6,7 @@
 #include "BenchmarkUtils.hpp"
 #include <chrono>
 #include <iostream>
+#include <stdexcept>
 
 extern "C" {
 #include <mmio.h>
@@ -27,11 +28,17 @@ EigenSparseMatrix readMatrix(const std::string path) {
   std::vector <Eigen::Triplet<double>> trips;
 
   for (size_t i = 0; i < nz; i++) {
-    trips.push_back(Eigen::Triplet<double>(ai[i] - 1, aj[i] - 1, aval[i]));
+    int row = ai[i] - 1;
+    int col = aj[i] - 1;
+    trips.push_back(Eigen::Triplet<double>(row, col, aval[i]));
+    if (col != row)
+      // TODO must check if matrix is symmetric
+      trips.push_back(Eigen::Triplet<double>(col, row, aval[i]));
   }
   A.setFromTriplets(trips.begin(), trips.end());
-  std::cout << A << std::endl;
+  // std::cout << A << std::endl;
   fclose(f);
+  std::cout << "matrix read" << std::endl;
   return A;
 }
 
@@ -64,10 +71,12 @@ Eigen::VectorXd readVector(std::string path) {
 template<typename SolverType>
 void runSolver(int argc, char** argv) {
   using namespace std::chrono;
+
   sparsebench::benchmarkutils::parseArgs(argc, argv);
 
-  auto A = sparsebench::eigenutils::readMatrix(argv[1]);
-  auto b = sparsebench::eigenutils::readVector(argv[2]);
+  auto A = sparsebench::eigenutils::readMatrix(argv[2]);
+  auto b = sparsebench::eigenutils::readVector(argv[4]);
+  auto exp = sparsebench::eigenutils::readVector(argv[6]);
 
   SolverType solver;
 
@@ -77,7 +86,7 @@ void runSolver(int argc, char** argv) {
   auto setupSeconds = duration_cast<duration<double>>(t2 - t1).count();
 
   t1 = high_resolution_clock::now();
-  int iterations = 10;
+  int iterations = 2;
   Eigen::VectorXd x;
   for (int i = 0; i < iterations; i++) {
     x = solver.solve(b);
@@ -90,8 +99,10 @@ void runSolver(int argc, char** argv) {
       solver.iterations(),
       solverPerIterationSeconds
   );
-  std::cout << "solution: " << x << std::endl;
+
   std::cout << "estimated error: " << solver.error() << std::endl;
+  std::cout << "Error vs expected: " << (x - exp).norm() << std::endl;
+  std::cout << "Benchmark repetitions: " << iterations << std::endl;
 }
 
 }

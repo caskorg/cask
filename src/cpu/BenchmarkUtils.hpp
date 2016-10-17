@@ -9,10 +9,20 @@ namespace sparsebench {
 namespace benchmarkutils {
 
 void parseArgs(int argc, char** argv) {
-  if (argc != 3) {
+  // TODO may use a more flexible approach using boost::program_options
+  if (argc != 7) {
     std::stringstream ss;
-    ss << "Usage " << argv[0] << " <matrix> <rhs>" <<std::endl;
+    ss << "Usage " << argv[0] << " -mat <matrix> -rhs <rhs> -lhs <lhs>" <<std::endl;
     throw std::invalid_argument(ss.str());
+  }
+  if (std::string(argv[1]) != "-mat") {
+    throw std::invalid_argument("First argument should be -mat");
+  }
+  if (std::string(argv[3]) != "-rhs") {
+    throw std::invalid_argument("Third argument should be -rhs");
+  }
+  if (std::string(argv[5]) != "-lhs") {
+    throw std::invalid_argument("Fifth argument should be -lhs");
   }
 }
 
