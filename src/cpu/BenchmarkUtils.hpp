@@ -48,6 +48,17 @@ double residual(std::vector<double> got, std::vector<double> exp) {
   return std::sqrt(residual);
 }
 
+
+template<typename T>
+std::string json(std::string key, T value, bool comma=true) {
+  std::stringstream ss;
+  ss << "\"" << key << "\":" << "\"" << value << "\"";
+  if (comma)
+    ss << ",";
+  ss << "\\n";
+  return ss.str();
+}
+
 void printSummary(
     double setupSeconds,
     int iterations,
@@ -56,13 +67,13 @@ void printSummary(
     double solutionVersusExpNorm,
     double benchmarkRepetitions
 ) {
-  std::cout << "setup took       " << setupSeconds << std::endl;
-  std::cout << "#iterations:     " << iterations << std::endl;
-  std::cout << "Solve took       " << solveSeconds << std::endl;
-
-  std::cout << "estimated error: " << estimatedError  << std::endl;
-  std::cout << "Error vs expected: " << solutionVersusExpNorm<< std::endl;
-  std::cout << "Benchmark repetions: " << benchmarkRepetitions << std::endl;
+  std::cout
+      << json("setup took", setupSeconds)
+      << json("iterations", iterations)
+      << json("solve took", solveSeconds)
+      << json("estimated error", estimatedError)
+      << json("error", estimatedError)
+      << json("bench repetitions", benchmarkRepetitions, false);
 }
 
 }

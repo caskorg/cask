@@ -15,9 +15,12 @@ binaryDir=${rootDir}/build
 echo "Running test => ${rootDir}"
 echo "Binary dir   => ${binaryDir}"
 
-binaries="CgMklRci CgMklExplicit CgMklRci CgEigen BicgStabEigen" # CgMklThreeTerm"
+binaries="CgMklExplicit CgMklRci CgEigen BicgStabEigen" # CgMklThreeTerm"
 
 matrices="test/systems/tiny test/systems/tinysym"
+
+jsonOutput="[\n"
+first=true
 
 for b in ${binaries}; do
   fullBinaryPath=${binaryDir}/$b
@@ -28,7 +31,21 @@ for b in ${binaries}; do
     matrix=$(readlink -f ${m}.mtx)
     lhs=$(readlink -f ${m}_sol.mtx)
     rhs=$(readlink -f ${m}_b.mtx)
-    ${fullBinaryPath} -mat ${matrix}  -rhs ${rhs}  -lhs ${lhs} | sed 's/^/     /'
-  done
 
+    if [ "$first" != true ]; then
+      jsonOutput+=","
+    fi
+
+    first=false
+    jsonOutput+="{\n"
+    jsonOutput+="\"matrix\":\"${m}\",\n"
+    jsonOutput+="\"solver\":\"${b}\",\n"
+    jsonOutput+=$(${fullBinaryPath} -mat ${matrix}  -rhs ${rhs}  -lhs ${lhs}) # | sed 's/^/     /'
+    jsonOutput+="}\n"
+
+  done
 done
+
+jsonOutput+="]\n"
+
+echo -e ${jsonOutput} > out.json
