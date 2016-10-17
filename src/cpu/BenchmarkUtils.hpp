@@ -4,9 +4,18 @@
 #include <stdexcept>
 #include <sstream>
 #include <iostream>
+#include <vector>
+#include <cmath>
+#include <fstream>
 
 namespace sparsebench {
 namespace benchmarkutils {
+
+void checkFileExists(std::string file) {
+  std::ifstream f{file};
+  if (!f.good())
+    throw std::invalid_argument("File does not exists " + file);
+}
 
 void parseArgs(int argc, char** argv) {
   // TODO may use a more flexible approach using boost::program_options
@@ -24,6 +33,19 @@ void parseArgs(int argc, char** argv) {
   if (std::string(argv[5]) != "-lhs") {
     throw std::invalid_argument("Fifth argument should be -lhs");
   }
+
+  // check files exists
+  // checkFileExists(argv[2]);
+  // checkFileExists(argv[4]);
+  // checkFileExists(argv[6]);
+}
+
+double residual(std::vector<double> got, std::vector<double> exp) {
+  double residual = 0;
+  for (int i = 0; i < got.size(); i++) {
+    residual += (got[i] - exp[i]) * (got[i] - exp[i]);
+  }
+  return std::sqrt(residual);
 }
 
 void printSummary(
@@ -33,7 +55,6 @@ void printSummary(
     double estimatedError,
     double solutionVersusExpNorm,
     double benchmarkRepetitions
-
 ) {
   std::cout << "setup took       " << setupSeconds << std::endl;
   std::cout << "#iterations:     " << iterations << std::endl;

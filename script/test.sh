@@ -15,20 +15,20 @@ binaryDir=${rootDir}/build
 echo "Running test => ${rootDir}"
 echo "Binary dir   => ${binaryDir}"
 
-binaries="CgEigen BicgStabEigen" # CgMklExplicit CgMklRci CgMklThreeTerm"
+binaries="CgMklRci CgMklExplicit CgMklRci CgEigen BicgStabEigen" # CgMklThreeTerm"
 
 matrices="test/systems/tiny test/systems/tinysym"
 
 for b in ${binaries}; do
   fullBinaryPath=${binaryDir}/$b
-  echo -e "${txtpur}Testing ${fullBinaryPath}${txtrst}\n"
+  echo -e "${txtpur}==> Testing ${fullBinaryPath}${txtrst}"
 
   for m in ${matrices}; do
-    echo -e "${txtcyn}Running on ${m}${txtrst}\n"
+    echo -e "${txtcyn}---> Running on ${m}${txtrst}"
     matrix=$(readlink -f ${m}.mtx)
     lhs=$(readlink -f ${m}_sol.mtx)
     rhs=$(readlink -f ${m}_b.mtx)
-    ${fullBinaryPath} -mat ${matrix}  -rhs ${rhs}  -lhs ${lhs}
+    ${fullBinaryPath} -mat ${matrix}  -rhs ${rhs}  -lhs ${lhs} | sed 's/^/     /'
   done
 
 done

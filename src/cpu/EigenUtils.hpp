@@ -4,13 +4,11 @@
 #include <Eigen/Dense>
 #include <Eigen/Sparse>
 #include "BenchmarkUtils.hpp"
+#include "IO.hpp"
 #include <chrono>
 #include <iostream>
 #include <stdexcept>
 
-extern "C" {
-#include <mmio.h>
-}
 
 namespace sparsebench {
 namespace eigenutils {
@@ -41,29 +39,9 @@ EigenSparseMatrix readMatrix(const std::string path) {
 }
 
 Eigen::VectorXd readVector(std::string path) {
-  FILE *f = fopen(path.c_str(), "r");
-  int m, n;
-  MM_typecode matcode;
-  if (mm_read_banner(f, &matcode) != 0) {
-    std::cout << "Error reading matrix banner" << std::endl;
-    exit(1);
-  }
-  if (!mm_is_array(matcode)) {
-    std::cout << "Expecting array in " << path << std::endl;
-    exit(1);
-  }
-  mm_read_mtx_array_size(f, &m, &n);
-  if (n != 1) {
-    std::cout << "RHS should be column vector in " << path << std::endl;
-    exit(1);
-  }
-
-  Eigen::VectorXd v(m);
-  for (int i = 0; i < m; i++)
-    fscanf(f, "%lf", &v[i]);
-
-  fclose(f);
-  return v;
+  std::vector<double> v = sparsebench::io::readVector(path);
+  Eigen::Map<Eigen::VectorXd> vec(v.data(), v.size());
+  return vec;
 }
 
 template<typename SolverType>
