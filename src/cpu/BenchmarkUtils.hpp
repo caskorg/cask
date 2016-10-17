@@ -12,7 +12,7 @@ void parseArgs(int argc, char** argv) {
   if (argc != 3) {
     std::stringstream ss;
     ss << "Usage " << argv[0] << " <matrix> <rhs>" <<std::endl;
-    throw new std::invalid_argument(ss.str());
+    throw std::invalid_argument(ss.str());
   }
 }
 
