@@ -15,7 +15,7 @@ binaryDir=${rootDir}/build
 echo "Running test => ${rootDir}"
 echo "Binary dir   => ${binaryDir}"
 
-binaries="CgEigen" # BicgStabEigen CgMklExplicit CgMklRci CgMklThreeTerm"
+binaries="CgEigen BicgStabEigen" # CgMklExplicit CgMklRci CgMklThreeTerm"
 
 for b in ${binaries}; do
   fullBinaryPath=${binaryDir}/$b

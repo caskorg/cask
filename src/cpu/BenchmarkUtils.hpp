@@ -29,11 +29,19 @@ void parseArgs(int argc, char** argv) {
 void printSummary(
     double setupSeconds,
     int iterations,
-    double solveSeconds
+    double solveSeconds,
+    double estimatedError,
+    double solutionVersusExpNorm,
+    double benchmarkRepetitions
+
 ) {
   std::cout << "setup took       " << setupSeconds << std::endl;
   std::cout << "#iterations:     " << iterations << std::endl;
   std::cout << "Solve took       " << solveSeconds << std::endl;
+
+  std::cout << "estimated error: " << estimatedError  << std::endl;
+  std::cout << "Error vs expected: " << solutionVersusExpNorm<< std::endl;
+  std::cout << "Benchmark repetions: " << benchmarkRepetitions << std::endl;
 }
 
 }

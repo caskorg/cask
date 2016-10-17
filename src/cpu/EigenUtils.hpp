@@ -97,12 +97,12 @@ void runSolver(int argc, char** argv) {
   sparsebench::benchmarkutils::printSummary(
       setupSeconds,
       solver.iterations(),
-      solverPerIterationSeconds
+      solverPerIterationSeconds,
+      solver.error(),
+      (x - exp).norm(),
+      iterations
   );
 
-  std::cout << "estimated error: " << solver.error() << std::endl;
-  std::cout << "Error vs expected: " << (x - exp).norm() << std::endl;
-  std::cout << "Benchmark repetitions: " << iterations << std::endl;
 }
 
 }
