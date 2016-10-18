@@ -12,96 +12,59 @@
 using namespace std;
 
 /**
-    Solve A * x = b using the reduced-communication reordering of  
-    the PCG method (Demmel, Heath and Vorst, 1993)  
-
-    r_{0}     = b
-    w_{0}     = P*r_{0}
-    s_{0}     = A*w_{0}
-    eps_{0}   = (r_{0},r_{0})
-    rho_{0}   = (r_{0},w_{0})
-    mu_{0}    = (s_{0},w_{0})
-    alpha_{0} = rho_{0}/mu_{0}
-    beta_{0}  = 0
-
-    while (eps < tol^2) from k = 1
-        p_{k} = w_{k-1} + beta_{k-1} p_{k-1}
-        q_{k} = s_{k-1} + beta_{k-1} q_{k-1}
-        x_{k} += alpha_{k-1}*p_{k}
-        r_{k} -= alpha_{k-1}*q_{k}
-        w_{k} = P*r_{k}
-        s_{k} = A*w_{k}
-
-        rho_{k} = (r_{k},w_{k})
-        mu_{k}  = (s_{k},w_{k})
-        eps_{k} = (r_{k},r_{k})
-        beta_{k}  = rho_{k}/rho_{k-1};
-        alpha_{k} = rho_{k} / ( mu_{k} - rho_{k} * beta_{k}/alpha_{k-1} );
-*/
+ *  Standard Nonpreconditioned CG, (Saad et al)
+ *  https://en.wikipedia.org/wiki/Conjugate_gradient_method
+ */
 template <typename T>
 bool cg(int n, int nnzs, int* col_ind, int* row_ptr, double* matrix_values,
-        double* precon, double* rhs, double* sol,
+        double* rhs, double* x,
         int& iterations, bool verbose = false)
 {
+    // configuration (TODO Should be exposed through params)
     char tr = 'l';
-    int maxiter = 1000000;
+    int maxiters = n;
+    double tol = 1E-2;
 
-    // NB: residual norm needs to be < this is tolerance^2
-    // equivalent to tol = 1-e10 in mkl-rci benchmark
-    double tolerance = 1e-5;    // relative error
+    std::vector<double>    r(n);             // residual
+    std::vector<double>    b(rhs, rhs + n);  // rhs
+    std::vector<double>    p(n);             //
 
-    // Allocate array storage
-    std::vector<double>    w(n, 0.0);
-    std::vector<double>    s(n, 0.0);
-    std::vector<double>    p(n, 0.0);
-    std::vector<double>    r(rhs, rhs + n);
-    std::vector<double>    q(n, 0.0);
+    //  r = b - A * x
+    mkl_dcsrsymv(&tr, &n, matrix_values, row_ptr, col_ind, &x[0], &r[0]);
+    cblas_daxpby(n, 1.0, &b[0], 1, -1.0, &r[0], 1);
+    p = r;
 
-    long double alpha, beta, rho_new;
+    double rsold = cblas_ddot(n, &r[0], 1, &r[0], 1);
 
-    T eps = cblas_dnrm2(n, &r[0], 1);
+    for (int i = 0; i < maxiters; i++) {
+        if (verbose) {
+            std::cout << " rsold " << rsold << std::endl;
+        }
+        std::vector<double> Ap(n);
+        // Ap = A * p
+        mkl_dcsrsymv (&tr, &n, matrix_values, row_ptr, col_ind, &p[0], &Ap[0]);
+        // alpha = rsold / (p * Ap)
+        double alpha = rsold / cblas_ddot(n, &p[0], 1, &Ap[0], 1);
+        // x = x + alpha * p
+        cblas_daxpy(n, alpha, &p[0], 1, &x[0], 1);
+        // r = r - alpha * Ap
+        cblas_daxpby(n, -alpha, &Ap[0], 1, 1.0, &r[0], 1);
+        // rsnew = r * r
+        double rsnew = cblas_ddot(n, &r[0], 1, &r[0], 1);
 
-    if (eps < tolerance * tolerance) {
-        return true;
-    }
-    elementwise_xty(n, &precon[0], &r[0], &w[0]);
-    mkl_dcsrsymv(&tr, &n, matrix_values, row_ptr, col_ind, &w[0], &s[0]);
-    T rho = cblas_ddot(n, &r[0], 1, &w[0], 1);;
-    T mu  = cblas_ddot(n, &s[0], 1, &w[0], 1);;
-
-    beta      = 0.0;
-    alpha     = rho/mu;
-
-    // Continue until convergence
-    while (true) {
-        if(iterations > maxiter) {
-            std::cout << "Exceeded maximum number of iterations: " << maxiter << std::endl;
-            return false;
+        if (rsnew <= tol * tol) {
+            // std::cout << "Found solution" << std::endl;
+            // print_array("x", &x[0], n);
+            return true;
         }
 
-        cblas_daxpby(n, 1.0, &w[0], 1, beta, &p[0], 1);
-        cblas_daxpby(n, 1.0, &s[0], 1, beta, &q[0], 1);
-        cblas_daxpy(n, alpha, &p[0], 1, &sol[0], 1);
-        cblas_daxpy(n, -alpha, &q[0], 1, &r[0], 1);
-        elementwise_xty(n, &precon[0], &r[0], &w[0]);
-        mkl_dcsrsymv (&tr, &n, matrix_values, row_ptr, col_ind, &w[0], &s[0]);
-        rho_new = cblas_ddot(n, &r[0], 1, &w[0], 1);
-        mu      = cblas_ddot(n, &s[0], 1, &w[0], 1);
-        eps     = cblas_ddot(n, &r[0], 1, &r[0], 1);
-
-        // test if norm is within tolerance
-        if (eps < tolerance * tolerance) {
-            break;
-        }
-
-        // Compute search direction and solution coefficients
-        beta  = rho_new/rho;
-        alpha = rho * rho_new * alpha / ( rho * mu * alpha - rho_new * rho_new );
-        rho   = rho_new;
-        iterations++;
+        // p = r + (rsnew/rsold) * p
+        cblas_daxpby(n, 1, &r[0], 1, rsnew / rsold, &p[0], 1);
+        rsold = rsnew;
+        iterations = i;
     }
 
-    return true;
+    return false;
 }
 
 // Solve an SPD sparse system using the conjugate gradient method with Intel MKL
@@ -123,19 +86,11 @@ int main (int argc, char** argv) {
 
     std::vector<double> rhs = sparsebench::io::readVector(std::string(argv[4]));
 
-    std::vector<double> precon(n, 1.0);
-    int k = 0;
-    for (int i = 0; i < nnzs; i++) {
-        if (col_ind[i] == k+1) {
-            precon[k++] = 1.0/values[i];
-        }
-    }
-
-    std::vector<double> sol(n, 0);
+    std::vector<double> sol(n);
 
     bool verbose = false;
-    int iterations;
-    bool status = cg<double>(n, nnzs, col_ind, row_ptr, values, &precon[0], &rhs[0], &sol[0], iterations, verbose);
+    int iterations = 0;
+    bool status = cg<double>(n, nnzs, col_ind, row_ptr, values, &rhs[0], &sol[0], iterations, verbose);
 
     std::vector<double> exp = sparsebench::io::readVector(argv[6]);
     sparsebench::benchmarkutils::printSummary(

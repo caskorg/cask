@@ -35,9 +35,9 @@ void parseArgs(int argc, char** argv) {
   }
 
   // check files exists
-  // checkFileExists(argv[2]);
-  // checkFileExists(argv[4]);
-  // checkFileExists(argv[6]);
+  checkFileExists(argv[2]);
+  checkFileExists(argv[4]);
+  checkFileExists(argv[6]);
 }
 
 double residual(std::vector<double> got, std::vector<double> exp) {
@@ -72,7 +72,7 @@ void printSummary(
       << json("iterations", iterations)
       << json("solve took", solveSeconds)
       << json("estimated error", estimatedError)
-      << json("error", estimatedError)
+      << json("error", solutionVersusExpNorm)
       << json("bench repetitions", benchmarkRepetitions, false);
 }
 
