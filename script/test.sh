@@ -15,9 +15,21 @@ binaryDir=${rootDir}/build
 echo "Running test => ${rootDir}"
 echo "Binary dir   => ${binaryDir}"
 
-binaries="CgMklExplicit CgMklRci CgEigen BicgStabEigen" # CgMklThreeTerm"
+binaries="CgMklExplicit" # CgMklRci CgEigen BicgStabEigen" # CgMklThreeTerm"
 
 matrices="test/systems/tiny test/systems/tinysym"
+matrices=$(find test/all-systems -name "*_SPD.mtx" | sed 's/.mtx//g' | xargs -If basename f)
+
+matDir="test/systems"
+solDir="test/systems"
+
+if [ -e test/all-systems ]; then
+  matDir="test/all-systems"
+fi
+
+if [ -e test/solutions ]; then
+  solDir="test/solutions"
+fi
 
 jsonOutput="[\n"
 first=true
@@ -28,9 +40,9 @@ for b in ${binaries}; do
 
   for m in ${matrices}; do
     echo -e "${txtcyn}---> Running on ${m}${txtrst}"
-    matrix=$(readlink -f ${m}.mtx)
-    lhs=$(readlink -f ${m}_sol.mtx)
-    rhs=$(readlink -f ${m}_b.mtx)
+    matrix=$(readlink -f ${matDir}/${m}.mtx)
+    rhs=$(readlink -f ${matDir}/${m}_b.mtx)
+    lhs=$(readlink -f ${solDir}/${m}_x.mtx)
 
     if [ "$first" != true ]; then
       jsonOutput+=","
@@ -38,6 +50,7 @@ for b in ${binaries}; do
 
     first=false
     jsonOutput+="{\n"
+    jsonOutput+="\"command\":\"${fullBinaryPath} -mat ${matrix}  -rhs ${rhs}  -lhs ${lhs})\",\n"
     jsonOutput+="\"matrix\":\"${m}\",\n"
     jsonOutput+="\"solver\":\"${b}\",\n"
     jsonOutput+=$(${fullBinaryPath} -mat ${matrix}  -rhs ${rhs}  -lhs ${lhs}) # | sed 's/^/     /'
