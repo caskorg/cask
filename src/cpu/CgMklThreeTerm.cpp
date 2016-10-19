@@ -51,8 +51,8 @@ template <typename T>
 bool cg(int n, int nnzs, int* col_ind, int* row_ptr, double* matrix_values,
         double* precon, double* rhs, double* sol,  bool verbose = false)
 {
-    Timer t;
-    t.start();
+    sparsebench::utils::Timer t;
+    t.tic("cg");
 
 
     int size = n;
@@ -118,9 +118,9 @@ bool cg(int n, int nnzs, int* col_ind, int* row_ptr, double* matrix_values,
         // test if norm is within tolerance
         if (mu < tolerance * tolerance)
         {
-            t.stop();
+            t.toc("cg");
             std::cout << "CG iterations made = " << itercount
-                 << " in " << t.elapsed() << " sec"
+                 << " in " << t.get("cg").count() << " sec"
                  << " using tolerance of "  << tolerance 
                  << " (error = " << std::sqrt(mu) << ")" 
                  << std::endl;

@@ -9,6 +9,8 @@
 #include "mkl.h"
 #include "BenchmarkUtils.hpp"
 
+#include "lib/timer.hpp"
+
 using namespace std;
 
 /**
@@ -22,8 +24,8 @@ bool cg(int n, int nnzs, int* col_ind, int* row_ptr, double* matrix_values,
 {
     // configuration (TODO Should be exposed through params)
     char tr = 'l';
-    int maxiters = n;
-    double tol = 1E-2;
+    int maxiters = 2000;
+    double tol = 1E-5;
 
     std::vector<double>    r(n);             // residual
     std::vector<double>    b(rhs, rhs + n);  // rhs
@@ -90,13 +92,17 @@ int main (int argc, char** argv) {
 
     bool verbose = false;
     int iterations = 0;
+
+    sparsebench::utils::Timer t;
+    t.tic("cg:all");
     bool status = cg<double>(n, nnzs, col_ind, row_ptr, values, &rhs[0], &sol[0], iterations, verbose);
+    t.toc("cg:all");
 
     std::vector<double> exp = sparsebench::io::readVector(argv[6]);
     sparsebench::benchmarkutils::printSummary(
         0,
         iterations,
-        0,
+        t.get("cg:all").count(),
         0,
         sparsebench::benchmarkutils::residual(exp, sol),
         0

@@ -49,13 +49,16 @@ for b in ${binaries}; do
     fi
 
     first=false
-    jsonOutput+="{\n"
-    jsonOutput+="\"command\":\"${fullBinaryPath} -mat ${matrix}  -rhs ${rhs}  -lhs ${lhs})\",\n"
-    jsonOutput+="\"matrix\":\"${m}\",\n"
-    jsonOutput+="\"solver\":\"${b}\",\n"
-    jsonOutput+=$(${fullBinaryPath} -mat ${matrix}  -rhs ${rhs}  -lhs ${lhs}) # | sed 's/^/     /'
-    jsonOutput+="}\n"
+    thisRun=""
+    thisRun+="{\n"
+    thisRun+="\"command\":\"${fullBinaryPath} -mat ${matrix}  -rhs ${rhs}  -lhs ${lhs}\",\n"
+    thisRun+="\"matrix\":\"${m}\",\n"
+    thisRun+="\"solver\":\"${b}\",\n"
+    thisRun+=$(${fullBinaryPath} -mat ${matrix}  -rhs ${rhs}  -lhs ${lhs}) # | sed 's/^/     /'
+    thisRun+="}\n"
 
+    echo ${thisRun}
+    jsonOutput+=${thisRun}
   done
 done
 

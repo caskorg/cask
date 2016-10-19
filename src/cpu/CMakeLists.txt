@@ -19,17 +19,16 @@ if (LibMKL_INCLUDE_DIRS)
   set(common_sources
     lib/mmio.c
     lib/common.c
-    lib/timer.cpp
     )
   add_library(common ${common_sources})
 
   include_directories(${LibMKL_INCLUDE_DIRS})
-  set(LIBS ${LIBS} ${LibMKL_LIBRARIES})
+  set(LIBS ${LIBS} ${LibMKL_LIBRARIES} common -lrt -fopenmp)
   add_executable(CgMklExplicit CgMklExplicit.cpp)
   add_executable(CgMklRci CgMklRci.cpp)
   add_executable(CgMklThreeTerm CgMklThreeTerm.cpp)
-  target_link_libraries(CgMklExplicit common ${LIBS} -lrt -fopenmp)
-  target_link_libraries(CgMklRci common ${LIBS} -lrt)
-  target_link_libraries(CgMklThreeTerm common ${LIBS} -lrt)
+  target_link_libraries(CgMklExplicit ${LIBS})
+  target_link_libraries(CgMklRci ${LIBS})
+  target_link_libraries(CgMklThreeTerm ${LIBS})
 endif()
 
