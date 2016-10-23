@@ -8,27 +8,102 @@
 #include "common.h"
 #include "mkl.h"
 #include "BenchmarkUtils.hpp"
+#include <unordered_map>
 
 #include "lib/timer.hpp"
 
 using namespace std;
 
-// with 1 based indexing
-class CsrMatrix {
-  // TODO move to include/, make API
-  int nnzs;
-  int n;
-  double *values;
-  int* col_ind;
-  int* row_ptr;
+class DokMatrix {
 
  public:
+  int n;
+  int nnzs;
+
+  // use of std::map important: values are sorted by column index internaly
+  std::unordered_map<int, std::map<int, double>> dok;
+
+  DokMatrix(int _n, int _nnzs) : n(_n), nnzs(_nnzs) {}
+
+
+  DokMatrix explicitSymmetric() {
+      DokMatrix m(n, nnzs);
+      for (auto &&s : dok) {
+          for (auto &&p : s.second) {
+              int i = s.first;
+              int j = p.first;
+              double value = p.second;
+              m.dok[i][j] = value;
+
+              // check the transpose entry does not exist
+              if (i == j)
+                  continue;
+              if (dok.find(j) != dok.end()) {
+                  if (dok[j].find(i) != dok[j].end()) {
+                      if (dok[j][i] != p.second) {
+                          throw std::invalid_argument("Matrix is not symmetric");
+                      } else {
+                          std::cout << "Warning! Matrix already contains transpose entry for "
+                                    << s.first << " " << p.first << std::endl;
+                      }
+                  }
+              }
+
+              // add the transpose entry
+              m.dok[j][i] = value;
+          }
+      }
+      return m;
+  }
+
+  void pretty_print() {
+      for (auto &&s : dok) {
+          for (auto &&p : s.second) {
+              std::cout << s.first << " " << p.first << " " << p.second << std::endl;
+          }
+      }
+  }
+};
+
+// TODO verify preconditions:
+// with 1 based indexing
+// lower triangular
+// row entries in increasing column order
+class CsrMatrix {
+  // TODO move to include/, make API
+ public:
+  int nnzs;
+  int n;
+  std::vector<double> values;
+  std::vector<int> col_ind;
+  std::vector<int> row_ptr;
+
+  CsrMatrix() : n(0), nnzs(0) {}
+
+  CsrMatrix(const DokMatrix& m) {
+      nnzs = m.nnzs;
+      n = m.n;
+      // row_ptr.resize(n + 1);
+      int pos = 1;
+      for (int i = 1; i < n + 1; i++) {
+          row_ptr.push_back(pos);
+          for (auto &entries : m.dok.find(i)->second) {
+              col_ind.push_back(entries.first);
+              values.push_back(entries.second);
+              pos++;
+          }
+      }
+      row_ptr.push_back(nnzs + 2);
+  }
+
   CsrMatrix(int _n, int _nnzs, double* _values, int* _col_ind, int* _row_ptr) :
       n(_n),
-      nnzs(_nnzs),
-      values(_values),
-      col_ind(_col_ind),
-      row_ptr(_row_ptr) { }
+      nnzs(_nnzs)
+  {
+      values.assign(_values, _values + _nnzs);
+      col_ind.assign(_col_ind, _col_ind + _nnzs);
+      row_ptr.assign(_row_ptr, _row_ptr + n + 1);
+  }
 
   // Prints all matrix values
   void pretty_print() {
@@ -45,6 +120,42 @@ class CsrMatrix {
           std::cout << endl;
       }
   }
+
+  double& get(int i, int j) {
+      for (int k = row_ptr[i - 1]; k < row_ptr[i]; k++) {
+          if (col_ind[k - 1] == j) {
+              return values[k - 1];
+          }
+      }
+
+      throw std::invalid_argument("No nonzero at row col:"
+                                      + std::to_string(i) + " "
+                                      + std::to_string(j));
+  }
+
+  bool isNnz(int i, int j) {
+      try {
+          get(i, j);
+      } catch (std::invalid_argument) {
+          return false;
+      }
+      return true;
+  }
+
+  bool isSymmetric() {
+      return true;
+  }
+
+  DokMatrix toDok() {
+    DokMatrix m(n, nnzs);
+      for (int i = 0; i < n; i++) {
+          for (int k = row_ptr[i]; k < row_ptr[i + 1]; k++) {
+              m.dok[i + 1][col_ind[k - 1]] = values[k - 1];
+          }
+      }
+    return m;
+  }
+
 };
 
 class Preconditioner {
@@ -60,15 +171,41 @@ class IdentityPreconditioner : public Preconditioner {
   }
 };
 
-class ILUPreconditioner : public Preconditioner {
+class ILUPreconditioner {
+  CsrMatrix pc;
+ public:
 
-  void compute(CsrMatrix &a) {
-      // TODO
+  // pre - a is a symmetric matrix
+  ILUPreconditioner(CsrMatrix &a) {
+      if (!a.isSymmetric()) {
+          throw std::invalid_argument("ILUPreconditioner only supports symmetric CSR matrices");
+      }
+      pc = a;
+
+      for (int i = 2; i <= a.n; i++) {
+          for (int k = 1; k <= i - 1; k++) {
+              // update pivot - a[i,k] = a[i, k] / a[k, k]
+              if (a.isNnz(i, k) && a.isNnz(k, k)) {
+                std::cout << "Updating " << std::endl;
+                  a.get(i, k) = a.get(i, k) / a.get(k, k);
+                  double beta = a.get(i, k);
+                  for (int j = k + 1; j <= a.n; j++) {
+                      // update row - a[i, j] -= a[k, j] * a[i, k]
+                      if (a.isNnz(i, j) && a.isNnz(k, j))
+                          a.get(i, j) = a.get(i, j) - a.get(k, j) * beta;
+                  }
+              }
+          }
+      }
   }
 
-  virtual std::vector<double> apply(std::vector<double> x) override {
+  virtual std::vector<double> apply(std::vector<double> x) {
       // TODO
       return x;
+  }
+
+  void pretty_print() {
+      pc.pretty_print();
   }
 };
 
@@ -125,7 +262,7 @@ bool pcg(int n, int nnzs, int* col_ind, int* row_ptr, double* matrix_values,
 
         if (rsnew <= tol * tol) {
             // std::cout << "Found solution" << std::endl;
-            // print_array("x", &x[0], n);
+            print_array("x", &x[0], n);
             return true;
         }
 
@@ -163,7 +300,28 @@ int main (int argc, char** argv) {
     int iterations = 0;
 
     CsrMatrix a{n, nnzs, values, col_ind, row_ptr};
+    CsrMatrix b{a};
+    ILUPreconditioner pc{a};
+    std::cout << "--- ILU pc matrix" << std::endl;
+    pc.pretty_print();
+    std::cout << "--- ILU pc matrix" << std::endl;
+    std::cout << "--- A (CSR) --- " << std::endl;
     a.pretty_print();
+    std::cout << "--- A (CSR) --- " << std::endl;
+    std::cout << "--- A (DOK) --- " << std::endl;
+    a.toDok().pretty_print();
+    std::cout << "--- A (DOK) --- " << std::endl;
+    std::cout << "--- A (DOK - explicit sym) --- " << std::endl;
+    a.toDok().explicitSymmetric().pretty_print();
+    std::cout << "--- A (DOK - explicit sym) --- " << std::endl;
+    std::cout << "--- A (CSR from --> DOK - explicit sym) --- " << std::endl;
+    CsrMatrix explicitA(a.toDok().explicitSymmetric());
+    explicitA.pretty_print();
+    std::cout << "--- A (CSR from --> DOK - explicit sym) --- " << std::endl;
+    ILUPreconditioner explicitPc{explicitA};
+    std::cout << "--- Explicit ILU pc matrix" << std::endl;
+    explicitPc.pretty_print();
+    std::cout << "--- Explicit ILU pc matrix" << std::endl;
 
     sparsebench::utils::Timer t;
     t.tic("cg:all");
