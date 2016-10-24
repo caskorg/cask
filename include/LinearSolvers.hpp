@@ -28,8 +28,8 @@ class IdentityPreconditioner: public Preconditioner {
 };
 
 class ILUPreconditioner {
-  CsrMatrix pc;
  public:
+  CsrMatrix pc;
 
   // pre - a is a symmetric matrix
   ILUPreconditioner(CsrMatrix &a) {
@@ -129,6 +129,7 @@ bool pcg(const CsrMatrix& a, double *rhs, double *x, int &iterations, bool verbo
         iterations = i;
     }
 
+    mkl_free_buffers ();
     return false;
 }
 }

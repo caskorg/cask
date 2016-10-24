@@ -6,37 +6,26 @@
 #include <Utils.hpp>
 #include <gtest/gtest.h>
 
-class TestLinearSolvers : public ::testing::Test {
-
-};
+class TestLinearSolvers : public ::testing::Test { };
 
 TEST_F(TestLinearSolvers, CGWithIdentityPC) {
    std::vector<double> rhs = spam::io::readVector("test/systems/tiny_b.mtx");
    spam::CsrMatrix a = spam::io::readMatrix("test/systems/tiny.mtx");
-
    int iterations = 0;
    std::vector<double> sol(a.n);
-
-   spam::Timer t;
-   t.tic("cg:all");
    bool converged = spam::pcg<double, spam::IdentityPreconditioner>(a, &rhs[0], &sol[0], iterations);
-   t.toc("cg:all");
+   std::vector<double> exp_sol{1, 2, 3, 4};
+   ASSERT_EQ(sol, exp_sol);
+}
 
-   std::vector<double> exp = spam::io::readVector("test/systems/tiny_sol.mtx");
-   spam::benchmark::printSummary(
-       0,
-       iterations,
-       t.get("cg:all").count(),
-       0,
-       spam::benchmark::residual(exp, sol),
-       0
-   );
-
-   write_vector_to_file("sol.mtx.expl", &sol[0], sol.size());
-   // TODO verify contents
-   mkl_free_buffers ();
-
-   ASSERT_TRUE(converged);
+TEST_F(TestLinearSolvers, CGSymWithIdentityPC) {
+   std::vector<double> rhs = spam::io::readVector("test/systems/tinysym_b.mtx");
+   spam::CsrMatrix a = spam::io::readMatrix("test/systems/tinysym.mtx");
+   int iterations = 0;
+   std::vector<double> sol(a.n);
+   bool converged = spam::pcg<double, spam::IdentityPreconditioner>(a, &rhs[0], &sol[0], iterations);
+   std::vector<double> exp_sol{-2, 2, 3, 3};
+   EXPECT_EQ(sol, exp_sol);
 }
 
 TEST_F(TestLinearSolvers, ILU) {
@@ -51,5 +40,11 @@ TEST_F(TestLinearSolvers, ILU) {
    std::cout << "--- Explicit ILU pc matrix" << std::endl;
    explicitPc.pretty_print();
    std::cout << "--- Explicit ILU pc matrix" << std::endl;
-   // TODO verify contents
+
+   std::vector<int> rows{1, 3, 4, 5, 7};
+   std::vector<int> cols{1, 4, 2, 3, 1, 4};
+   std::vector<double> vals{1, 1, 1, 1, 1, 1};
+   ASSERT_EQ(explicitPc.pc.row_ptr, rows);
+   ASSERT_EQ(explicitPc.pc.col_ind, cols);
+   ASSERT_EQ(explicitPc.pc.values, vals);
 }
