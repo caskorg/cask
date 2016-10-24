@@ -4,15 +4,10 @@
 #include <cmath>
 #include <cstring>
 #include <iterator>
-// #include "IO.hpp"
-// #include "common.h"
 #include "mkl.h"
-// #include "BenchmarkUtils.hpp"
 #include <unordered_map>
 #include <map>
 #include <SparseMatrix.hpp>
-
-// #include "lib/timer.hpp"
 
 using namespace std;
 
@@ -73,13 +68,17 @@ class ILUPreconditioner {
  *  https://en.wikipedia.org/wiki/Conjugate_gradient_method
  */
 template<typename T, typename Precon>
-bool pcg(int n, int nnzs, int *col_ind, int *row_ptr, double *matrix_values,
-         double *rhs, double *x, int &iterations, bool verbose = false) {
+bool pcg(const CsrMatrix& a, double *rhs, double *x, int &iterations, bool verbose = false) {
     // configuration (TODO Should be exposed through params)
     char tr = 'l';
     int maxiters = 2000;
     double tol = 1E-5;
     Precon precon;
+
+    int n = a.n;
+    const double* matrix_values = a.values.data();
+    const int* row_ptr = a.row_ptr.data();
+    const int* col_ind = a.col_ind.data();
 
     std::vector<double> r(n);             // residual
     std::vector<double> b(rhs, rhs + n);  // rhs

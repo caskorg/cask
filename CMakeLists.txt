@@ -23,23 +23,28 @@ endif()
 include_directories(include)
 include_directories(src/)
 
-add_library(common SHARED src/mmio.c src/mmio.h src/common.c src/common.h)
+set(HEADERS
+        include/Benchmark.hpp
+        include/IO.hpp
+        include/LinearSolvers.hpp
+        include/SparseMatrix.hpp
+        include/Utils.hpp)
+
+add_library(common SHARED src/mmio.c src/mmio.h src/common.c src/common.h ${HEADERS})
 
 add_subdirectory(lib/gtest)
+
+add_executable(spam
+        src/main.cpp ${HEADERS}
+        )
+target_link_libraries(spam ${LibMKL_LIBRARIES} -lrt -fopenmp common)
 
 enable_testing()
 
 add_executable(LinearSolvers test/LinearSolvers.cpp)
 target_link_libraries(LinearSolvers gtest gtest_main gmock ${LibMKL_LIBRARIES} -lrt -fopenmp common)
 
-set(TEST_MATRICES tinysym tiny)
-foreach(matrix ${TEST_MATRICES})
-  set(mat -mat test/systems/${matrix}.mtx)
-  set(lhs -lhs test/systems/${matrix}_sol.mtx)
-  set(rhs -rhs test/systems/${matrix}_b.mtx)
-  add_test(
-    NAME "LinearSol_${matrix}"
-    COMMAND LinearSolvers ${mat} ${rhs} ${lhs}
-    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-  )
-endforeach()
+add_test(
+        NAME LinearSolvers
+        COMMAND LinearSolvers
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})

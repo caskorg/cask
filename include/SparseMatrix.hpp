@@ -1,6 +1,10 @@
 #ifndef SPAM_SPARSEMATRIX_HPP
 #define SPAM_SPARSEMATRIX_HPP
 
+#include <unordered_map>
+#include <map>
+#include <stdexcept>
+
 namespace spam {
 
 class DokMatrix {

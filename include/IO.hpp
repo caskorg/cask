@@ -3,9 +3,11 @@
 
 #include <string>
 #include <iostream>
+#include <SparseMatrix.hpp>
 
 extern "C" {
 # include <mmio.h>
+#include <common.h>
 };
 
 namespace spam {
@@ -35,6 +37,18 @@ std::vector<double> readVector(std::string path) {
 
   fclose(f);
   return v;
+}
+
+CsrMatrix readMatrix(std::string path) {
+  int n, nnzs;
+  double* values;
+  int *col_ind, *row_ptr;
+  FILE *f;
+  if (!(f = fopen(path.c_str(), "r")))
+    throw std::invalid_argument("Could not open path:" + path);
+  read_system_matrix_sym_csr(f, &n, &nnzs, &col_ind, &row_ptr, &values);
+  fclose(f);
+  return spam::CsrMatrix{n, nnzs, values, col_ind, row_ptr};
 }
 
 }
