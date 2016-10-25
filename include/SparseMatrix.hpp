@@ -4,6 +4,8 @@
 #include <unordered_map>
 #include <map>
 #include <stdexcept>
+#include <vector>
+#include <algorithm>
 
 namespace spam {
 
@@ -18,6 +20,13 @@ class DokMatrix {
 
   DokMatrix(int _n, int _nnzs) : n(_n), nnzs(_nnzs) {}
 
+  // Initialize the matrix as a dense matrix, with the given values, in order;
+  // matrix is assumed square with n = sqrt(pattern.size()); 0 entries must be
+  // entered explicitly
+  DokMatrix(const std::initializer_list<double>& pattern) {
+    n = sqrt(pattern.size());
+    nnzs = std::count_if(pattern.begin(), pattern.end(), [](double x){return x != 0;});
+  }
 
   DokMatrix explicitSymmetric() {
     DokMatrix m(n, nnzs);

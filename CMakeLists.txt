@@ -1,6 +1,8 @@
 cmake_minimum_required (VERSION 3.1)
 project (spam C CXX)
 
+include(${CMAKE_SOURCE_DIR}/scripts/cmake/Utils.cmake)
+
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/scripts/cmake/")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -std=c++11")
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
@@ -31,6 +33,7 @@ set(HEADERS
         include/Utils.hpp)
 
 add_library(common SHARED src/mmio.c src/mmio.h src/common.c src/common.h ${HEADERS})
+target_link_libraries(common ${LibMKL_LIBRARIES} -lrt -fopenmp)
 
 add_subdirectory(lib/gtest)
 
@@ -40,11 +43,5 @@ add_executable(spam
 target_link_libraries(spam ${LibMKL_LIBRARIES} -lrt -fopenmp common)
 
 enable_testing()
-
-add_executable(LinearSolvers test/LinearSolvers.cpp)
-target_link_libraries(LinearSolvers gtest gtest_main gmock ${LibMKL_LIBRARIES} -lrt -fopenmp common)
-
-add_test(
-        NAME LinearSolvers
-        COMMAND LinearSolvers
-        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+AddGtestSuite(LinearSolvers)
+AddGtestSuite(SparseMatrix)
