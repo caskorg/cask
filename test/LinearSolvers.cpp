@@ -28,6 +28,30 @@ TEST_F(TestLinearSolvers, CGSymWithIdentityPC) {
    EXPECT_EQ(sol, exp_sol);
 }
 
+TEST_F(TestLinearSolvers, ILU2) {
+   spam::CsrMatrix a{spam::DokMatrix{
+       2, 1, 1, 1,
+       1, 1, 0, 0,
+       1, 0, 1, 0,
+       1, 0, 0, 1
+   }};
+
+   a.pretty_print();
+
+   spam::ILUPreconditioner ilupc{
+       spam::CsrMatrix{
+       }};
+
+   spam::DokMatrix expPc{
+       2, 1, 1, 1,
+       0.5, 0,5, 0, 0,
+       0.5, 0, 0.5, 0,
+       0.5, 0, 0, 0.5
+   };
+
+   ASSERT_EQ(ilupc.pc, spam::CsrMatrix{expPc});
+}
+
 TEST_F(TestLinearSolvers, ILU) {
    spam::CsrMatrix a = spam::io::readMatrix("test/systems/tinysym.mtx");
 

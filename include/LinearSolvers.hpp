@@ -32,7 +32,7 @@ class ILUPreconditioner {
   CsrMatrix pc;
 
   // pre - a is a symmetric matrix
-  ILUPreconditioner(CsrMatrix &a) {
+  ILUPreconditioner(const CsrMatrix &a) {
       if (!a.isSymmetric())
           throw std::invalid_argument("ILUPreconditioner only supports symmetric CSR matrices");
       pc = a;

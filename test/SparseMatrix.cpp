@@ -19,5 +19,49 @@ TEST_F(TestSparseMatrix, DokSetFromPattern) {
 
    ASSERT_EQ(dkMatrix.nnzs, 10);
    ASSERT_EQ(dkMatrix.n, 4);
+   // test some entries
+   ASSERT_EQ(dkMatrix.at(0, 0), 1);
+   ASSERT_EQ(dkMatrix.at(1, 1), 1);
+   ASSERT_EQ(dkMatrix.at(0, 1), 1);
+   ASSERT_EQ(dkMatrix.at(0, 2), 1);
+   ASSERT_EQ(dkMatrix.at(0, 3), 1);
+   ASSERT_EQ(dkMatrix.at(3, 3), 1);
 }
 
+TEST_F(TestSparseMatrix, DokExplicitSymmetry) {
+   spam::DokMatrix dkMatrix{
+       1, 0, 0, 0,
+       1, 1, 0, 0,
+       1, 0, 1, 0,
+       1, 0, 0, 1
+   };
+
+   ASSERT_EQ(dkMatrix.nnzs, 7);
+   ASSERT_EQ(dkMatrix.n, 4);
+
+   spam::DokMatrix sym = dkMatrix.explicitSymmetric();
+   ASSERT_EQ(sym.nnzs, 10);
+   ASSERT_EQ(sym.n, 4);
+
+   spam::DokMatrix expSym{
+       1, 1, 1, 1,
+       1, 1, 0, 0,
+       1, 0, 1, 0,
+       1, 0, 0, 1
+   };
+   ASSERT_EQ(sym, expSym);
+}
+
+TEST_F(TestSparseMatrix, CsrToFromDok) {
+
+  spam::DokMatrix dokA{
+       2, 1, 1, 1,
+       1, 1, 0, 0,
+       1, 0, 1, 0,
+       1, 0, 0, 1
+  };
+
+  spam::CsrMatrix a{dokA};
+  ASSERT_EQ(a.toDok().dok, dokA.dok);
+  ASSERT_EQ(a.toDok(), dokA);
+}
