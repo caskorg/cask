@@ -36,13 +36,15 @@ class ILUPreconditioner {
       if (!a.isSymmetric())
           throw std::invalid_argument("ILUPreconditioner only supports symmetric CSR matrices");
       pc = a;
-      for (int i = 2; i <= a.n; i++) {
-          for (int k = 1; k <= i - 1; k++) {
+      for (int i = 1; i < a.n; i++) {
+          for (int k = 0; k < i; k++) {
               // update pivot - a[i,k] = a[i, k] / a[k, k]
+              std::cout << i << k << pc.isNnz(i, k) << " " << pc.isNnz(k, k) << std::endl;
               if (pc.isNnz(i, k) && pc.isNnz(k, k)) {
                   pc.get(i, k) = pc.get(i, k) / pc.get(k, k);
                   double beta = pc.get(i, k);
-                  for (int j = k + 1; j <= pc.n; j++) {
+                  std::cout << " i j beta " << i << " " << k << " " << beta << std::endl;
+                  for (int j = k + 1; j < pc.n; j++) {
                       // update row - a[i, j] -= a[k, j] * a[i, k]
                       if (pc.isNnz(i, j) && pc.isNnz(k, j)) {
                           pc.get(i, j) = pc.get(i, j) - pc.get(k, j) * beta;
