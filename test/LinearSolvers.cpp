@@ -13,7 +13,7 @@ TEST_F(TestLinearSolvers, CGWithIdentityPC) {
    spam::CsrMatrix a = spam::io::readMatrix("test/systems/tiny.mtx");
    int iterations = 0;
    std::vector<double> sol(a.n);
-   bool converged = spam::pcg<double, spam::IdentityPreconditioner>(a, &rhs[0], &sol[0], iterations);
+   spam::pcg<double, spam::IdentityPreconditioner>(a, &rhs[0], &sol[0], iterations);
    std::vector<double> exp_sol{1, 2, 3, 4};
    for (auto i = 0u; i < sol.size(); i++) {
      ASSERT_DOUBLE_EQ(sol[i], exp_sol[i]);
@@ -25,7 +25,7 @@ TEST_F(TestLinearSolvers, CGSymWithIdentityPC) {
    spam::CsrMatrix a = spam::io::readMatrix("test/systems/tinysym.mtx");
    int iterations = 0;
    std::vector<double> sol(a.n);
-   bool converged = spam::pcg<double, spam::IdentityPreconditioner>(a, &rhs[0], &sol[0], iterations);
+   spam::pcg<double, spam::IdentityPreconditioner>(a, &rhs[0], &sol[0], iterations);
    std::vector<double> exp_sol{-2, 2, 3, 3};
    for (auto i = 0u; i < sol.size(); i++) {
       ASSERT_DOUBLE_EQ(sol[i], exp_sol[i]);

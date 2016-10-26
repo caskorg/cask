@@ -4,6 +4,8 @@
 #include <string>
 #include <iostream>
 #include <SparseMatrix.hpp>
+#include <regex>
+#include <fstream>
 
 extern "C" {
 # include <mmio.h>
@@ -12,6 +14,53 @@ extern "C" {
 
 namespace spam {
 namespace io {
+
+namespace mm {
+
+  /** Support for Matrix Market I/O. http://math.nist.gov/MatrixMarket/formats.html
+   *
+   * Matrix Market format is:
+   *
+   * %%MatrixMarket <type> <format> <data type> <symmetry>
+   * % Any number of comment lines
+   * N M L
+   * i_1 j_1 v_1
+   * . . . . . .
+   * i_L j_L v_L
+   *
+   * where
+   * type = matrix | array
+   * format = coordinate | array
+   * data type = real | complex | integer | pattern
+   * symmetry = symmetric | skew-symmetric | hermitian | general
+   *
+   * Note:
+   *   pattern, complex, skew-symmetric, hermitian are not supported will throw an exception
+   */
+  struct MmInfo {
+    std::string type;
+    std::string format;
+    std::string dataType;
+    std::string symmetry;
+    MmInfo(std::string _type, std::string _format, std::string _dataType, std::string _symmetry) :
+        type(_type),
+        format(_format),
+        dataType(_dataType),
+        symmetry(_symmetry)
+        { }
+  };
+
+  MmInfo readHeader(std::string path) {
+    std::ifstream f{path};
+    std::string fileInfo;
+    std::getline(f, fileInfo);
+    std::regex mmHeaderRe("%%MatrixMarket (matrix|array) (coordinate|array) (real|integer) (symmetric|general)");
+    std::smatch m;
+    if (regex_match(fileInfo, m, mmHeaderRe))
+      return MmInfo{m[1], m[2], m[3], m[4]};
+    throw std::invalid_argument("Not a valid MatrixMarket file in " + path);
+  }
+}
 
 std::vector<double> readVector(std::string path) {
   FILE *f = fopen(path.c_str(), "r");
