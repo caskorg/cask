@@ -9,7 +9,7 @@
 class TestLinearSolvers : public ::testing::Test { };
 
 TEST_F(TestLinearSolvers, CGWithIdentityPC) {
-   std::vector<double> rhs = spam::io::readVector("test/systems/tiny_b.mtx");
+   std::vector<double> rhs = spam::io::mm::readVector("test/systems/tiny_b.mtx");
    spam::CsrMatrix a = spam::io::readMatrix("test/systems/tiny.mtx");
    int iterations = 0;
    std::vector<double> sol(a.n);
@@ -21,7 +21,7 @@ TEST_F(TestLinearSolvers, CGWithIdentityPC) {
 }
 
 TEST_F(TestLinearSolvers, CGSymWithIdentityPC) {
-   std::vector<double> rhs = spam::io::readVector("test/systems/tinysym_b.mtx");
+   std::vector<double> rhs = spam::io::mm::readVector("test/systems/tinysym_b.mtx");
    spam::CsrMatrix a = spam::io::readMatrix("test/systems/tinysym.mtx");
    int iterations = 0;
    std::vector<double> sol(a.n);

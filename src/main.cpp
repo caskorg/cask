@@ -11,7 +11,7 @@ int main (int argc, char** argv) {
 
   spam::benchmark::parseArgs(argc, argv);
   spam::CsrMatrix a = spam::io::readMatrix(argv[2]);
-  std::vector<double> rhs = spam::io::readVector(std::string(argv[4]));
+  std::vector<double> rhs = spam::io::mm::readVector(std::string(argv[4]));
   std::vector<double> sol(a.n);
 
   bool verbose = false;
@@ -45,7 +45,7 @@ int main (int argc, char** argv) {
   bool status = spam::pcg<double, spam::IdentityPreconditioner>(a, &rhs[0], &sol[0], iterations, verbose);
   t.toc("cg:all");
 
-  std::vector<double> exp = spam::io::readVector(argv[6]);
+  std::vector<double> exp = spam::io::mm::readVector(argv[6]);
   spam::benchmark::printSummary(
       0,
       iterations,

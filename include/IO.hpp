@@ -6,6 +6,8 @@
 #include <SparseMatrix.hpp>
 #include <regex>
 #include <fstream>
+#include <cassert>
+#include <sstream>
 
 extern "C" {
 # include <mmio.h>
@@ -14,78 +16,96 @@ extern "C" {
 
 namespace spam {
 namespace io {
-
 namespace mm {
 
-  /** Support for Matrix Market I/O. http://math.nist.gov/MatrixMarket/formats.html
-   *
-   * Matrix Market format is:
-   *
-   * %%MatrixMarket <type> <format> <data type> <symmetry>
-   * % Any number of comment lines
-   * N M L
-   * i_1 j_1 v_1
-   * . . . . . .
-   * i_L j_L v_L
-   *
-   * where
-   * type = matrix | array
-   * format = coordinate | array
-   * data type = real | complex | integer | pattern
-   * symmetry = symmetric | skew-symmetric | hermitian | general
-   *
-   * Note:
-   *   pattern, complex, skew-symmetric, hermitian are not supported will throw an exception
-   */
-  struct MmInfo {
-    std::string type;
-    std::string format;
-    std::string dataType;
-    std::string symmetry;
-    MmInfo(std::string _type, std::string _format, std::string _dataType, std::string _symmetry) :
-        type(_type),
-        format(_format),
-        dataType(_dataType),
-        symmetry(_symmetry)
-        { }
-  };
-
-  MmInfo readHeader(std::string path) {
-    std::ifstream f{path};
-    std::string fileInfo;
-    std::getline(f, fileInfo);
-    std::regex mmHeaderRe("%%MatrixMarket (matrix|array) (coordinate|array) (real|integer) (symmetric|general)");
-    std::smatch m;
-    if (regex_match(fileInfo, m, mmHeaderRe))
-      return MmInfo{m[1], m[2], m[3], m[4]};
-    throw std::invalid_argument("Not a valid MatrixMarket file in " + path);
+/** Support for Matrix Market I/O. http://math.nist.gov/MatrixMarket/formats.html
+ *
+ * Matrix Market format is:
+ *
+ * %%MatrixMarket <type> <format> <data type> <symmetry>
+ * % Any number of comment lines
+ * N M L
+ * i_1 j_1 v_1
+ * . . . . . .
+ * i_L j_L v_L
+ *
+ * where
+ * type = matrix
+ * format = coordinate | array
+ * data type = real | complex | integer | pattern
+ * symmetry = symmetric | skew-symmetric | hermitian | general
+ *
+ * Note:
+ *   pattern, complex, skew-symmetric, hermitian are not supported will throw an exception
+ */
+struct MmInfo {
+  std::string type;
+  std::string format;
+  std::string dataType;
+  std::string symmetry;
+  MmInfo(std::string _type, std::string _format, std::string _dataType, std::string _symmetry) :
+      type(_type),
+      format(_format),
+      dataType(_dataType),
+      symmetry(_symmetry) {}
+  bool isMatrix() {
+    return type == "matrix";
   }
+};
+
+MmInfo readHeader(std::string path) {
+  std::ifstream f{path};
+  std::string fileInfo;
+  std::getline(f, fileInfo);
+  std::regex mmHeaderRe("%%MatrixMarket (matrix|array) (coordinate|array) (real|integer) (symmetric|general)");
+  std::smatch m;
+  if (regex_match(fileInfo, m, mmHeaderRe))
+    return MmInfo{m[1], m[2], m[3], m[4]};
+  throw std::invalid_argument("Not a valid MatrixMarket file in " + path);
 }
 
 std::vector<double> readVector(std::string path) {
-  FILE *f = fopen(path.c_str(), "r");
-  int m, n;
-  MM_typecode matcode;
-  if (mm_read_banner(f, &matcode) != 0) {
-    std::cout << "Error reading matrix banner" << std::endl;
-    exit(1);
-  }
-  if (!mm_is_array(matcode)) {
-    std::cout << "Expecting array in " << path << std::endl;
-    exit(1);
-  }
-  mm_read_mtx_array_size(f, &m, &n);
-  if (n != 1) {
-    std::cout << "RHS should be column vector in " << path << std::endl;
-    exit(1);
+  MmInfo info = readHeader(path);
+
+  assert(info.isMatrix());
+  assert(info.symmetry == "general");
+  assert(info.dataType == "real");
+
+  // skip header
+  std::ifstream f{path};
+  std::string line;
+  while (std::getline(f, line)) {
+    if (line[0] != '%')
+      break;
   }
 
-  std::vector<double> v(m);
-  for (int i = 0; i < m; i++)
-    fscanf(f, "%lf", &v[i]);
+  int n, m;
+  std::stringstream s;
+  s << line;
+  s >> n >> m;
+  std::vector<double> v(n);
 
-  fclose(f);
-  return v;
+  if (info.format == "coordinate") {
+    int l;
+    s >> l;
+    for (int i = 0; i < l; i++) {
+      int a, b;
+      double val;
+      f >> a >> b >> val;
+      v[a] = val;
+    }
+    return v;
+  }
+
+  assert(info.format == "array");
+
+  s >> n >> m;
+  for (int i = 0; i < n; i++) {
+    double val;
+    f >> val;
+    v[i] = val;
+  }
+}
 }
 
 CsrMatrix readMatrix(std::string path) {
