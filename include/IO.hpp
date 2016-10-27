@@ -106,6 +106,7 @@ std::vector<double> readVector(std::string path) {
     f >> val;
     v[i] = val;
   }
+  return v;
 }
 
 CsrMatrix readMatrix(std::string path) {

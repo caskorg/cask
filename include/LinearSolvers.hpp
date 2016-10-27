@@ -39,11 +39,9 @@ class ILUPreconditioner {
       for (int i = 1; i < a.n; i++) {
           for (int k = 0; k < i; k++) {
               // update pivot - a[i,k] = a[i, k] / a[k, k]
-              std::cout << i << k << pc.isNnz(i, k) << " " << pc.isNnz(k, k) << std::endl;
               if (pc.isNnz(i, k) && pc.isNnz(k, k)) {
                   pc.get(i, k) = pc.get(i, k) / pc.get(k, k);
                   double beta = pc.get(i, k);
-                  std::cout << " i j beta " << i << " " << k << " " << beta << std::endl;
                   for (int j = k + 1; j < pc.n; j++) {
                       // update row - a[i, j] -= a[k, j] * a[i, k]
                       if (pc.isNnz(i, j) && pc.isNnz(k, j)) {
@@ -56,7 +54,14 @@ class ILUPreconditioner {
   }
 
   virtual std::vector<double> apply(std::vector<double> x) {
-      // TODO
+      // solve z = M^-1 r
+      // ==> Mz = r
+      // ==> LUz = r
+
+      // solve: Ly = r
+
+      // then solve Uz = y
+
       return x;
   }
 

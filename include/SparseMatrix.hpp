@@ -163,7 +163,7 @@ class CsrMatrix {
   }
 
   // Prints all matrix values
-  void pretty_print() {
+  void pretty_print() const {
     for (int i = 0; i < n; i++) {
       int col_ptr = row_ptr[i];
       for (int j = 0; j < n; j++) {
