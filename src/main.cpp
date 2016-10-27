@@ -55,7 +55,7 @@ int main (int argc, char** argv) {
       0
   );
 
-  write_vector_to_file("sol.mtx.expl", &sol[0], sol.size());
+  spam::writeToFile("sol.mtx.expl", sol);
   mkl_free_buffers ();
   return 0;
 }

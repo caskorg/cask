@@ -25,6 +25,7 @@
 #include <algorithm>
 #include <iterator>
 #include <cassert>
+#include <fstream>
 
 namespace spam {
 
@@ -282,6 +283,14 @@ class SymCsrMatrix {
     matrix.toDok().explicitSymmetric().pretty_print();
   }
 };
+
+void writeToFile(std::string path, std::vector<double> vector) {
+  std::ofstream f{path};
+  if (!f)
+    throw std::invalid_argument("Could not open file for writing");
+  for (auto v : vector)
+    f << v << std::endl;
+}
 
 }
 #endif //SPAM_SPARSEMATRIX_HPP

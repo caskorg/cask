@@ -16,7 +16,7 @@ find_package(MKL REQUIRED)
 if (LibMKL_INCLUDE_DIRS)
   message(STATUS "Found MKL: ${LibMKL_INCLUDE_DIRS}")
   include_directories(${LibMKL_INCLUDE_DIRS})
-  set(LIBS ${LIBS} ${LibMKL_LIBRARIES} common -lrt -fopenmp)
+  set(LIBS ${LIBS} ${LibMKL_LIBRARIES} -lrt -fopenmp)
 else()
   message(FATAL_ERROR "MKL is required for current version. \
                        Please set MKLROOT to the top level directory of your MKL path")
@@ -32,15 +32,10 @@ set(HEADERS
         include/SparseMatrix.hpp
         include/Utils.hpp)
 
-add_library(common SHARED src/mmio.c src/mmio.h src/common.c src/common.h ${HEADERS})
-target_link_libraries(common ${LibMKL_LIBRARIES} -lrt -fopenmp)
-
 add_subdirectory(lib/gtest)
 
-add_executable(spam
-        src/main.cpp ${HEADERS}
-        )
-target_link_libraries(spam ${LibMKL_LIBRARIES} -lrt -fopenmp common)
+add_executable(spam src/main.cpp ${HEADERS})
+target_link_libraries(spam ${LibMKL_LIBRARIES} -lrt -fopenmp)
 
 enable_testing()
 AddGtestSuite(LinearSolvers)

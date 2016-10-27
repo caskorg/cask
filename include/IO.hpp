@@ -9,11 +9,6 @@
 #include <cassert>
 #include <sstream>
 
-extern "C" {
-# include <mmio.h>
-#include <common.h>
-};
-
 namespace spam {
 namespace io {
 namespace mm {
@@ -124,15 +119,7 @@ CsrMatrix readMatrix(std::string path) {
         path + " To read symmetric matrix use spam::io::mm::readSymMatrix()");
   }
 
-  int n, nnzs;
-  double* values;
-  int *col_ind, *row_ptr;
-  FILE *f;
-  if (!(f = fopen(path.c_str(), "r")))
-    throw std::invalid_argument("Could not open path:" + path);
-  read_system_matrix_sym_csr(f, &n, &nnzs, &col_ind, &row_ptr, &values);
-  fclose(f);
-  return spam::CsrMatrix{n, nnzs, values, col_ind, row_ptr};
+  throw std::invalid_argument("Error! Generic matrix in MatrixMarket not supported");
 }
 
 SymCsrMatrix readSymMatrix(std::string path) {
