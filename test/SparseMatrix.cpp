@@ -65,3 +65,54 @@ TEST_F(TestSparseMatrix, CsrToFromDok) {
   ASSERT_EQ(a.toDok().dok, dokA.dok);
   ASSERT_EQ(a.toDok(), dokA);
 }
+
+
+TEST_F(TestSparseMatrix, CsrLowerTriangular) {
+  spam::CsrMatrix m{spam::DokMatrix{
+      1, 1, 1, 1,
+      1, 1, 0, 0,
+      1, 0, 1, 0,
+      1, 0, 0, 1
+  }};
+
+  std::cout << "Matrix" << std::endl;
+  m.pretty_print();
+
+  spam::CsrMatrix expL{spam::DokMatrix{
+      1, 0, 0, 0,
+      1, 1, 0, 0,
+      1, 0, 1, 0,
+      1, 0, 0, 1
+  }};
+
+  std::cout << "Lower triangular" << std::endl;
+  auto l = m.getLowerTriangular();
+  l.pretty_print();
+
+  ASSERT_EQ(l, expL);
+}
+
+TEST_F(TestSparseMatrix, CsrUpperTriangular) {
+  spam::CsrMatrix m{spam::DokMatrix{
+      1, 1, 1, 1,
+      1, 1, 0, 0,
+      1, 0, 1, 0,
+      1, 0, 0, 1
+  }};
+
+  std::cout << "Matrix" << std::endl;
+  m.pretty_print();
+
+  spam::CsrMatrix expU{spam::DokMatrix{
+      1, 1, 1, 1,
+      0, 1, 0, 0,
+      0, 0, 1, 0,
+      0, 0, 0, 1
+  }};
+
+  std::cout << "Upper triangular" << std::endl;
+  auto u = m.getUpperTriangular();
+  u.pretty_print();
+
+  ASSERT_EQ(u, expU);
+}

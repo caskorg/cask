@@ -254,6 +254,32 @@ class CsrMatrix {
 
   }
 
+  CsrMatrix getLowerTriangular() {
+    DokMatrix lowerTriangular(n);
+    for (int i = 0; i < n; i++) {
+      for (int k = row_ptr[i]; k < row_ptr[i + 1]; k++) {
+        int j = col_ind[k];
+        double value = values[k];
+        if (j <= i)
+          lowerTriangular.set(i, j, value);
+      }
+    }
+    return CsrMatrix(lowerTriangular);
+  }
+
+  CsrMatrix getUpperTriangular() {
+    DokMatrix upperTriangular(n);
+    for (int i = 0; i < n; i++) {
+      for (int k = row_ptr[i]; k < row_ptr[i + 1]; k++) {
+        int j = col_ind[k];
+        double value = values[k];
+        if (i <= j)
+          upperTriangular.set(i, j, value);
+      }
+    }
+    return CsrMatrix(upperTriangular);
+  }
+
 };
 
 /** A symmetric matrix for which only the lower triangle is stored explicitly, in CSR format */
