@@ -1,3 +1,15 @@
+#ifndef SPAM_SPARSEMATRIX_HPP
+#define SPAM_SPARSEMATRIX_HPP
+
+#include <unordered_map>
+#include <map>
+#include <stdexcept>
+#include <vector>
+#include <algorithm>
+#include <iterator>
+#include <cassert>
+#include <fstream>
+
 /**
  * Sparse matrix representations for some common storage formats:
  * - DoK (Dictionary of Keys) -- the de facto format for all/many construction tasks; random read/write access is
@@ -15,18 +27,6 @@
  * TODOs
  * - a consistent, safe mechanism for handling symmetric matrices?
  */
-#ifndef SPAM_SPARSEMATRIX_HPP
-#define SPAM_SPARSEMATRIX_HPP
-
-#include <unordered_map>
-#include <map>
-#include <stdexcept>
-#include <vector>
-#include <algorithm>
-#include <iterator>
-#include <cassert>
-#include <fstream>
-
 namespace spam {
 
 class DokMatrix {

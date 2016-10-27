@@ -10,8 +10,9 @@
 #include <sstream>
 
 namespace spam {
+
+/** I/O facilities for various matrix storage formats */
 namespace io {
-namespace mm {
 
 /** Support for Matrix Market I/O. http://math.nist.gov/MatrixMarket/formats.html
  *
@@ -33,6 +34,8 @@ namespace mm {
  * Note:
  *   pattern, complex, skew-symmetric, hermitian are not supported will throw an exception
  */
+namespace mm {
+
 struct MmInfo {
   const std::string type;
   const std::string format;

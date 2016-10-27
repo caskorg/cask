@@ -1,3 +1,11 @@
+#ifndef SPAM_MKLLAYER_HPP
+#define SPAM_MKLLAYER_HPP
+
+#include <SparseMatrix.hpp>
+#include <mkl.h>
+
+namespace spam {
+
 /**
  * A thin layer over some MKL sparse BLAS functions to enable easier testing and integration in other parts of spam.
  * It is preferable to use these functions over MKL since they are less error-prone and easier to use from C++.
@@ -14,14 +22,8 @@
  * The performance overhead is kept to a minimum so that these functions can replace MKL without substantial
  * performance implications in release builds of spam.
  */
-#ifndef SPAM_MKLLAYER_HPP
-#define SPAM_MKLLAYER_HPP
-
-#include <SparseMatrix.hpp>
-#include <mkl.h>
-
-namespace spam {
 namespace mkl {
+
 
 // Solve Lx = b where L is a unit lower triangular matrix (all diagonal entries of L are 1)
 inline std::vector<double> unittrsolve(const CsrMatrix& m,
