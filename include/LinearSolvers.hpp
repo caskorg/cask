@@ -5,6 +5,7 @@
 #include <cstring>
 #include <iterator>
 #include "mkl.h"
+#include <MklLayer.hpp>
 #include <unordered_map>
 #include <map>
 #include <SparseMatrix.hpp>
@@ -13,16 +14,14 @@ using namespace std;
 
 namespace spam {
 
-
-class Preconditioner {
- public:
-  virtual std::vector<double> apply(std::vector<double> x) = 0;
-};
-
 // Equivalent to un-precontitioned CG
-class IdentityPreconditioner: public Preconditioner {
+class IdentityPreconditioner {
  public:
-  virtual std::vector<double> apply(std::vector<double> x) override {
+  IdentityPreconditioner(const CsrMatrix& a) {
+      // nothing to do, but maintain a consistent interface
+  }
+
+  virtual std::vector<double> apply(std::vector<double> x) {
       return x;
   }
 };
@@ -30,6 +29,7 @@ class IdentityPreconditioner: public Preconditioner {
 class ILUPreconditioner {
  public:
   CsrMatrix pc;
+  CsrMatrix l, u; // lower and upper factors stored independently
 
   // pre - a is a symmetric matrix
   ILUPreconditioner(const CsrMatrix &a) {
@@ -51,18 +51,18 @@ class ILUPreconditioner {
               }
           }
       }
+
+      l = pc.getLowerTriangular();
+      u = pc.getUpperTriangular();
   }
 
   virtual std::vector<double> apply(std::vector<double> x) {
-      // solve z = M^-1 r
-      // ==> Mz = r
-      // ==> LUz = r
-
+      // solve z = M^-1 r <==> Mz = r <==> LUz = r
       // solve: Ly = r
-
+      auto y = spam::mkl::unittrsolve(l, x, true);
       // then solve Uz = y
-
-      return x;
+      auto z = spam::mkl::unittrsolve(u, y, false);
+      return z;
   }
 
   void pretty_print() {
@@ -80,7 +80,7 @@ bool pcg(const CsrMatrix& a, double *rhs, double *x, int &iterations, bool verbo
     char tr = 'l';
     int maxiters = 2000;
     double tol = 1E-5;
-    Precon precon;
+    Precon precon{a};
 
     int n = a.n;
     auto values  = a.values;

@@ -37,7 +37,7 @@ inline std::vector<double> unittrsolve(const CsrMatrix& m,
   // TODO may have to verify if matrix is unit triangular
   const char triangular = lowerTriangular ? 'l' : 'u';  // lower triangular
   char transpose = 'N';                                 // solve direct, no transpose
-  char unitTriangular = 'U';                            // unit triangular matrix
+  char unitTriangular = 'N';                            // unit triangular matrix
   mkl_dcsrtrsv(
       &triangular,
       &transpose,
