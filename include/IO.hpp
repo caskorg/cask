@@ -39,17 +39,23 @@ namespace mm {
  *   pattern, complex, skew-symmetric, hermitian are not supported will throw an exception
  */
 struct MmInfo {
-  std::string type;
-  std::string format;
-  std::string dataType;
-  std::string symmetry;
+  const std::string type;
+  const std::string format;
+  const std::string dataType;
+  const std::string symmetry;
   MmInfo(std::string _type, std::string _format, std::string _dataType, std::string _symmetry) :
       type(_type),
       format(_format),
       dataType(_dataType),
       symmetry(_symmetry) {}
-  bool isMatrix() {
+  bool isMatrix() const {
     return type == "matrix";
+  }
+  bool isSymmetric() const {
+    return symmetry == "symmetric";
+  }
+  bool isCoordinate() {
+    return format == "coordinate";
   }
 };
 
@@ -106,9 +112,18 @@ std::vector<double> readVector(std::string path) {
     v[i] = val;
   }
 }
-}
 
 CsrMatrix readMatrix(std::string path) {
+  MmInfo info = readHeader(path);
+  if (!info.isMatrix()) {
+    throw std::invalid_argument("Error! Expecting MatrixMarket matrix in " + path);
+  }
+
+  if (info.isSymmetric()) {
+    throw std::invalid_argument("Error! Symmetric Matrix found in " +
+        path + " To read symmetric matrix use spam::io::mm::readSymMatrix()");
+  }
+
   int n, nnzs;
   double* values;
   int *col_ind, *row_ptr;
@@ -120,6 +135,44 @@ CsrMatrix readMatrix(std::string path) {
   return spam::CsrMatrix{n, nnzs, values, col_ind, row_ptr};
 }
 
+SymCsrMatrix readSymMatrix(std::string path) {
+  MmInfo info = readHeader(path);
+  if (!info.isMatrix()) {
+    throw std::invalid_argument("Error! Expecting MatrixMarket matrix in " + path);
+  }
+
+  if (!info.isSymmetric()) {
+    throw std::invalid_argument("Error! Matrix found in " + path +
+        " is not symmetric. To read unsymmetric matrix use spam::io::mm::readSymMatrix()");
+  }
+
+  std::ifstream f{path};
+  std::string line;
+  while (std::getline(f, line)) {
+    if (line[0] != '%')
+      break;
+  }
+
+  assert(info.isCoordinate());
+
+  int n, m, l;
+  std::stringstream ss;
+  ss << line;
+  ss >> n >> m >> l;
+  DokMatrix mat(n);
+
+  for (int k = 0; k < l; k++) {
+    int i, j;
+    double val;
+    f >> i >> j >> val;
+    // MM format is 1-indexed
+    mat.set(i - 1, j - 1, val);
+  }
+
+  return SymCsrMatrix(mat);
+}
+
+}
 }
 }
 

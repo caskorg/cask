@@ -78,9 +78,10 @@ bool pcg(const CsrMatrix& a, double *rhs, double *x, int &iterations, bool verbo
     Precon precon;
 
     int n = a.n;
-    const double* matrix_values = a.values.data();
-    const int* row_ptr = a.row_ptr.data();
-    const int* col_ind = a.col_ind.data();
+    auto values  = a.values;
+    auto row_ptr = a.getRowPtrWithOneBasedIndex();
+    auto col_ind = a.getColIndWithOneBasedIndex();
+    assert(row_ptr[0] == 1 && "Expecting one based indexing for use with mkl_?csrsymv");
 
     std::vector<double> r(n);             // residual
     std::vector<double> b(rhs, rhs + n);  // rhs
@@ -88,7 +89,7 @@ bool pcg(const CsrMatrix& a, double *rhs, double *x, int &iterations, bool verbo
     std::vector<double> z(n);             //
 
     //  r = b - A * x
-    mkl_dcsrsymv(&tr, &n, matrix_values, row_ptr, col_ind, &x[0], &r[0]);
+    mkl_dcsrsymv(&tr, &n, values.data(), row_ptr.data(), col_ind.data(), &x[0], &r[0]);
     cblas_daxpby(n, 1.0, &b[0], 1, -1.0, &r[0], 1);
 
     // z = M^-1 * r
@@ -105,7 +106,7 @@ bool pcg(const CsrMatrix& a, double *rhs, double *x, int &iterations, bool verbo
         }
         std::vector<double> Ap(n);
         // Ap = A * p
-        mkl_dcsrsymv(&tr, &n, matrix_values, row_ptr, col_ind, &p[0], &Ap[0]);
+        mkl_dcsrsymv(&tr, &n, values.data(), row_ptr.data(), col_ind.data(), &p[0], &Ap[0]);
         // alpha = rsold / (p * Ap)
         double alpha = rsold / cblas_ddot(n, &p[0], 1, &Ap[0], 1);
         // x = x + alpha * p

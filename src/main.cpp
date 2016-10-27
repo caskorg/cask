@@ -10,7 +10,7 @@
 int main (int argc, char** argv) {
 
   spam::benchmark::parseArgs(argc, argv);
-  spam::CsrMatrix a = spam::io::readMatrix(argv[2]);
+  spam::CsrMatrix a = spam::io::mm::readMatrix(argv[2]);
   std::vector<double> rhs = spam::io::mm::readVector(std::string(argv[4]));
   std::vector<double> sol(a.n);
 

@@ -45,5 +45,14 @@ class Timer {
 
 };
 
+template<typename T>
+void print(T v, std::string message="") {
+  std::cout << message;
+  for (typename T::value_type t : v) {
+    std::cout << t << " ";
+  }
+  std::cout << std::endl;
+}
+
 }
 #endif //TIMER_H

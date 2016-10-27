@@ -24,6 +24,7 @@
 #include <vector>
 #include <algorithm>
 #include <iterator>
+#include <cassert>
 
 namespace spam {
 
@@ -105,9 +106,18 @@ class DokMatrix {
   }
 
   double at(int i, int j) const {
-    if (dok.find(i)->second.count(j) == 0)
+    assert(i < n && j < n);
+    if (dok.count(i) == 0)
+      return 0;
+    if (dok.at(i).count(j) == 0)
       return 0;
     return dok.at(i).at(j);
+  }
+
+  void set(int i, int j, double val) {
+    assert(i < n && j < n);
+    dok[i][j] = val;
+    nnzs++;
   }
 };
 
@@ -126,16 +136,18 @@ class CsrMatrix {
 
   CsrMatrix() : n(0), nnzs(0) {}
 
-  CsrMatrix(const DokMatrix &m) {
+  explicit CsrMatrix(const DokMatrix &m) {
     nnzs = m.nnzs;
     n = m.n;
     int pos = 0;
     for (int i = 0; i < n; i++) {
       row_ptr.push_back(pos);
-      for (auto &entries : m.dok.find(i)->second) {
-        col_ind.push_back(entries.first);
-        values.push_back(entries.second);
-        pos++;
+      if (m.dok.count(i) != 0) {
+        for (auto &entries : m.dok.at(i)) {
+          col_ind.push_back(entries.first);
+          values.push_back(entries.second);
+          pos++;
+        }
       }
     }
     row_ptr.push_back(nnzs);
@@ -167,10 +179,13 @@ class CsrMatrix {
 
   void print() {
     std::cout << "CSRMatrix( n= " << n << " nnzs= " << nnzs << ")" << std::endl;
+    std::cout << "values = ";
     std::copy(values.begin(), values.end(), std::ostream_iterator<double>{std::cout, " "});
     std::cout << std::endl;
+    std::cout << "col_ind = ";
     std::copy(col_ind.begin(), col_ind.end(), std::ostream_iterator<double>{std::cout, " "});
     std::cout << std::endl;
+    std::cout << "row_ptr = ";
     std::copy(row_ptr.begin(), row_ptr.end(), std::ostream_iterator<double>{std::cout, " "});
     std::cout << std::endl;
   }
@@ -217,6 +232,54 @@ class CsrMatrix {
         values == o.values &&
         row_ptr == o.row_ptr &&
         col_ind == o.col_ind;
+  }
+
+  std::vector<int> getRowPtrWithOneBasedIndex() const {
+    std::vector<int> rowIndexed;
+    std::transform(
+        row_ptr.begin(), row_ptr.end(), std::back_inserter(rowIndexed),
+        [](int x){return x + 1;}
+    );
+    return rowIndexed;
+  }
+
+  std::vector<int> getColIndWithOneBasedIndex() const {
+    std::vector<int> colIndexed;
+    std::transform(
+        col_ind.begin(), col_ind.end(), std::back_inserter(colIndexed),
+        [](int x){return x + 1;}
+    );
+    return colIndexed;
+
+  }
+
+};
+
+/** A symmetric matrix for which only the lower triangle is stored explicitly, in CSR format */
+class SymCsrMatrix {
+ public:
+  int n;
+  int nnzs;
+  CsrMatrix matrix;
+
+  // Construct a symmetric matrix from a lower triangular matrix in DoK format
+  explicit SymCsrMatrix(const DokMatrix& l) : n(l.n), matrix(l) {
+    int diagNnzs;
+    for (int i = 0; i < l.n; i++)
+      if (l.at(i, i) != 0)
+        diagNnzs++;
+    nnzs = 2 * (l.nnzs - diagNnzs) + diagNnzs;
+  }
+
+  void print() {
+    // matrix.print();
+  }
+
+  void pretty_print() {
+    std::cout << "Stored matrix: " << std::endl;
+    matrix.pretty_print();
+    std::cout << "Implicit values: " << std::endl;
+    matrix.toDok().explicitSymmetric().pretty_print();
   }
 };
 

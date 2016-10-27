@@ -10,11 +10,18 @@ class TestLinearSolvers : public ::testing::Test { };
 
 TEST_F(TestLinearSolvers, CGWithIdentityPC) {
    std::vector<double> rhs = spam::io::mm::readVector("test/systems/tiny_b.mtx");
-   spam::CsrMatrix a = spam::io::readMatrix("test/systems/tiny.mtx");
+   spam::SymCsrMatrix a = spam::io::mm::readSymMatrix("test/systems/tiny.mtx");
    int iterations = 0;
    std::vector<double> sol(a.n);
-   spam::pcg<double, spam::IdentityPreconditioner>(a, &rhs[0], &sol[0], iterations);
+   spam::pcg<double, spam::IdentityPreconditioner>(a.matrix, &rhs[0], &sol[0], iterations);
    std::vector<double> exp_sol{1, 2, 3, 4};
+
+   spam::print(rhs, "b = ");
+   std::cout << "Matrix" << std::endl;
+   a.pretty_print();
+   spam::print(exp_sol, "exp x = ");
+   spam::print(sol, "got x = ");
+
    for (auto i = 0u; i < sol.size(); i++) {
      ASSERT_DOUBLE_EQ(sol[i], exp_sol[i]);
    }
@@ -22,11 +29,18 @@ TEST_F(TestLinearSolvers, CGWithIdentityPC) {
 
 TEST_F(TestLinearSolvers, CGSymWithIdentityPC) {
    std::vector<double> rhs = spam::io::mm::readVector("test/systems/tinysym_b.mtx");
-   spam::CsrMatrix a = spam::io::readMatrix("test/systems/tinysym.mtx");
+   spam::SymCsrMatrix a = spam::io::mm::readSymMatrix("test/systems/tinysym.mtx");
    int iterations = 0;
    std::vector<double> sol(a.n);
-   spam::pcg<double, spam::IdentityPreconditioner>(a, &rhs[0], &sol[0], iterations);
+   spam::pcg<double, spam::IdentityPreconditioner>(a.matrix, &rhs[0], &sol[0], iterations);
    std::vector<double> exp_sol{-2, 2, 3, 3};
+
+   spam::print(rhs, "b = ");
+   std::cout << "Matrix" << std::endl;
+   a.pretty_print();
+   spam::print(exp_sol, "exp x = ");
+   spam::print(sol, "got x = ");
+
    for (auto i = 0u; i < sol.size(); i++) {
       ASSERT_DOUBLE_EQ(sol[i], exp_sol[i]);
    }
@@ -58,9 +72,9 @@ TEST_F(TestLinearSolvers, ILU2) {
 }
 
 TEST_F(TestLinearSolvers, ILU) {
-   spam::CsrMatrix a = spam::io::readMatrix("test/systems/tinysym.mtx");
+   spam::SymCsrMatrix a = spam::io::mm::readSymMatrix("test/systems/tinysym.mtx");
 
-   spam::CsrMatrix explicitA(a.toDok().explicitSymmetric());
+   spam::CsrMatrix explicitA(a.matrix.toDok().explicitSymmetric());
    std::cout << "--- A (explicit sym) --- " << std::endl;
    explicitA.pretty_print();
    std::cout << "--- A (explicit sym) --- " << std::endl;
@@ -70,8 +84,8 @@ TEST_F(TestLinearSolvers, ILU) {
    explicitPc.pretty_print();
    std::cout << "--- Explicit ILU pc matrix" << std::endl;
 
-   std::vector<int> rows{1, 3, 4, 5, 7};
-   std::vector<int> cols{1, 4, 2, 3, 1, 4};
+   std::vector<int> rows{0, 2, 3, 4, 6};
+   std::vector<int> cols{0, 3, 1, 2, 0, 3};
    std::vector<double> vals{1, 1, 1, 1, 1, 1};
    ASSERT_EQ(explicitPc.pc.row_ptr, rows);
    ASSERT_EQ(explicitPc.pc.col_ind, cols);
