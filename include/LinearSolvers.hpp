@@ -5,10 +5,12 @@
 #include <cstring>
 #include <iterator>
 #include "mkl.h"
+#include "Utils.hpp"
 #include <MklLayer.hpp>
 #include <unordered_map>
 #include <map>
 #include <SparseMatrix.hpp>
+#include <memory>
 
 using namespace std;
 
@@ -96,11 +98,13 @@ class ILUPreconditioner {
  *  https://en.wikipedia.org/wiki/Conjugate_gradient_method
  */
 template<typename T, typename Precon>
-bool pcg(const CsrMatrix& a, double *rhs, double *x, int &iterations, bool verbose = false) {
+bool pcg(const CsrMatrix& a, double *rhs, double *x, int &iterations, bool verbose = false, Timer* t = nullptr) {
     // configuration (TODO Should be exposed through params)
     char tr = 'l';
     int maxiters = 2000;
     double tol = 1E-5;
+    if (t)
+      t->tic("cg:setup");
     Precon precon{a};
 
     int n = a.n;
@@ -113,6 +117,11 @@ bool pcg(const CsrMatrix& a, double *rhs, double *x, int &iterations, bool verbo
     std::vector<double> b(rhs, rhs + n);  // rhs
     std::vector<double> p(n);             //
     std::vector<double> z(n);             //
+    if (t)
+      t->toc("cg:setup");
+
+    if (t)
+      t->tic("cg:solve");
 
     //  r = b - A * x
     mkl_dcsrsymv(&tr, &n, values.data(), row_ptr.data(), col_ind.data(), &x[0], &r[0]);
@@ -149,7 +158,9 @@ bool pcg(const CsrMatrix& a, double *rhs, double *x, int &iterations, bool verbo
         if (rsnew <= tol * tol) {
             // std::cout << "Found solution" << std::endl;
             // print_array("x", &x[0], n);
-            return true;
+          if (t)
+            t->toc("cg:solve");
+          return true;
         }
 
         // p = r + (rsnew/rsold) * p
@@ -159,6 +170,9 @@ bool pcg(const CsrMatrix& a, double *rhs, double *x, int &iterations, bool verbo
     }
 
     mkl_free_buffers ();
+
+    if (t)
+      t->toc("cg:solve");
     return false;
 }
 }

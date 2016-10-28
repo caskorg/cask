@@ -11,18 +11,16 @@ void runCg(const spam::SymCsrMatrix &a,
            const vector<double> &exp,
            vector<double> &rhs,
            std::string outFile) {
-  int iterations = 1;
-  bool verbose = true;
+  int iterations = 0;
+  bool verbose = false;
   std::vector<double> sol(a.n);
   spam::Timer t;
-  t.tic("cg:all");
-  spam::pcg<double, P>(a.matrix, &rhs[0], &sol[0], iterations, verbose);
-  t.toc("cg:all");
+  spam::pcg<double, P>(a.matrix, &rhs[0], &sol[0], iterations, verbose, &t);
 
   spam::benchmark::printSummary(
-      0,
+      t.get("cg:setup").count(),
       iterations,
-      t.get("cg:all").count(),
+      t.get("cg:solve").count(),
       0,
       spam::benchmark::residual(exp, sol),
       0
