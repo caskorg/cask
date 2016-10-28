@@ -6,46 +6,19 @@
 #include <SparseMatrix.hpp>
 #include <Utils.hpp>
 
-// Solve an SPD sparse system using the conjugate gradient method with Intel MKL
-int main (int argc, char** argv) {
-
-  spam::benchmark::parseArgs(argc, argv);
-  spam::CsrMatrix a = spam::io::mm::readMatrix(argv[2]);
-  std::vector<double> rhs = spam::io::mm::readVector(std::string(argv[4]));
+template<typename P>
+void runCg(const spam::SymCsrMatrix &a,
+           const vector<double> &exp,
+           vector<double> &rhs,
+           std::string outFile) {
+  int iterations = 1;
+  bool verbose = true;
   std::vector<double> sol(a.n);
-
-  bool verbose = false;
-  int iterations = 0;
-
-  spam::CsrMatrix b{a};
-  spam::ILUPreconditioner pc{a};
-  std::cout << "--- ILU pc matrix" << std::endl;
-  pc.pretty_print();
-  std::cout << "--- ILU pc matrix" << std::endl;
-  std::cout << "--- A (CSR) --- " << std::endl;
-  a.pretty_print();
-  std::cout << "--- A (CSR) --- " << std::endl;
-  std::cout << "--- A (DOK) --- " << std::endl;
-  a.toDok().pretty_print();
-  std::cout << "--- A (DOK) --- " << std::endl;
-  std::cout << "--- A (DOK - explicit sym) --- " << std::endl;
-  a.toDok().explicitSymmetric().pretty_print();
-  std::cout << "--- A (DOK - explicit sym) --- " << std::endl;
-  std::cout << "--- A (CSR from --> DOK - explicit sym) --- " << std::endl;
-  spam::CsrMatrix explicitA(a.toDok().explicitSymmetric());
-  explicitA.pretty_print();
-  std::cout << "--- A (CSR from --> DOK - explicit sym) --- " << std::endl;
-  spam::ILUPreconditioner explicitPc{explicitA};
-  std::cout << "--- Explicit ILU pc matrix" << std::endl;
-  explicitPc.pretty_print();
-  std::cout << "--- Explicit ILU pc matrix" << std::endl;
-
   spam::Timer t;
   t.tic("cg:all");
-  bool status = spam::pcg<double, spam::IdentityPreconditioner>(a, &rhs[0], &sol[0], iterations, verbose);
+  spam::pcg<double, P>(a.matrix, &rhs[0], &sol[0], iterations, verbose);
   t.toc("cg:all");
 
-  std::vector<double> exp = spam::io::mm::readVector(argv[6]);
   spam::benchmark::printSummary(
       0,
       iterations,
@@ -54,8 +27,21 @@ int main (int argc, char** argv) {
       spam::benchmark::residual(exp, sol),
       0
   );
+  spam::writeToFile(outFile, sol);
+}
 
-  spam::writeToFile("sol.mtx.expl", sol);
-  mkl_free_buffers ();
+// Solve an SPD sparse system using the conjugate gradient method with Intel MKL
+int main (int argc, char** argv) {
+
+  spam::benchmark::parseArgs(argc, argv);
+  spam::SymCsrMatrix a = spam::io::mm::readSymMatrix(argv[2]);
+  std::vector<double> rhs = spam::io::mm::readVector(std::string(argv[4]));
+  std::vector<double> exp = spam::io::mm::readVector(argv[6]);
+
+  std::cout << "Running without preconditioning " << std::endl;
+  runCg<spam::IdentityPreconditioner>(a, exp, rhs, "sol.upc.mtx");
+  std::cout << "Running with ILU preconditioning " << std::endl;
+  runCg<spam::ILUPreconditioner>(a, exp, rhs, "sol.ilu.mtx");
   return 0;
 }
+

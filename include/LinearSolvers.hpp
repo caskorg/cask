@@ -107,7 +107,7 @@ bool pcg(const CsrMatrix& a, double *rhs, double *x, int &iterations, bool verbo
 
     for (int i = 0; i < maxiters; i++) {
         if (verbose) {
-            std::cout << " rsold " << rsold << std::endl;
+            std::cout << " rsold " << rsold << "iteration " << iterations << "\n";
         }
         std::vector<double> Ap(n);
         // Ap = A * p
