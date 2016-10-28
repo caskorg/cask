@@ -51,11 +51,14 @@ class ILUPreconditioner {
             pc.dok[i][k] = pc.dok[i][k] / pc.dok[k][k];
             double beta = pc.dok[i][k];
 
-            for (int j = k + 1; j < pc.n; j++) {
-                // update row - a[i, j] -= a[k, j] * a[i, k]
-                if (pc.isNnz(i, j) && pc.isNnz(k, j)) {
-                    pc.dok[i][j] = pc.dok[i][j] - pc.dok[k][j] * beta;
-                }
+            for (auto&p : pc.dok[i]) {
+              int j = p.first;
+              if (j < k + 1)
+                continue;
+
+              if (pc.isNnz(k, j)) {
+                pc.dok[i][j] = pc.dok[i][j] - pc.dok[k][j] * beta;
+              }
             }
           }
 
