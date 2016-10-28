@@ -27,7 +27,7 @@ namespace mkl {
 
 // Solve Lx = b where L is a unit lower triangular matrix (all diagonal entries of L are 1)
 inline std::vector<double> unittrsolve(const CsrMatrix& m,
-                                       const std::vector<double> rhs,
+                                       const std::vector<double>& rhs,
                                        bool lowerTriangular)
 {
   auto values = m.values;
@@ -53,6 +53,35 @@ inline std::vector<double> unittrsolve(const CsrMatrix& m,
   );
 
   return res;
+}
+
+// Solve Lx = b where L is a unit lower triangular matrix (all diagonal entries of L are 1)
+// A more efficient implementation when repeated calls are made with the same values,
+// row_ptr, col_ind (e.g. in ILUPreconditioner::apply)
+inline void unittrsolve(const double* values,
+                        const int* row_ptr,
+                        const int* col_ind,
+                        const std::vector<double>& rhs,
+                        double* res,
+                        bool lowerTriangular)
+{
+  int m = rhs.size();
+
+  // TODO may have to verify if matrix is unit triangular
+  const char triangular = lowerTriangular ? 'l' : 'u';  // lower triangular
+  char transpose = 'N';                                 // solve direct, no transpose
+  char unitTriangular = 'N';                            // unit triangular matrix
+  mkl_dcsrtrsv(
+      &triangular,
+      &transpose,
+      &unitTriangular,
+      &m,                   // number of rows
+      values,
+      row_ptr,
+      col_ind,
+      &rhs[0],
+      res
+  );
 }
 
 }

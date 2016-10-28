@@ -23,7 +23,7 @@ class IdentityPreconditioner {
       // nothing to do, but maintain a consistent interface
   }
 
-  virtual std::vector<double> apply(std::vector<double> x) {
+  virtual std::vector<double> apply(const std::vector<double>& x) {
       return x;
   }
 };
@@ -32,6 +32,11 @@ class ILUPreconditioner {
  public:
   DokMatrix pc;
   CsrMatrix l, u; // lower and upper factors stored independently
+
+  // cached values, row and col ptrs; the latter two are 1 based indexed, as required by unitrrsolve
+  std::vector<double> Lvalues, Uvalues;
+  std::vector<int> Lrow_ptr, Lcol_ind, Urow_ptr, Ucol_ind;
+  std::vector<double> res;
 
   // pre - a is a symmetric matrix
   ILUPreconditioner(const CsrMatrix &a) {
@@ -79,16 +84,24 @@ class ILUPreconditioner {
       }
 
       l = CsrMatrix{pc.getLowerTriangular()};
+      Lvalues = l.values;
+      Lrow_ptr = l.getRowPtrWithOneBasedIndex();
+      Lcol_ind = l.getColIndWithOneBasedIndex();
       u = CsrMatrix{pc.getUpperTriangular()};
+      Uvalues = u.values;
+      Urow_ptr = u.getRowPtrWithOneBasedIndex();
+      Ucol_ind = u.getColIndWithOneBasedIndex();
+      res = std::vector<double>(l.n);
   }
 
-  virtual std::vector<double> apply(std::vector<double> x) {
+  virtual std::vector<double> apply(const std::vector<double>& x) {
       // solve z = M^-1 r <==> Mz = r <==> LUz = r
       // solve: Ly = r
-      auto y = spam::mkl::unittrsolve(l, x, true);
+      spam::mkl::unittrsolve(Lvalues.data(), Lrow_ptr.data(), Lcol_ind.data(), x, res.data(), true);
       // then solve Uz = y
-      auto z = spam::mkl::unittrsolve(u, y, false);
-      return z;
+      auto y = res;
+      spam::mkl::unittrsolve(Uvalues.data(), Urow_ptr.data(), Ucol_ind.data(), y, res.data(), false);
+      return res;
   }
 
   void pretty_print() {
