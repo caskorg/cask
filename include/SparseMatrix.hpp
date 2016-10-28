@@ -291,7 +291,7 @@ class SymCsrMatrix {
 
   // Construct a symmetric matrix from a lower triangular matrix in DoK format
   explicit SymCsrMatrix(const DokMatrix& l) : n(l.n), matrix(l) {
-    int diagNnzs;
+    int diagNnzs = 0;
     for (int i = 0; i < l.n; i++)
       if (l.at(i, i) != 0)
         diagNnzs++;
