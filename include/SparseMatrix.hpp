@@ -38,6 +38,8 @@ class DokMatrix {
   // use of std::map important: values are sorted by column index internaly
   std::unordered_map<int, std::map<int, double>> dok;
 
+  DokMatrix() : n(0), nnzs(0) {}
+
   DokMatrix(int _n) : n(_n), nnzs(0) {}
 
   DokMatrix(int _n, int _nnzs) : n(_n), nnzs(_nnzs) {}
@@ -120,6 +122,43 @@ class DokMatrix {
     dok[i][j] = val;
     nnzs++;
   }
+
+  bool isNnz(int i, int j) const {
+    if (dok.count(i) == 0)
+      return false;
+    if (dok.at(i).count(j) == 0)
+        return false;
+    return dok.at(i).at(j) != 0;
+  }
+
+  DokMatrix getLowerTriangular() const {
+    DokMatrix lowerTriangular(n);
+    for (auto &e : dok) {
+      for (auto &ee : e.second) {
+        int i = e.first;
+        int j = ee.first;
+        double value = ee.second;
+        if (j <= i)
+          lowerTriangular.set(i, j, value);
+      }
+    }
+    return lowerTriangular;
+  }
+
+  DokMatrix getUpperTriangular() const {
+    DokMatrix lowerTriangular(n);
+    for (auto &e : dok) {
+      for (auto &ee : e.second) {
+        int i = e.first;
+        int j = ee.first;
+        double value = ee.second;
+        if (i <= j)
+          lowerTriangular.set(i, j, value);
+      }
+    }
+    return lowerTriangular;
+  }
+
 };
 
 // TODO verify preconditions:
@@ -217,7 +256,7 @@ class CsrMatrix {
     return true;
   }
 
-  DokMatrix toDok() {
+  DokMatrix toDok() const {
     DokMatrix m(n, nnzs);
     for (int i = 0; i < n; i++) {
       for (int k = row_ptr[i]; k < row_ptr[i + 1]; k++) {
@@ -254,30 +293,12 @@ class CsrMatrix {
 
   }
 
-  CsrMatrix getLowerTriangular() {
-    DokMatrix lowerTriangular(n);
-    for (int i = 0; i < n; i++) {
-      for (int k = row_ptr[i]; k < row_ptr[i + 1]; k++) {
-        int j = col_ind[k];
-        double value = values[k];
-        if (j <= i)
-          lowerTriangular.set(i, j, value);
-      }
-    }
-    return CsrMatrix(lowerTriangular);
+  CsrMatrix getLowerTriangular() const {
+    return CsrMatrix(toDok().getLowerTriangular());
   }
 
-  CsrMatrix getUpperTriangular() {
-    DokMatrix upperTriangular(n);
-    for (int i = 0; i < n; i++) {
-      for (int k = row_ptr[i]; k < row_ptr[i + 1]; k++) {
-        int j = col_ind[k];
-        double value = values[k];
-        if (i <= j)
-          upperTriangular.set(i, j, value);
-      }
-    }
-    return CsrMatrix(upperTriangular);
+  CsrMatrix getUpperTriangular() const {
+    return CsrMatrix(toDok().getUpperTriangular());
   }
 
 };

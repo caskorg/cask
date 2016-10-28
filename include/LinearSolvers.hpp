@@ -28,32 +28,53 @@ class IdentityPreconditioner {
 
 class ILUPreconditioner {
  public:
-  CsrMatrix pc;
+  DokMatrix pc;
   CsrMatrix l, u; // lower and upper factors stored independently
 
   // pre - a is a symmetric matrix
   ILUPreconditioner(const CsrMatrix &a) {
       if (!a.isSymmetric())
           throw std::invalid_argument("ILUPreconditioner only supports symmetric CSR matrices");
-      pc = a;
+      pc = a.toDok();
       for (int i = 1; i < a.n; i++) {
-          for (int k = 0; k < i; k++) {
-              // update pivot - a[i,k] = a[i, k] / a[k, k]
-              if (pc.isNnz(i, k) && pc.isNnz(k, k)) {
-                  pc.get(i, k) = pc.get(i, k) / pc.get(k, k);
-                  double beta = pc.get(i, k);
-                  for (int j = k + 1; j < pc.n; j++) {
-                      // update row - a[i, j] -= a[k, j] * a[i, k]
-                      if (pc.isNnz(i, j) && pc.isNnz(k, j)) {
-                          pc.get(i, j) = pc.get(i, j) - pc.get(k, j) * beta;
-                      }
-                  }
-              }
+          if (pc.dok.count(i) == 0)
+              continue;
+
+          for (auto&p : pc.dok[i]) {
+            int k = p.first;
+            if (k >= i)
+                break;
+            if (!pc.isNnz(k, k))
+              continue;
+            pc.dok[i][k] = pc.dok[i][k] / pc.dok[k][k];
+            double beta = pc.dok[i][k];
+
+            for (int j = k + 1; j < pc.n; j++) {
+                // update row - a[i, j] -= a[k, j] * a[i, k]
+                if (pc.isNnz(i, j) && pc.isNnz(k, j)) {
+                    pc.dok[i][j] = pc.dok[i][j] - pc.dok[k][j] * beta;
+                }
+            }
           }
+
+          // simplified original version of the inner loops
+          // for (int k = 0; k < i; k++) {
+          //     // update pivot - a[i,k] = a[i, k] / a[k, k]
+          //     if (pc.isNnz(i, k) && pc.isNnz(k, k)) {
+          //         pc.get(i, k) = pc.get(i, k) / pc.get(k, k);
+          //         double beta = pc.get(i, k);
+          //         for (int j = k + 1; j < pc.n; j++) {
+          //             // update row - a[i, j] -= a[k, j] * a[i, k]
+          //             if (pc.isNnz(i, j) && pc.isNnz(k, j)) {
+          //                 pc.get(i, j) = pc.get(i, j) - pc.get(k, j) * beta;
+          //             }
+          //         }
+          //     }
+          // }
       }
 
-      l = pc.getLowerTriangular();
-      u = pc.getUpperTriangular();
+      l = CsrMatrix{pc.getLowerTriangular()};
+      u = CsrMatrix{pc.getUpperTriangular()};
   }
 
   virtual std::vector<double> apply(std::vector<double> x) {

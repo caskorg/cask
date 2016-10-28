@@ -83,19 +83,16 @@ TEST_F(TestLinearSolvers, ILUCompute2) {
 
    spam::ILUPreconditioner ilupc{a};
 
-   spam::CsrMatrix exp{
-       spam::DokMatrix{
-           2,     1,   1,   1,
-           0.5, 0.5,   0,   0,
-           0.5,   0, 0.5,   0,
-           0.5,   0,   0, 0.5
-       }};
+   spam::DokMatrix exp {
+       2,     1,   1,   1,
+       0.5, 0.5,   0,   0,
+       0.5,   0, 0.5,   0,
+       0.5,   0,   0, 0.5
+   };
 
    ASSERT_EQ(ilupc.pc.n, exp.n);
    ASSERT_EQ(ilupc.pc.nnzs, exp.nnzs);
-   ASSERT_EQ(ilupc.pc.values, exp.values);
-   ASSERT_EQ(ilupc.pc.row_ptr, exp.row_ptr);
-   ASSERT_EQ(ilupc.pc.col_ind, exp.col_ind);
+   ASSERT_EQ(ilupc.pc, exp);
 }
 
 TEST_F(TestLinearSolvers, ILUCompute) {
@@ -111,12 +108,14 @@ TEST_F(TestLinearSolvers, ILUCompute) {
    explicitPc.pretty_print();
    std::cout << "--- Explicit ILU pc matrix" << std::endl;
 
+   spam::CsrMatrix csrPc{explicitPc.pc};
+
    std::vector<int> rows{0, 2, 3, 4, 6};
    std::vector<int> cols{0, 3, 1, 2, 0, 3};
    std::vector<double> vals{1, 1, 1, 1, 1, 1};
-   ASSERT_EQ(explicitPc.pc.row_ptr, rows);
-   ASSERT_EQ(explicitPc.pc.col_ind, cols);
-   ASSERT_EQ(explicitPc.pc.values, vals);
+   ASSERT_EQ(csrPc.row_ptr, rows);
+   ASSERT_EQ(csrPc.col_ind, cols);
+   ASSERT_EQ(csrPc.values, vals);
 }
 
 TEST_F(TestLinearSolvers, ILUComputeAndApply) {
