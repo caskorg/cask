@@ -4,3 +4,9 @@ build/
 *.info
 coverage/
 .idea/
+*.mtx
+*.html
+*.class
+*.o
+*.ps
+*.tmp
