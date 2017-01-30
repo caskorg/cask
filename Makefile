@@ -80,4 +80,12 @@ format:
 cppcheck:
 	cppcheck --enable=all src/*.cpp src/.hpp include/*.hpp test/*.cpp test/*.hpp
 
-.PHONY: build/Makefile test perf cov perf_build docs
+sparsegrind-test:
+	cd sparsegrind && nosetests --with-cov --cov-report html
+
+sparsegrind-test-pdb:
+	cd sparsegrind && nosetests --pdb
+
+sparsegrind-clean:
+	cd sparsegrind && rm -rf htmlcov *.tmp
+	find . -name "*.pyc" -exec rm {} \;

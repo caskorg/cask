@@ -10,3 +10,4 @@ coverage/
 *.o
 *.ps
 *.tmp
+*.pyc
