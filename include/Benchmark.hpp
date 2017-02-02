@@ -55,7 +55,6 @@ std::string json(std::string key, T value, bool comma=true) {
   ss << "\"" << key << "\":" << "\"" << value << "\"";
   if (comma)
     ss << ",";
-  ss << "\\n";
   return ss.str();
 }
 
@@ -65,15 +64,17 @@ void printSummary(
     double solveSeconds,
     double estimatedError,
     double solutionVersusExpNorm,
-    double benchmarkRepetitions
+    double benchmarkRepetitions,
+    std::ostream& os=std::cout
 ) {
-  std::cout
-      << json("setup took", setupSeconds)
-      << json("iterations", iterations)
-      << json("solve took", solveSeconds)
-      << json("estimated error", estimatedError)
-      << json("error", solutionVersusExpNorm)
-      << json("bench repetitions", benchmarkRepetitions, false);
+  os << "{"
+     << json("setup took", setupSeconds)
+     << json("iterations", iterations)
+     << json("solve took", solveSeconds)
+     << json("estimated error", estimatedError)
+     << json("error", solutionVersusExpNorm)
+     << json("bench repetitions", benchmarkRepetitions, false)
+     << "}";
 }
 
 }

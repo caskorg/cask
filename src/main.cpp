@@ -1,5 +1,4 @@
 #include <vector>
-
 #include <IO.hpp>
 #include <Benchmark.hpp>
 #include <LinearSolvers.hpp>
@@ -17,13 +16,16 @@ void runCg(const spam::SymCsrMatrix &a,
   spam::Timer t;
   spam::pcg<double, P>(a.matrix, &rhs[0], &sol[0], iterations, verbose, &t);
 
+  ofstream logFile{outFile + ".log"};
   spam::benchmark::printSummary(
       t.get("cg:setup").count(),
       iterations,
       t.get("cg:solve").count(),
+      // TODO should measure system residual norm (i.e. l2Norm(A * x - b)
       0,
       spam::benchmark::residual(exp, sol),
-      0
+      0,
+      logFile
   );
   spam::writeToFile(outFile, sol);
 }
@@ -40,6 +42,7 @@ int main (int argc, char** argv) {
   runCg<spam::IdentityPreconditioner>(a, exp, rhs, "sol.upc.mtx");
   std::cout << "Running with ILU preconditioning " << std::endl;
   runCg<spam::ILUPreconditioner>(a, exp, rhs, "sol.ilu.mtx");
+
   return 0;
 }
 
