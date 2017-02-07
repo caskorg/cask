@@ -1,0 +1,91 @@
+/*** Single pipe SpMV kernel. */
+
+import com.maxeler.maxcompiler.v2.kernelcompiler.Kernel;
+import com.maxeler.maxcompiler.v2.kernelcompiler.KernelParameters;
+import com.maxeler.maxcompiler.v2.kernelcompiler.types.base.DFEVar;
+
+import com.maxeler.maxcompiler.v2.kernelcompiler.stdlib.memory.*;
+import com.maxeler.maxcompiler.v2.utils.MathUtils;
+
+import com.maxeler.maxcompiler.v2.kernelcompiler.stdlib.core.Count.*;
+import com.maxeler.maxcompiler.v2.kernelcompiler.stdlib.core.Count;
+
+
+
+class fpgaNaiveKernel extends Kernel {
+
+    protected fpgaNaiveKernel(KernelParameters parameters,
+                              int fpL,
+                              int cacheSize,
+                              boolean dbg) {
+        super(parameters);
+
+        int vRomAddressSizeBits = MathUtils.bitsToAddress(cacheSize);
+
+        // --- control
+        DFEVar cycleCount = control.count.simpleCounter(32);
+
+        // ROM for storing the vector we are multiplying with
+        Memory<DFEVar> vRom = mem.alloc(dfeFloat(11, 53), cacheSize);
+        vRom.mapToCPU("vRom");
+
+        DFEVar rowFinished = io.input("rowEnd_in", dfeUInt(32));
+        DFEVar rowEmpty = rowFinished.eq(2);
+
+        // -- I/O control
+        DFEVar readInput = ~rowEmpty;
+        DFEVar outputEnable = rowFinished.eq(1) | rowEmpty;
+
+        // read in the matrix
+        DFEVar value = io.input("value_in", dfeFloat(11, 53), readInput);
+        DFEVar indptr = io.input("indptr_in", dfeInt(32), readInput).cast(dfeUInt(vRomAddressSizeBits)); // col ptr
+
+
+        // counter is set to 0 when row has finished
+        // while counter is less than fpL, we can output results
+        Params params = control.count.makeParams(32)
+            .withReset(stream.offset(rowFinished.cast(dfeUInt(1)), -1))
+            .withMax(fpL)
+            .withWrapMode(Count.WrapMode.STOP_AT_MAX);
+
+        DFEVar rowCounter = control.count.makeCounter(params).getCount();
+
+        // --- compute
+        DFEVar carriedSum = dfeFloat(11, 53).newInstance(this);
+        DFEVar newSum = value * vRom.read(indptr) + (rowCounter < fpL ? 0 : carriedSum);
+        carriedSum <== stream.offset(newSum, -fpL);
+
+        optimization.pushDSPFactor(1);
+        optimization.pushPipeliningFactor(0.5);
+        DFEVar reduced[] = new DFEVar[fpL];
+        reduced[0] = newSum;
+        for (int i = 1; i < fpL; i++)
+            reduced[i] = reduced[i - 1] + stream.offset(newSum, -i);
+        optimization.popPipeliningFactor();
+        optimization.popDSPFactor();
+
+        DFEVar reducedIdx = rowCounter > (fpL - 1) ? fpL - 1 : rowCounter;
+        DFEVar reducedOut = rowEmpty ? 0 : control.mux(reducedIdx.cast(dfeUInt(4)), reduced);
+
+
+        if (dbg) {
+            debug.simPrintf("%3d - value: %f new dot: %f newSum: %f indptr: %3d rowFinished: %d carriedSum: %f reducedOut: %f rowCounter %d outputEnable %d  rowEmpty %d\n",
+                            cycleCount,
+                            value,
+                            value * vRom.read(indptr), newSum,
+                            indptr, rowFinished,
+                            carriedSum, reducedOut,
+                            rowCounter,
+                            outputEnable,
+                            rowEmpty);
+            // debug.simPrintf("  reduced = ");
+            // for (int i = 0; i < fpL; i++)
+            //     debug.simPrintf("%f, ", reduced[i]);
+            // debug.simPrintf("\n");
+        }
+
+        io.output("b", reducedOut, dfeFloat(11, 53), outputEnable);
+        // io.output("outputCycle", outputCycle, dfeUIn(32));
+    }
+
+}

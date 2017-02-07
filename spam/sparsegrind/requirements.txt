@@ -1,0 +1,9 @@
+matplotlib
+termcolor
+argparse==1.2.1
+coverage==4.2
+decorator==4.0.10
+networkx==1.11
+numpy==1.11.1
+scipy==0.18.1
+wsgiref==0.1.2
