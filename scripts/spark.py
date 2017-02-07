@@ -539,14 +539,14 @@ def main():
   if args.reporting == REP_HTML:
     print colored('Generating HTML reports', 'red')
     for p in benchmark:
-      out, out_err = execute(['python', '../sparsegrind/sparsegrind/main.py',
+      out, out_err = execute(['python', '../spam/sparsegrind/main.py',
               '-f', 'mm', '-a', 'summary', p], silent=False)
       outputDir = os.path.join('matrices', os.path.basename(p).replace('.mtx', ''))
       summaryFile = os.path.join(outputDir, 'summary.csv')
       check_make_dir(outputDir)
       with open(summaryFile, 'w') as f:
         f.write(out)
-      execute(['python', '../sparsegrind/sparsegrind/main.py',
+      execute(['python', '../spam/sparsegrind/main.py',
               '-f', 'mm', '-a', 'plot', p], silent=False)
       shutil.copy('sparsity.png', outputDir)
 
