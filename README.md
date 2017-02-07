@@ -73,6 +73,13 @@ To support `hw-flow` the local machine must also have:
 
 ## Installation
 
+Install python deps:
+
+```
+virtualenv venv/ && source venv/bin/activate 
+pip install -f requirements.txt
+```
+
 Clone this repository then run:
 
 ```
