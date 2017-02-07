@@ -43,7 +43,7 @@ graphs:
 sim-flow:
 	mkdir -p build
 	cd build && cmake ..
-	cd scripts && python spark.py -d -t dfe_mock -p ../params.json -b ../test-benchmark -rb -rep html -bm best && cd ..
+	cd scripts && python spark.py -d -t sim -p ../params.json -b ../test-benchmark -rb -rep html -bm best && cd ..
 
 mock-flow:
 	mkdir -p build
