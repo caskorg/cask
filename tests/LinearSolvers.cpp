@@ -1,16 +1,16 @@
 #include <vector>
-#include <Benchmark.hpp>
-#include <LinearSolvers.hpp>
-#include <IO.hpp>
-#include <SparseMatrix.hpp>
-#include <Utils.hpp>
+#include <Spark/Benchmark.hpp>
+#include <Spark/LinearSolvers.hpp>
+#include <Spark/IO.hpp>
+#include <Spark/SpamSparseMatrix.hpp>
+#include <Spark/SpamUtils.hpp>
 #include <gtest/gtest.h>
 
 class TestLinearSolvers : public ::testing::Test { };
 
 TEST_F(TestLinearSolvers, CGWithIdentityPC) {
-   std::vector<double> rhs = spam::io::mm::readVector("test/systems/tiny_b.mtx");
-   spam::SymCsrMatrix a = spam::io::mm::readSymMatrix("test/systems/tiny.mtx");
+   std::vector<double> rhs = spam::io::mm::readVector("tests/systems/tiny_b.mtx");
+   spam::SymCsrMatrix a = spam::io::mm::readSymMatrix("tests/systems/tiny.mtx");
    int iterations = 0;
    std::vector<double> sol(a.n);
    spam::pcg<double, spam::IdentityPreconditioner>(a.matrix, &rhs[0], &sol[0], iterations);
@@ -29,8 +29,8 @@ TEST_F(TestLinearSolvers, CGWithIdentityPC) {
 }
 
 TEST_F(TestLinearSolvers, CGSymWithIdentityPC) {
-   std::vector<double> rhs = spam::io::mm::readVector("test/systems/tinysym_b.mtx");
-   spam::SymCsrMatrix a = spam::io::mm::readSymMatrix("test/systems/tinysym.mtx");
+   std::vector<double> rhs = spam::io::mm::readVector("tests/systems/tinysym_b.mtx");
+   spam::SymCsrMatrix a = spam::io::mm::readSymMatrix("tests/systems/tinysym.mtx");
    int iterations = 0;
    std::vector<double> sol(a.n);
    spam::pcg<double, spam::IdentityPreconditioner>(a.matrix, &rhs[0], &sol[0], iterations);
@@ -49,8 +49,8 @@ TEST_F(TestLinearSolvers, CGSymWithIdentityPC) {
 }
 
 TEST_F(TestLinearSolvers, CGSymWithILUPC) {
-   std::vector<double> rhs = spam::io::mm::readVector("test/systems/tinysym_b.mtx");
-   spam::SymCsrMatrix a = spam::io::mm::readSymMatrix("test/systems/tinysym.mtx");
+   std::vector<double> rhs = spam::io::mm::readVector("tests/systems/tinysym_b.mtx");
+   spam::SymCsrMatrix a = spam::io::mm::readSymMatrix("tests/systems/tinysym.mtx");
    int iterations = 0;
    std::vector<double> sol(a.n);
    spam::pcg<double, spam::ILUPreconditioner>(a.matrix, &rhs[0], &sol[0], iterations);
@@ -96,7 +96,7 @@ TEST_F(TestLinearSolvers, ILUCompute2) {
 }
 
 TEST_F(TestLinearSolvers, ILUCompute) {
-   spam::SymCsrMatrix a = spam::io::mm::readSymMatrix("test/systems/tinysym.mtx");
+   spam::SymCsrMatrix a = spam::io::mm::readSymMatrix("tests/systems/tinysym.mtx");
 
    spam::CsrMatrix explicitA(a.matrix.toDok().explicitSymmetric());
    std::cout << "--- A (explicit sym) --- " << std::endl;

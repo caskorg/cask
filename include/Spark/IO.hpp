@@ -3,7 +3,7 @@
 
 #include <string>
 #include <iostream>
-#include <SparseMatrix.hpp>
+#include "SpamSparseMatrix.hpp"
 #include <regex>
 #include <fstream>
 #include <cassert>

@@ -5,11 +5,11 @@
 #include <cstring>
 #include <iterator>
 #include "mkl.h"
-#include "Utils.hpp"
-#include <MklLayer.hpp>
+#include "SpamUtils.hpp"
+#include <Spark/MklLayer.hpp>
 #include <unordered_map>
 #include <map>
-#include <SparseMatrix.hpp>
+#include <Spark/SpamSparseMatrix.hpp>
 #include <memory>
 
 using namespace std;

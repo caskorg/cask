@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 2.6)
 
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0 --coverage -fno-inline --coverage -fno-inline -fno-inline-small-functions -fno-default-inline")
 
+include(${CMAKE_SOURCE_DIR}/spam/scripts/cmake/Utils.cmake)
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/spam/scripts/cmake/")
 
 # --- Project Options and Configurations
 OPTION(SparseLib_DisableTesting "Disable execution of SparseLib tests" OFF)
@@ -55,6 +57,15 @@ if (EIGEN_HEADER)
     )
 endif()
 
+find_package(MKL REQUIRED)
+if (LibMKL_INCLUDE_DIRS)
+  message(STATUS "Found MKL: ${LibMKL_INCLUDE_DIRS}")
+  include_directories(${LibMKL_INCLUDE_DIRS})
+  set(LIBS ${LIBS} ${LibMKL_LIBRARIES} -lrt -fopenmp)
+  add_definitions(-DUSEMKL)
+else()
+  message(STATUS "Found MKL: no (set MKLROOT?)")
+endif()
 
 #
 # --- Include directories
@@ -72,6 +83,7 @@ include_directories(include)
 # SpMV Implementation Library
 set(SpmvImplLib_src
   src/spmv/src/Spmv.cpp)
+  # src/cg/src/ConjugateGradient.cpp)
 add_library(SpmvImplLib ${SpmvImplLib_src})
 
 set(SparkCpu_src
@@ -140,5 +152,33 @@ if (DEFINED ENV{MAXCOMPILERDIR} AND DEFINED ENV{MAXELEROSDIR})
       AddMaxelerSimTest("test_spmv_sim" "${matrix}" "../test-matrices/${matrix}")
       AddMaxelerHwTest("test_spmv_dfe" "${matrix}" "../test-matrices/${matrix}")
     endforeach()
+  endif()
+
+  add_executable(test_cg_sim tests/test_cg.cpp)
+  target_link_libraries(test_cg_sim
+    SparkCpuLib SparkCpuLib SpmvImplLib
+    -L../lib-generated -lSpmv_sim -ldl -lboost_filesystem
+    -lmaxeleros ${LibMKL_LIBRARIES} -lrt -fopenmp)
+
+  if (NOT SparseLib_DisableTesting)
+    # Should include dfe-snippets headers as they might be used in tests
+    file(GLOB files test-matrices/*.mtx)
+    foreach(infileName ${files})
+      get_filename_component(matrix "${infileName}" NAME)
+      AddMaxelerSimTest("test_cg_sim" "cg_${matrix}" "../test-matrices/${matrix}")
+      # AddMaxelerHwTest("test_spmv_dfe" "${matrix}" "../test-matrices/${matrix}")
+    endforeach()
+  endif()
+
+  add_subdirectory(lib/gtest)
+
+  # add_executable(spam src/main.cpp ${HEADERS})
+  # target_link_libraries(spam ${LibMKL_LIBRARIES} -lrt -fopenmp)
+
+  if (NOT SparseLib_DisableTesting)
+    AddGtestSuite(LinearSolvers)
+    AddGtestSuite(SparseMatrix)
+    AddGtestSuite(Io)
+    AddGtestSuite(MklLayer)
   endif()
 endif()

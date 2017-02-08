@@ -1,7 +1,7 @@
 #ifndef SPAM_MKLLAYER_HPP
 #define SPAM_MKLLAYER_HPP
 
-#include <SparseMatrix.hpp>
+#include <Spark/SpamSparseMatrix.hpp>
 #include <mkl.h>
 
 namespace spam {

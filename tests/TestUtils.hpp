@@ -1,8 +1,8 @@
 #ifndef SPAM_TESTUTILS_HPP
 #define SPAM_TESTUTILS_HPP
 
-#include <SparseMatrix.hpp>
-#include <Utils.hpp>
+#include <Spark/SpamSparseMatrix.hpp>
+#include <Spark/Utils.hpp>
 
 namespace spam {
 namespace test {
