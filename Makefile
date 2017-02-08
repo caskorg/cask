@@ -40,6 +40,11 @@ sim-test: sim
 graphs:
 	cd scripts && PYTHONPATH=$(PYTHONPATH):$(ROOT_PATH)/sparsegrind python render_graphs.py
 
+hw-flow:
+	mkdir -p build
+	cd build && cmake ..
+	cd scripts && python spark.py -d -t dfe -p ../params.json -b ../test-benchmark -rb -rep html -bm best && cd ..
+
 sim-flow:
 	mkdir -p build
 	cd build && cmake ..
