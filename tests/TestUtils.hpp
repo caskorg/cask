@@ -1,7 +1,7 @@
 #ifndef SPAM_TESTUTILS_HPP
 #define SPAM_TESTUTILS_HPP
 
-#include <SpamSparseMatrix.hpp>
+#include <SparseMatrix.hpp>
 #include <Utils.hpp>
 
 namespace cask {

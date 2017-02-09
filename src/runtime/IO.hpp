@@ -3,7 +3,7 @@
 
 #include <string>
 #include <iostream>
-#include "SpamSparseMatrix.hpp"
+#include "SparseMatrix.hpp"
 #include "SparseMatrix.hpp"
 #include <dfesnippets/Timing.hpp>
 #include <regex>

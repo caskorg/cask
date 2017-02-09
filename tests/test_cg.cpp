@@ -2,7 +2,7 @@
 #include <Spark/IO.hpp>
 #include <Spark/Benchmark.hpp>
 #include <Spark/LinearSolvers.hpp>
-#include <Spark/SpamSparseMatrix.hpp>
+#include <Spark/SparseMatrix.hpp>
 #include <Spark/SpamUtils.hpp>
 
 template<typename P>

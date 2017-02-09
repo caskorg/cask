@@ -9,7 +9,7 @@
 #include "MklLayer.hpp"
 #include <unordered_map>
 #include <map>
-#include "SpamSparseMatrix.hpp"
+#include "SparseMatrix.hpp"
 #include <memory>
 
 using namespace std;

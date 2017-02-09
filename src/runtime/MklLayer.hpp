@@ -1,7 +1,7 @@
 #ifndef SPAM_MKLLAYER_HPP
 #define SPAM_MKLLAYER_HPP
 
-#include "SpamSparseMatrix.hpp"
+#include "SparseMatrix.hpp"
 #include <mkl.h>
 
 namespace cask {

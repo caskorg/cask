@@ -2,7 +2,7 @@
 #include <Benchmark.hpp>
 #include <LinearSolvers.hpp>
 #include <IO.hpp>
-#include <SpamSparseMatrix.hpp>
+#include <SparseMatrix.hpp>
 #include <SpamUtils.hpp>
 #include <MklLayer.hpp>
 #include <gtest/gtest.h>
