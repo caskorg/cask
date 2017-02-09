@@ -1,6 +1,6 @@
 #include <vector>
 #include <Benchmark.hpp>
-#include <LinearSolvers.hpp>
+#include <SparseLinearSolvers.hpp>
 #include <IO.hpp>
 #include <SparseMatrix.hpp>
 #include <Utils.hpp>
@@ -13,7 +13,7 @@ TEST_F(TestLinearSolvers, CGWithIdentityPC) {
    cask::SymCsrMatrix a = cask::io::readSymMatrix("tests/systems/tiny.mtx");
    int iterations = 0;
    std::vector<double> sol(a.n);
-   cask::pcg<double, cask::IdentityPreconditioner>(a.matrix, &rhs[0], &sol[0], iterations);
+   cask::sparse_linear_solvers::pcg<double, cask::sparse_linear_solvers::IdentityPreconditioner>(a.matrix, &rhs[0], &sol[0], iterations);
    std::vector<double> exp_sol{1, 2, 3, 4};
 
    cask::utils::print(rhs, "b = ");
@@ -33,7 +33,7 @@ TEST_F(TestLinearSolvers, CGSymWithIdentityPC) {
    cask::SymCsrMatrix a = cask::io::readSymMatrix("tests/systems/tinysym.mtx");
    int iterations = 0;
    std::vector<double> sol(a.n);
-   cask::pcg<double, cask::IdentityPreconditioner>(a.matrix, &rhs[0], &sol[0], iterations);
+   cask::sparse_linear_solvers::pcg<double, cask::sparse_linear_solvers::IdentityPreconditioner>(a.matrix, &rhs[0], &sol[0], iterations);
    std::vector<double> exp_sol{-2, 2, 3, 3};
 
    cask::utils::print(rhs, "b = ");
@@ -53,7 +53,7 @@ TEST_F(TestLinearSolvers, CGSymWithILUPC) {
    cask::SymCsrMatrix a = cask::io::readSymMatrix("tests/systems/tinysym.mtx");
    int iterations = 0;
    std::vector<double> sol(a.n);
-   cask::pcg<double, cask::ILUPreconditioner>(a.matrix, &rhs[0], &sol[0], iterations);
+   cask::sparse_linear_solvers::pcg<double, cask::sparse_linear_solvers::ILUPreconditioner>(a.matrix, &rhs[0], &sol[0], iterations);
    std::vector<double> exp_sol{
        -1.9982580059252246,
        2.0000862488691915,
@@ -81,7 +81,7 @@ TEST_F(TestLinearSolvers, ILUCompute2) {
        1, 0, 0, 1
    }};
 
-   cask::ILUPreconditioner ilupc{a};
+   cask::sparse_linear_solvers::ILUPreconditioner ilupc{a};
 
    cask::DokMatrix exp {
        2,     1,   1,   1,
@@ -103,7 +103,7 @@ TEST_F(TestLinearSolvers, ILUCompute) {
    explicitA.pretty_print();
    std::cout << "--- A (explicit sym) --- " << std::endl;
 
-   cask::ILUPreconditioner explicitPc{explicitA};
+   cask::sparse_linear_solvers::ILUPreconditioner explicitPc{explicitA};
    std::cout << "--- Explicit ILU pc matrix" << std::endl;
    explicitPc.pretty_print();
    std::cout << "--- Explicit ILU pc matrix" << std::endl;
@@ -119,7 +119,7 @@ TEST_F(TestLinearSolvers, ILUCompute) {
 }
 
 TEST_F(TestLinearSolvers, ILUComputeAndApply) {
-   cask::ILUPreconditioner ilupc{cask::CsrMatrix{
+   cask::sparse_linear_solvers::ILUPreconditioner ilupc{cask::CsrMatrix{
        cask::DokMatrix{
            2, 1, 1, 1,
            1, 1, 0, 0,

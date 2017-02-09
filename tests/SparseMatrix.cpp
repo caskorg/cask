@@ -1,9 +1,4 @@
-#include <vector>
-#include <Benchmark.hpp>
-#include <LinearSolvers.hpp>
-#include <IO.hpp>
 #include <SparseMatrix.hpp>
-#include <Utils.hpp>
 #include <gtest/gtest.h>
 
 class TestSparseMatrix : public ::testing::Test { };
