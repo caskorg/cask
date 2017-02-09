@@ -69,7 +69,7 @@ def print_from_iterator(lines_iterator, logfile=None):
       output += line
   return output
 
-def execute(command, logfile=None, silent=True):
+def execute(command, logfile=None, silent=False):
   if not silent:
     print 'Executing ', ' '.join(command)
   popen = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -122,7 +122,7 @@ def runDse(benchFile, paramsFile, target, skipExecution=False):
             int(est_impl_ps['DSPs']),
             float(est_impl_ps['memory_bandwidth']),
             float(arch['estimated_gflops']), ])
-      prjs.append(maxbuild.PrjConfig(ps, target, PRJ, prj_id, '../src/spmv/build/'))
+      prjs.append(maxbuild.PrjConfig(ps, target, PRJ, prj_id, '../spmv/build/'))
   return prjs, architectures
 
 
@@ -237,7 +237,7 @@ class Spark:
     execute(cmd)
 
     # copy the generated library
-    libDir = '../lib-generated'
+    libDir = '../../lib-generated'
     if os.path.exists(libDir):
       shutil.rmtree(libDir)
     os.makedirs(libDir)
@@ -487,7 +487,7 @@ def main():
       ps = {}
       for k, v in data['dse_params'].iteritems():
         ps[k] = str(v['default'])
-    params = [maxbuild.PrjConfig(ps, args.target, PRJ, prj_id, '../src/spmv/build/')]
+    params = [maxbuild.PrjConfig(ps, args.target, PRJ, prj_id, '../spmv/build/')]
 
   arch_df = pd.DataFrame(log_archs,
           columns = ['Matrix', 'Id', 'Cx', 'k', 'Np', 'Cb', 'BRAMs', 'LUTs', 'FFs', 'DSPs', 'BWidth', 'GFLOPs'])
