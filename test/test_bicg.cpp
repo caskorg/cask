@@ -8,6 +8,6 @@ int main() {
   status |= test(16, cask::test::IdentityGenerator{}, cask::test::SimpleVectorGenerator{}, solver);
   status |= test(100, cask::test::RandomGenerator{}, cask::test::SimpleVectorGenerator{}, solver);
   status |= test(10000, cask::test::RandomGenerator{}, cask::test::SimpleVectorGenerator{}, solver);
-  status |= cask::test::runTest("../test-matrices/bfwb62.mtx", solver);
+  status |= cask::test::runTest("../test/matrices/bfwb62.mtx", solver);
   return status;
 }

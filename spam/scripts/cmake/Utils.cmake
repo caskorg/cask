@@ -1,6 +1,6 @@
 function(AddGtestSuite name)
   set(testName Test${name})
-  add_executable(${testName} tests/${name}.cpp)
+  add_executable(${testName} test/${name}.cpp)
   target_link_libraries(${testName} gtest gtest_main gmock ${LibMKL_LIBRARIES} -lrt -fopenmp)
   add_test(
           NAME ${testName}

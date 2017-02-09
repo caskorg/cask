@@ -28,10 +28,10 @@ build/main:
 	cd build && cmake -DCMAKE_BUILD_TYPE=Release .. && make main -j
 
 hw: build/main
-	cd src/frontend && python cask.py -t dfe -p ../params.json -b ../../test-benchmark -d -bm best
+	cd src/frontend && python cask.py -t dfe -p ../params.json -b ../../test/test-benchmark -d -bm best
 
 sim: build/main
-	cd src/frontend && python cask.py -t sim -p ../params.json -b ../../test-benchmark -d -rb -rep html
+	cd src/frontend && python cask.py -t sim -p ../params.json -b ../../test/test-benchmark -d -rb -rep html
 	cd build & make -j12
 
 sim-test: sim
@@ -43,17 +43,17 @@ graphs:
 hw-flow:
 	mkdir -p build
 	cd build && cmake ..
-	cd src/frontend && python cask.py -d -t dfe -p params.json -b ../../test-benchmark -rb -rep html -bm best && cd ..
+	cd src/frontend && python cask.py -d -t dfe -p params.json -b ../../test/test-benchmark -rb -rep html -bm best && cd ..
 
 sim-flow:
 	mkdir -p build
 	cd build && cmake ..
-	cd src/frontend && python cask.py -d -t sim -p params.json -b ../../test-benchmark -rb -rep html -bm best && cd ..
+	cd src/frontend && python cask.py -d -t sim -p params.json -b ../../test/test-benchmark -rb -rep html -bm best && cd ..
 
 mock-flow:
 	mkdir -p build
 	cd build && cmake .. && make main && cd ..
-	cd src/frontend && python cask.py -d -t dfe_mock -p params.json -b ../../test-benchmark -rb -rep html --cpp=$(CXX) -bm best && cd ..
+	cd src/frontend && python cask.py -d -t dfe_mock -p params.json -b ../../test/test-benchmark -rb -rep html --cpp=$(CXX) -bm best && cd ..
 	cd build && make -j12
 
 matrix:
@@ -65,8 +65,8 @@ matrix:
 coverage:
 	rm -rf build && mkdir -p build
 	cd build && cmake -DCMAKE_BUILD_TYPE=Debug ..
-	cd src/frontend && python cask.py -t dfe_mock -p ../params.json -b ../../test-benchmark && cd ..
-	cd src/frontend && python cask.py -t sim -p ../params.json -b ../../test-benchmark && cd ..
+	cd src/frontend && python cask.py -t dfe_mock -p ../params.json -b ../../test/test-benchmark && cd ..
+	cd src/frontend && python cask.py -t sim -p ../params.json -b ../../test/test-benchmark && cd ..
 	cd build && make -j12
 	bash gen_cov
 

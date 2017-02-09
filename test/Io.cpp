@@ -5,7 +5,7 @@
 class TestMmIo : public ::testing::Test { };
 
 TEST_F(TestMmIo, ReadHeader) {
-  std::string path = "tests/systems/tinysym.mtx";
+  std::string path = "test/systems/tinysym.mtx";
   cask::io::MmInfo info = cask::io::readHeader(path);
   ASSERT_EQ(info.symmetry, "symmetric");
   ASSERT_EQ(info.format, "coordinate");
@@ -15,7 +15,7 @@ TEST_F(TestMmIo, ReadHeader) {
 
 
 TEST_F(TestMmIo, ReadSymCsr) {
-  cask::SymCsrMatrix a = cask::io::readSymMatrix("tests/systems/tiny.mtx");
+  cask::SymCsrMatrix a = cask::io::readSymMatrix("test/systems/tiny.mtx");
   ASSERT_EQ(a.n, 4);
   ASSERT_EQ(a.nnzs, 4);
   cask::DokMatrix exp{
@@ -25,7 +25,7 @@ TEST_F(TestMmIo, ReadSymCsr) {
       0, 0, 0, 1};
   ASSERT_EQ(a.matrix.toDok().explicitSymmetric(), exp);
 
-  a = cask::io::readSymMatrix("tests/systems/tinysym.mtx");
+  a = cask::io::readSymMatrix("test/systems/tinysym.mtx");
   ASSERT_EQ(a.n, 4);
   ASSERT_EQ(a.nnzs, 6);
   cask::DokMatrix exp2{

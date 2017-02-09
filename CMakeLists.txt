@@ -66,7 +66,7 @@ endif()
 #
 # --- Include directories
 include_directories(dfe-snippets/include)
-include_directories(tests)
+include_directories(test)
 include_directories(include)
 include_directories(src/runtime)
 
@@ -95,13 +95,13 @@ target_link_libraries(main
   -lboost_program_options -lboost_filesystem -lboost_system
   SparkCpuLib SpmvImplLib)
 
-add_executable(test_architecture tests/test_architecture.cpp)
+add_executable(test_architecture test/test_architecture.cpp)
 target_link_libraries(test_architecture
   -lboost_program_options
   SparkCpuLib SpmvImplLib )
 
 # Mock implementation used for DSE
-add_executable(test_spmv_dfe_mock tests/test_spmv.cpp)
+add_executable(test_spmv_dfe_mock test/test_spmv.cpp)
 target_link_libraries(test_spmv_dfe_mock
   -lboost_program_options -lboost_filesystem -lboost_system -ldl -L../lib-generated -lSpmv_dfe_mock
   SparkCpuLib SpmvImplLib)
@@ -114,34 +114,34 @@ if (DEFINED ENV{MAXCOMPILERDIR} AND DEFINED ENV{MAXELEROSDIR})
   link_directories($ENV{MAXCOMPILERDIR}/lib)
   link_directories($ENV{MAXELEROSDIR}/lib)
 
-  add_executable(test_loader tests/test_library_loader.cpp)
+  add_executable(test_loader test/test_library_loader.cpp)
   add_test(NAME test_loader COMMAND test_loader)
   target_link_libraries(test_loader SparkCpuLib -lboost_filesystem -lmaxeleros -ldl)
 
 
   # -- Simulation tests
-  add_executable(test_spmv_sim tests/test_spmv.cpp)
+  add_executable(test_spmv_sim test/test_spmv.cpp)
   target_link_libraries(test_spmv_sim
     SparkCpuLib SparkCpuLib SpmvImplLib
     -L../lib-generated -lSpmv_sim -ldl -lboost_filesystem
     -lmaxeleros)
 
   # -- Hardware tests
-  add_executable(test_spmv_dfe EXCLUDE_FROM_ALL tests/test_spmv.cpp)
+  add_executable(test_spmv_dfe EXCLUDE_FROM_ALL test/test_spmv.cpp)
   target_link_libraries(test_spmv_dfe
     SparkCpuLib SparkCpuLib SpmvImplLib
     -L../lib-generated -lSpmv_dfe -ldl -lboost_filesystem
     -lmaxeleros)
 
   # Should include dfe-snippets headers as they might be used in tests
-  file(GLOB files test-matrices/*.mtx)
+  file(GLOB files test/matrices/*.mtx)
   foreach(infileName ${files})
     get_filename_component(matrix "${infileName}" NAME)
-    AddMaxelerSimTest("test_spmv_sim" "${matrix}" "../test-matrices/${matrix}")
-    AddMaxelerHwTest("test_spmv_dfe" "${matrix}" "../test-matrices/${matrix}")
+    AddMaxelerSimTest("test_spmv_sim" "${matrix}" "../tests/matrices/${matrix}")
+    AddMaxelerHwTest("test_spmv_dfe" "${matrix}" "../tests/matrices/${matrix}")
   endforeach()
 
-  add_executable(test_cg_sim tests/test_cg.cpp)
+  add_executable(test_cg_sim test/test_cg.cpp)
   target_link_libraries(test_cg_sim
     SparkCpuLib SparkCpuLib SpmvImplLib
     -L../lib-generated -lSpmv_sim -ldl -lboost_filesystem
@@ -149,11 +149,11 @@ if (DEFINED ENV{MAXCOMPILERDIR} AND DEFINED ENV{MAXELEROSDIR})
 
   if (NOT SparseLib_DisableTesting)
     # Should include dfe-snippets headers as they might be used in tests
-    file(GLOB files test-matrices/*.mtx)
+    file(GLOB files test/matrices/*.mtx)
     foreach(infileName ${files})
       get_filename_component(matrix "${infileName}" NAME)
-      AddMaxelerSimTest("test_cg_sim" "cg_${matrix}" "../test-matrices/${matrix}")
-      # AddMaxelerHwTest("test_spmv_dfe" "${matrix}" "../test-matrices/${matrix}")
+      AddMaxelerSimTest("test_cg_sim" "cg_${matrix}" "../tests/matrices/${matrix}")
+      # AddMaxelerHwTest("test_spmv_dfe" "${matrix}" "../tests/matrices/${matrix}")
     endforeach()
   endif()
 endif()
