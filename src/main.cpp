@@ -11,25 +11,25 @@
 using namespace std;
 namespace pt = boost::property_tree;
 
-spark::dse::DseParameters loadParams(const boost::filesystem::path& parf) {
+cask::dse::DseParameters loadParams(const boost::filesystem::path& parf) {
   std::cout << "Using " << parf << " as param file" << std::endl;
   pt::ptree tree;
   pt::read_json(parf.string(), tree);
-  spark::dse::DseParameters dsep;
+  cask::dse::DseParameters dsep;
   dsep.numPipesRange =
-    spark::utils::Range{
+    cask::utils::Range{
       tree.get<int>("dse_params.num_pipes.start"),
       tree.get<int>("dse_params.num_pipes.stop"),
       tree.get<int>("dse_params.num_pipes.step"),
     };
   dsep.cacheSizeRange =
-    spark::utils::Range {
+    cask::utils::Range {
       tree.get<int>("dse_params.cache_size.start"),
       tree.get<int>("dse_params.cache_size.stop"),
       tree.get<int>("dse_params.cache_size.step"),
     };
   dsep.inputWidthRange =
-    spark::utils::Range {
+    cask::utils::Range {
       tree.get<int>("dse_params.input_width.start"),
       tree.get<int>("dse_params.input_width.stop"),
       tree.get<int>("dse_params.input_width.step"),
@@ -37,10 +37,10 @@ spark::dse::DseParameters loadParams(const boost::filesystem::path& parf) {
   return dsep;
 }
 
-spark::dse::Benchmark loadBenchmark(const boost::filesystem::path& p) {
+cask::dse::Benchmark loadBenchmark(const boost::filesystem::path& p) {
   using namespace boost::filesystem;
   std::cout << "Using " << p << " as benchmark directory" << std::endl;
-  spark::dse::Benchmark benchmark{};
+  cask::dse::Benchmark benchmark{};
   for (directory_iterator end, it = directory_iterator(p); it != end; it++) {
     benchmark.add_matrix_path(it->path().string());
   }
@@ -48,7 +48,7 @@ spark::dse::Benchmark loadBenchmark(const boost::filesystem::path& p) {
 }
 
 void write_dse_results(
-    const std::vector<spark::dse::DseResult>& results,
+    const std::vector<cask::dse::DseResult>& results,
     double took
     ) {
   pt::ptree tree, children;
@@ -141,12 +141,12 @@ int main(int argc, char** argv) {
     return 1;
   }
 
-  spark::dse::DseParameters params = loadParams(parf);
+  cask::dse::DseParameters params = loadParams(parf);
   params.gflopsOnly = true;
   std::cout << params << std::endl;
-  spark::dse::Benchmark benchmark = loadBenchmark(dirp);
+  cask::dse::Benchmark benchmark = loadBenchmark(dirp);
   std::cout << benchmark << std::endl;
-  spark::dse::SparkDse dseTool;
+  cask::dse::SparkDse dseTool;
 
   auto start = std::chrono::high_resolution_clock::now();
   auto results = dseTool.run(

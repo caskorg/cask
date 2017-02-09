@@ -5,7 +5,7 @@
 #include <string>
 #include <vector>
 
-namespace spark {
+namespace cask {
   namespace execution {
     // loads and manages shared libraries at runtime
     class SharedLibLoader {

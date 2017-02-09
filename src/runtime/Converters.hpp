@@ -6,13 +6,13 @@
 #include "SparseMatrix.hpp"
 #include <Eigen/Sparse>
 
-namespace spark {
+namespace cask {
   namespace converters {
 
     using EigenSparseMatrix = std::unique_ptr<Eigen::SparseMatrix<double, Eigen::RowMajor, int32_t>>;
 
     // convert a Spark COO matrix to an Eigen Sparse Matrix
-    inline EigenSparseMatrix tripletToEigen(spark::sparse::SparkCooMatrix<double> mat) {
+    inline EigenSparseMatrix tripletToEigen(cask::sparse::SparkCooMatrix<double> mat) {
       auto coo = mat.data;
       EigenSparseMatrix m(new Eigen::SparseMatrix<double, Eigen::RowMajor, int32_t>(mat.n, mat.m));
       std::vector<Eigen::Triplet<double>> trips;

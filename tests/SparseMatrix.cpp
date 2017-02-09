@@ -10,7 +10,7 @@ class TestSparseMatrix : public ::testing::Test { };
 
 TEST_F(TestSparseMatrix, DokSetFromPattern) {
 
-   spam::DokMatrix dkMatrix{
+   cask::DokMatrix dkMatrix{
        1, 1, 1, 1,
        1, 1, 0, 0,
        1, 0, 1, 0,
@@ -29,7 +29,7 @@ TEST_F(TestSparseMatrix, DokSetFromPattern) {
 }
 
 TEST_F(TestSparseMatrix, DokExplicitSymmetry) {
-   spam::DokMatrix dkMatrix{
+   cask::DokMatrix dkMatrix{
        1, 0, 0, 0,
        1, 1, 0, 0,
        1, 0, 1, 0,
@@ -39,11 +39,11 @@ TEST_F(TestSparseMatrix, DokExplicitSymmetry) {
    ASSERT_EQ(dkMatrix.nnzs, 7);
    ASSERT_EQ(dkMatrix.n, 4);
 
-   spam::DokMatrix sym = dkMatrix.explicitSymmetric();
+   cask::DokMatrix sym = dkMatrix.explicitSymmetric();
    ASSERT_EQ(sym.nnzs, 10);
    ASSERT_EQ(sym.n, 4);
 
-   spam::DokMatrix expSym{
+   cask::DokMatrix expSym{
        1, 1, 1, 1,
        1, 1, 0, 0,
        1, 0, 1, 0,
@@ -54,21 +54,21 @@ TEST_F(TestSparseMatrix, DokExplicitSymmetry) {
 
 TEST_F(TestSparseMatrix, CsrToFromDok) {
 
-  spam::DokMatrix dokA{
+  cask::DokMatrix dokA{
        2, 1, 1, 1,
        1, 1, 0, 0,
        1, 0, 1, 0,
        1, 0, 0, 1
   };
 
-  spam::CsrMatrix a{dokA};
+  cask::CsrMatrix a{dokA};
   ASSERT_EQ(a.toDok().dok, dokA.dok);
   ASSERT_EQ(a.toDok(), dokA);
 }
 
 
 TEST_F(TestSparseMatrix, CsrLowerTriangular) {
-  spam::CsrMatrix m{spam::DokMatrix{
+  cask::CsrMatrix m{cask::DokMatrix{
       1, 1, 1, 1,
       1, 1, 0, 0,
       1, 0, 1, 0,
@@ -78,7 +78,7 @@ TEST_F(TestSparseMatrix, CsrLowerTriangular) {
   std::cout << "Matrix" << std::endl;
   m.pretty_print();
 
-  spam::CsrMatrix expL{spam::DokMatrix{
+  cask::CsrMatrix expL{cask::DokMatrix{
       1, 0, 0, 0,
       1, 1, 0, 0,
       1, 0, 1, 0,
@@ -93,7 +93,7 @@ TEST_F(TestSparseMatrix, CsrLowerTriangular) {
 }
 
 TEST_F(TestSparseMatrix, CsrUpperTriangular) {
-  spam::CsrMatrix m{spam::DokMatrix{
+  cask::CsrMatrix m{cask::DokMatrix{
       1, 1, 1, 1,
       1, 1, 0, 0,
       1, 0, 1, 0,
@@ -103,7 +103,7 @@ TEST_F(TestSparseMatrix, CsrUpperTriangular) {
   std::cout << "Matrix" << std::endl;
   m.pretty_print();
 
-  spam::CsrMatrix expU{spam::DokMatrix{
+  cask::CsrMatrix expU{cask::DokMatrix{
       1, 1, 1, 1,
       0, 1, 0, 0,
       0, 0, 1, 0,

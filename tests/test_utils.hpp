@@ -12,12 +12,12 @@
 
 #include "SparseLinearSolvers.hpp"
 #include "Converters.hpp"
-#include "Io.hpp"
+#include "IO.hpp"
 
 #include <dfesnippets/NumericUtils.hpp>
 
 
-namespace spark {
+namespace cask {
   namespace test {
 
     using Td = Eigen::Triplet<double>;
@@ -45,8 +45,8 @@ namespace spark {
         const Eigen::VectorXd& exp)
     {
       return
-        check(spark::converters::eigenVectorToStdVector(got),
-            spark::converters::eigenVectorToStdVector(exp));
+        check(cask::converters::eigenVectorToStdVector(got),
+            cask::converters::eigenVectorToStdVector(exp));
     }
 
     void print_mismatches(const MismatchT& mismatches) {
@@ -110,7 +110,7 @@ namespace spark {
       EigenVectorGenerator(Vd _vd) : vd(_vd) {}
       std::tuple<Vd, Vd> operator()(Md mat, int m) {
         std::cout << "Running eigen solver" << std::endl;
-        spark::sparse_linear_solvers::EigenSolver es;
+        cask::sparse_linear_solvers::EigenSolver es;
         Vd sol = es.solve(mat, vd);
         std::cout << "Eigen solver complete!" << std::endl;
         return std::make_tuple(vd, sol);
@@ -119,7 +119,7 @@ namespace spark {
 
     template<typename MatrixGenerator, typename RhsGenerator>
       int test(int m, MatrixGenerator mg, RhsGenerator rhsg,
-          spark::sparse_linear_solvers::Solver &solver) {
+          cask::sparse_linear_solvers::Solver &solver) {
         Md a = mg(m);
         auto tpl =  rhsg(a, m);
         Vd b = std::get<0>(tpl);
@@ -129,33 +129,33 @@ namespace spark {
         Vd sol = solver.solve(a, b);
         std::cout << "DFE solver complete!" << std::endl;
 
-        auto mismatches = spark::test::check(sol, exp);
+        auto mismatches = cask::test::check(sol, exp);
         if (mismatches.empty())
           return 0;
-        spark::test::print_mismatches(mismatches);
+        cask::test::print_mismatches(mismatches);
 
         return 1;
       }
 
     int runTest(
         std::string path,
-        spark::sparse_linear_solvers::Solver& solver) {
-      spark::io::MmReader<double> m(path);
-      auto eigenMatrix = spark::converters::tripletToEigen(m.mmreadMatrix(path));
+        cask::sparse_linear_solvers::Solver& solver) {
+      cask::io::MmReader<double> m(path);
+      auto eigenMatrix = cask::converters::tripletToEigen(m.mmreadMatrix(path));
       return test(eigenMatrix->rows(),
           EigenMatrixGenerator{*eigenMatrix},
-          spark::test::SimpleVectorGenerator{},
+          cask::test::SimpleVectorGenerator{},
           solver);
     }
 
     int runTest(
         std::string path,
         std::string vectorPath,
-        spark::sparse_linear_solvers::Solver& solver) {
-      spark::io::MmReader<double> m(path);
-      auto eigenMatrix = spark::converters::tripletToEigen(m.mmreadMatrix(path));
-      spark::io::MmReader<double> mv(vectorPath);
-      auto eigenVector = spark::converters::stdvectorToEigen(mv.readVector());
+        cask::sparse_linear_solvers::Solver& solver) {
+      cask::io::MmReader<double> m(path);
+      auto eigenMatrix = cask::converters::tripletToEigen(m.mmreadMatrix(path));
+      cask::io::MmReader<double> mv(vectorPath);
+      auto eigenVector = cask::converters::stdvectorToEigen(mv.readVector());
       return test(eigenMatrix->rows(),
           EigenMatrixGenerator{*eigenMatrix},
           EigenVectorGenerator{eigenVector},

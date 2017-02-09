@@ -6,7 +6,7 @@
 #include <map>
 #include <stdexcept>
 
-namespace spam {
+namespace cask {
 
 class Timer {
 

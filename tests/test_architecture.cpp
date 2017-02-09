@@ -4,7 +4,7 @@
 #include <chrono>
 #include <string>
 
-using namespace spark::utils;
+using namespace cask::utils;
 
 int main(int argc, char** argv) {
 
@@ -63,14 +63,14 @@ int main(int argc, char** argv) {
 
   auto start = std::chrono::high_resolution_clock::now();
 
-  spark::dse::SparkDse dseTool;
-  spark::dse::DseParameters params;
+  cask::dse::SparkDse dseTool;
+  cask::dse::DseParameters params;
   params.numPipesRange = numPipesRange;
   params.inputWidthRange = inputWidthRange;
   params.cacheSizeRange = cacheSizeRange;
   params.gflopsOnly = true;
 
-  spark::dse::Benchmark benchmark;
+  cask::dse::Benchmark benchmark;
   benchmark.add_matrix_path(path);
   dseTool.run(benchmark, params);
   dfesnippets::timing::print_clock_diff("Test took: ", start);

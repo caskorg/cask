@@ -8,8 +8,8 @@
 
 #include "GeneratedImplSupport.hpp"
 
-using namespace spark::spmv;
-using ssarch = spark::spmv::SimpleSpmvArchitecture;
+using namespace cask::spmv;
+using ssarch = cask::spmv::SimpleSpmvArchitecture;
 
 // how many cycles does it take to resolve the accesses
 int ssarch::countComputeCycles(uint32_t* v, int size, int inputWidth)
@@ -30,7 +30,7 @@ int ssarch::countComputeCycles(uint32_t* v, int size, int inputWidth)
 }
 
 // transform a given matrix with n rows in blocks of size n X blockSize
-spark::spmv::Partition ssarch::do_blocking(
+cask::spmv::Partition ssarch::do_blocking(
     const EigenSparseMatrix& m,
     int blockSize,
     int inputWidth)
@@ -47,7 +47,7 @@ spark::spmv::Partition ssarch::do_blocking(
   int nBlocks = cols / blockSize + (cols % blockSize == 0 ? 0 : 1);
   //std::cout << "Npartitions: " << nPartitions << std::endl;
 
-  std::vector<spark::sparse::CsrMatrix> partitions(nBlocks);
+  std::vector<cask::sparse::CsrMatrix> partitions(nBlocks);
 
   for (int i = 0; i < rows; i++) {
     for (int j = 0; j < nBlocks; j++) {
@@ -93,8 +93,8 @@ spark::spmv::Partition ssarch::do_blocking(
     reductionCycles -= diff;
     cycles += this->countComputeCycles(&std::get<0>(p)[0], n, inputWidth) - diff;
 
-    spark::spmv::align(p_indptr, sizeof(int) * inputWidth);
-    spark::spmv::align(p_values, sizeof(double) * inputWidth);
+    cask::spmv::align(p_indptr, sizeof(int) * inputWidth);
+    cask::spmv::align(p_values, sizeof(double) * inputWidth);
     std::copy(p_colptr.begin(), p_colptr.end(), back_inserter(m_colptr));
     for (size_t i = 0; i < p_values.size(); i++)
       m_indptr_value.push_back(indptr_value( p_values[i], p_indptr[i]));
@@ -104,11 +104,11 @@ spark::spmv::Partition ssarch::do_blocking(
   br.m_colptr_unpaddedLength = m_colptr.size();
   br.m_indptr_values_unpaddedLength = m_indptr_value.size();
   //std::cout << "m_colptr unaligned size" << m_colptr.size() << std::endl;
-  spark::spmv::align(m_colptr, 384);
-  spark::spmv::align(m_indptr_value, 384);
+  cask::spmv::align(m_colptr, 384);
+  cask::spmv::align(m_indptr_value, 384);
   std::vector<double> out(n, 0);
-  spark::spmv::align(out, 384);
-  spark::spmv::align(v, sizeof(double) * blockSize);
+  cask::spmv::align(out, 384);
+  cask::spmv::align(v, sizeof(double) * blockSize);
 
   br.nBlocks = nBlocks;
   br.n = n;
@@ -144,7 +144,7 @@ int align(int bytes, int to) {
 
 // write the data for a partition, starting at the given offset
 PartitionWriteResult writeDataForPartition(
-    spark::runtime::GeneratedSpmvImplementation *impl,
+    cask::runtime::GeneratedSpmvImplementation *impl,
     int offset,
     const Partition& br,
     const std::vector<double>& v) {
@@ -204,9 +204,9 @@ Eigen::VectorXd ssarch::dfespmv(Eigen::VectorXd x)
 
   int cacheSize = this->cacheSize;
 
-  vector<double> v = spark::converters::eigenVectorToStdVector(x);
-  spark::spmv::align(v, sizeof(double) * cacheSize);
-  spark::spmv::align(v, 384);
+  vector<double> v = cask::converters::eigenVectorToStdVector(x);
+  cask::spmv::align(v, sizeof(double) * cacheSize);
+  cask::spmv::align(v, 384);
 
   std::vector<int> nrows, totalCycles, reductionCycles, paddingCycles, colptrSizes, indptrValuesSizes, outputResultSizes;
   std::vector<int> colptrUnpaddedSizes, indptrValuesUnpaddedLengths;
@@ -291,7 +291,7 @@ Eigen::VectorXd ssarch::dfespmv(Eigen::VectorXd x)
   }
 
   // remove the elements which were only for padding
-  return spark::converters::stdvectorToEigen(total);
+  return cask::converters::stdvectorToEigen(total);
 }
 
 std::vector<EigenSparseMatrix> ssarch::do_partition(const EigenSparseMatrix& mat, int numPipes) {

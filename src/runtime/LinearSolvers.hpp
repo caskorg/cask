@@ -14,7 +14,7 @@
 
 using namespace std;
 
-namespace spam {
+namespace cask {
 
 // Equivalent to un-precontitioned CG
 class IdentityPreconditioner {
@@ -97,10 +97,10 @@ class ILUPreconditioner {
   virtual std::vector<double> apply(const std::vector<double>& x) {
       // solve z = M^-1 r <==> Mz = r <==> LUz = r
       // solve: Ly = r
-      spam::mkl::unittrsolve(Lvalues.data(), Lrow_ptr.data(), Lcol_ind.data(), x, res.data(), true);
+      cask::mkl::unittrsolve(Lvalues.data(), Lrow_ptr.data(), Lcol_ind.data(), x, res.data(), true);
       // then solve Uz = y
       auto y = res;
-      spam::mkl::unittrsolve(Uvalues.data(), Urow_ptr.data(), Ucol_ind.data(), y, res.data(), false);
+      cask::mkl::unittrsolve(Uvalues.data(), Urow_ptr.data(), Ucol_ind.data(), y, res.data(), false);
       return res;
   }
 

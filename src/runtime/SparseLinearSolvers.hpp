@@ -3,7 +3,7 @@
 
 #include <Eigen/Sparse>
 
-namespace spark {
+namespace cask {
   namespace sparse_linear_solvers {
 
     class Solver {

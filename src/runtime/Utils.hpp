@@ -8,7 +8,7 @@
 
 #include <boost/algorithm/string.hpp>
 
-namespace spark {
+namespace cask {
   namespace utils {
     struct Range {
       int start, end, step, crt;

@@ -34,9 +34,9 @@ void runCg(const spam::SymCsrMatrix &a,
 int main (int argc, char** argv) {
 
   spam::benchmark::parseArgs(argc, argv);
-  spam::SymCsrMatrix a = spam::io::mm::readSymMatrix(argv[2]);
-  std::vector<double> rhs = spam::io::mm::readVector(std::string(argv[4]));
-  std::vector<double> exp = spam::io::mm::readVector(argv[6]);
+  spam::SymCsrMatrix a = spam::io::readSymMatrix(argv[2]);
+  std::vector<double> rhs = spam::io::readVector(std::string(argv[4]));
+  std::vector<double> exp = spam::io::readVector(argv[6]);
 
   std::cout << "Running without preconditioning " << std::endl;
   runCg<spam::IdentityPreconditioner>(a, exp, rhs, "sol.upc.mtx");

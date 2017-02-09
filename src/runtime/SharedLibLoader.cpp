@@ -3,7 +3,7 @@
 #include <dlfcn.h>
 #include <iostream>
 
-namespace sll = spark::execution;
+namespace sll = cask::execution;
 
 using namespace std;
 
@@ -11,7 +11,7 @@ sll::SharedLibLoader::SharedLibLoader(std::string _libPath) : libPath(_libPath),
 }
 
 vector<string> sll::SharedLibLoader::available_libraries() {
-  return spark::file_utils::child_files(libPath);
+  return cask::file_utils::child_files(libPath);
 }
 
 bool sll::SharedLibLoader::load_library(string libPath) {

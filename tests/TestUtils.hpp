@@ -4,7 +4,7 @@
 #include <SpamSparseMatrix.hpp>
 #include <Utils.hpp>
 
-namespace spam {
+namespace cask {
 namespace test {
 
 void pretty_print(const CsrMatrix& m,
@@ -14,9 +14,9 @@ void pretty_print(const CsrMatrix& m,
 {
   std::cout << "Matrix" << std::endl;
   m.pretty_print();
-  spam::print(rhs, "Rhs = ");
-  spam::print(exp, "Exp = ");
-  spam::print(got, "Got = ");
+  cask::print(rhs, "Rhs = ");
+  cask::print(exp, "Exp = ");
+  cask::print(got, "Got = ");
 }
 
 }

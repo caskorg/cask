@@ -10,7 +10,7 @@
 #include "GeneratedImplSupport.hpp"
 
 
-namespace spark {
+namespace cask {
   namespace spmv {
 
     using EigenSparseMatrix = Eigen::SparseMatrix<double, Eigen::RowMajor, int32_t>;
@@ -60,7 +60,7 @@ namespace spark {
 
       EigenSparseMatrix mat;
       std::vector<Partition> partitions;
-      spark::runtime::GeneratedSpmvImplementation* impl;
+      cask::runtime::GeneratedSpmvImplementation* impl;
 
       virtual int countComputeCycles(uint32_t* v, int size, int inputWidth);
 
@@ -115,7 +115,7 @@ namespace spark {
          * For execution we build the architecture and give it a pointer to the
          * device implementation.
          */
-        SimpleSpmvArchitecture(spark::runtime::GeneratedSpmvImplementation* _impl):
+        SimpleSpmvArchitecture(cask::runtime::GeneratedSpmvImplementation* _impl):
           cacheSize(_impl->cacheSize()),
           inputWidth(_impl->inputWidth()),
           numPipes(_impl->numPipes()),
@@ -151,10 +151,10 @@ namespace spark {
         // NOTE: only call this after a call to preprocessMatrix
         // XXX this should be renamed to estimated
         // XXX This can't really be done at compile time
-        virtual spark::model::ImplementationParameters getImplementationParameters() {
+        virtual cask::model::ImplementationParameters getImplementationParameters() {
           // XXX bram usage for altera in double precision only (512 deep, 40 bits wide, so need 2 BRAMs)
           //int brams = (double)cacheSize * (double)inputWidth / 512.0 * 2.0;
-          using namespace spark::model;
+          using namespace cask::model;
 
           // XXX these should be architecture params
           int maxRows = (this->mat.rows() / 512) * 512;
@@ -245,9 +245,9 @@ namespace spark {
     class SimpleSpmvArchitectureSpace : public SpmvArchitectureSpace {
       // NOTE any raw pointers returned through the API of this class
       // are assumed to be wrapped in smart pointers by the base class
-      spark::utils::Range cacheSizeR{1024, 4096, 512};
-      spark::utils::Range inputWidthR{8, 100, 8};
-      spark::utils::Range numPipesR{1, 6, 1};
+      cask::utils::Range cacheSizeR{1024, 4096, 512};
+      cask::utils::Range inputWidthR{8, 100, 8};
+      cask::utils::Range numPipesR{1, 6, 1};
       int maxRows;
 
       bool last = false;
@@ -255,9 +255,9 @@ namespace spark {
       public:
 
       SimpleSpmvArchitectureSpace(
-          spark::utils::Range numPipesRange,
-          spark::utils::Range inputWidthRange,
-          spark::utils::Range cacheSizeRange,
+          cask::utils::Range numPipesRange,
+          cask::utils::Range inputWidthRange,
+          cask::utils::Range cacheSizeRange,
           int _maxRows) {
         cacheSizeR = cacheSizeRange;
         inputWidthR = inputWidthRange;
@@ -356,8 +356,8 @@ namespace spark {
           return encoded;
         }
 
-        virtual spark::sparse::CsrMatrix preprocessBlock(
-            const spark::sparse::CsrMatrix& in,
+        virtual cask::sparse::CsrMatrix preprocessBlock(
+            const cask::sparse::CsrMatrix& in,
             int blockNumber,
             int nBlocks) override {
           bool encode = blockNumber != 0 && blockNumber != nBlocks - 1;

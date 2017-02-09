@@ -6,7 +6,7 @@
 #include <boost/property_tree/ptree.hpp>
 #include <Eigen/Sparse>
 
-namespace spark {
+namespace cask {
   namespace spmv {
 
     // A generic architecture for SpMV
@@ -24,7 +24,7 @@ namespace spark {
         virtual double getEstimatedClockCycles() = 0;
         virtual double getGFlopsCount() = 0;
         virtual std::string to_string() = 0;
-        virtual spark::model::ImplementationParameters getImplementationParameters() = 0;
+        virtual cask::model::ImplementationParameters getImplementationParameters() = 0;
         virtual void preprocess(const Eigen::SparseMatrix<double, Eigen::RowMajor>& mat) = 0;
         virtual Eigen::VectorXd dfespmv(Eigen::VectorXd x) = 0;
         virtual std::string get_name() = 0;
@@ -38,8 +38,8 @@ namespace spark {
         virtual ~SpmvArchitecture() {}
 
       protected:
-        virtual spark::sparse::CsrMatrix preprocessBlock(
-            const spark::sparse::CsrMatrix& in,
+        virtual cask::sparse::CsrMatrix preprocessBlock(
+            const cask::sparse::CsrMatrix& in,
             int blockNumber,
             int nBlocks) {
           return in;

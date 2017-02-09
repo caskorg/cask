@@ -10,7 +10,7 @@ class TestMmIo : public ::testing::Test { };
 
 TEST_F(TestMmIo, ReadHeader) {
   std::string path = "tests/systems/tinysym.mtx";
-  spam::io::mm::MmInfo info = spam::io::mm::readHeader(path);
+  cask::io::MmInfo info = cask::io::readHeader(path);
   ASSERT_EQ(info.symmetry, "symmetric");
   ASSERT_EQ(info.format, "coordinate");
   ASSERT_EQ(info.type, "matrix");
@@ -19,20 +19,20 @@ TEST_F(TestMmIo, ReadHeader) {
 
 
 TEST_F(TestMmIo, ReadSymCsr) {
-  spam::SymCsrMatrix a = spam::io::mm::readSymMatrix("tests/systems/tiny.mtx");
+  cask::SymCsrMatrix a = cask::io::readSymMatrix("tests/systems/tiny.mtx");
   ASSERT_EQ(a.n, 4);
   ASSERT_EQ(a.nnzs, 4);
-  spam::DokMatrix exp{
+  cask::DokMatrix exp{
       1, 0, 0, 0,
       0, 1, 0, 0,
       0, 0, 1, 0,
       0, 0, 0, 1};
   ASSERT_EQ(a.matrix.toDok().explicitSymmetric(), exp);
 
-  a = spam::io::mm::readSymMatrix("tests/systems/tinysym.mtx");
+  a = cask::io::readSymMatrix("tests/systems/tinysym.mtx");
   ASSERT_EQ(a.n, 4);
   ASSERT_EQ(a.nnzs, 6);
-  spam::DokMatrix exp2{
+  cask::DokMatrix exp2{
       1, 0, 0, 1,
       0, 1, 0, 0,
       0, 0, 1, 0,

@@ -4,7 +4,7 @@
 #include "SpamSparseMatrix.hpp"
 #include <mkl.h>
 
-namespace spam {
+namespace cask {
 
 /**
  * A thin layer over some MKL sparse BLAS functions to enable easier testing and integration in other parts of spam.

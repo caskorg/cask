@@ -58,7 +58,7 @@ Eigen::VectorXd solveCG(
   return cg.solve(b);
 }
 
-Eigen::VectorXd spark::sparse_linear_solvers::EigenSolver::solve(
+Eigen::VectorXd cask::sparse_linear_solvers::EigenSolver::solve(
     const Eigen::SparseMatrix<double>& A,
     const Eigen::VectorXd& b)
 {

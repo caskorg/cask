@@ -7,7 +7,7 @@
 #include <boost/filesystem.hpp>
 #include <sstream>
 
-namespace spark {
+namespace cask {
   namespace file_utils {
     std::vector<std::string> child_files(std::string  dirPath) {
       namespace bfs = boost::filesystem;

@@ -4,7 +4,7 @@
 #include <tuple>
 #include <vector>
 
-namespace spark {
+namespace cask {
   namespace sparse {
 
     using CsrMatrix = std::tuple<std::vector<uint32_t>, std::vector<int>, std::vector<double>>;

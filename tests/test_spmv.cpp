@@ -1,6 +1,6 @@
 #include "Spmv.hpp"
 #include "SimpleSpmv.hpp"
-#include "Io.hpp"
+#include "IO.hpp"
 #include "Converters.hpp"
 #include "Execution.hpp"
 #include "UserInput.hpp"
@@ -17,12 +17,12 @@
 const std::string LIB_DIR = "../lib-generated/";
 
 using namespace std;
-using namespace spark::execution;
+using namespace cask::execution;
 
 int test(string path, int implId) {
   std::cout << "File: " << path << std::endl;
-  spark::io::MmReader<double> m(path);
-  auto eigenMatrix = spark::converters::tripletToEigen(m.mmreadMatrix(path));
+  cask::io::MmReader<double> m(path);
+  auto eigenMatrix = cask::converters::tripletToEigen(m.mmreadMatrix(path));
   int cols = eigenMatrix->cols();
 
   std::cout << "Param MatrixPath " << path << std::endl;
@@ -30,16 +30,16 @@ int test(string path, int implId) {
   Eigen::VectorXd x(cols);
   for (int i = 0; i < cols; i++) x[i] = (double)i * 0.25;
 
-  spark::runtime::SpmvImplementationLoader implLoader;
+  cask::runtime::SpmvImplementationLoader implLoader;
   // TODO find the best architecture somehow
   int maxRows = eigenMatrix->rows();
-  spark::runtime::GeneratedSpmvImplementation* deviceImpl;
+  cask::runtime::GeneratedSpmvImplementation* deviceImpl;
   if (implId == -1)
     deviceImpl = implLoader.architectureWithParams(maxRows);
   else
     deviceImpl = implLoader.architectureWithId(implId);
 
-  auto a = new spark::spmv::SimpleSpmvArchitecture(deviceImpl);
+  auto a = new cask::spmv::SimpleSpmvArchitecture(deviceImpl);
   // TODO need a consistent way to handle params
   //cout << a->getParams();
   a->preprocess(*eigenMatrix);
@@ -48,15 +48,15 @@ int test(string path, int implId) {
   delete a;
 
   auto mismatches =
-      spark::test::check(spark::converters::eigenVectorToStdVector(got),
-                         spark::converters::eigenVectorToStdVector(exp));
+      cask::test::check(cask::converters::eigenVectorToStdVector(got),
+                         cask::converters::eigenVectorToStdVector(exp));
 
   if (mismatches.empty()) {
     std::cout << "Test passed!" << std::endl;
     return 0;
   }
 
-  spark::test::print_mismatches(mismatches);
+  cask::test::print_mismatches(mismatches);
   std::cout << "Test failed: " << mismatches.size() << " mismatches "
             << std::endl;
   return 1;

@@ -129,7 +129,7 @@ Eigen::VectorXd dfeImplUnprecon(
   double normErr = 1E-32;
 
   // partition once
-  auto a = new spark::spmv::SimpleSpmvArchitecture();
+  auto a = new cask::spmv::SimpleSpmvArchitecture();
   a->preprocess(A);
   for (int i = 0; i < maxIter; i++) {
 
@@ -159,7 +159,7 @@ Eigen::VectorXd dfeImplUnprecon(
   return x;
 }
 
-Eigen::VectorXd spark::sparse_linear_solvers::DfeBiCgSolver::solve(
+Eigen::VectorXd cask::sparse_linear_solvers::DfeBiCgSolver::solve(
             const Eigen::SparseMatrix<double>& A,
             const Eigen::VectorXd& b)
 {

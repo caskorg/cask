@@ -8,7 +8,7 @@
 #include <cmath>
 #include <fstream>
 
-namespace spam {
+namespace cask {
 namespace benchmark {
 
 void checkFileExists(std::string file) {

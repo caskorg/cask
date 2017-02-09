@@ -5,12 +5,12 @@
 #include "Spmv.hpp"
 #include "SimpleSpmv.hpp"
 #include "Utils.hpp"
-#include "Io.hpp"
+#include "IO.hpp"
 #include <chrono>
 #include <stdexcept>
 #include <sstream>
 
-namespace spark {
+namespace cask {
   namespace dse {
 
     // a benchmark to use for the DSE
@@ -46,9 +46,9 @@ namespace spark {
     class DseParameters {
       public:
         bool gflopsOnly;
-        spark::utils::Range numPipesRange{1, 4, 1};
-        spark::utils::Range inputWidthRange{1, 3, 1};
-        spark::utils::Range cacheSizeRange{1024, 2048, 1024};
+        cask::utils::Range numPipesRange{1, 4, 1};
+        cask::utils::Range inputWidthRange{1, 3, 1};
+        cask::utils::Range cacheSizeRange{1024, 2048, 1024};
     };
 
     inline std::ostream& operator<<(std::ostream& s, DseParameters& d) {
@@ -62,14 +62,14 @@ namespace spark {
 
     class DseResult {
       public:
-        std::shared_ptr<spark::spmv::SpmvArchitecture> bestArchitecture;
+        std::shared_ptr<cask::spmv::SpmvArchitecture> bestArchitecture;
         std::vector<std::string> matrices;
 
-        DseResult(std::string path, std::shared_ptr<spark::spmv::SpmvArchitecture> arch) {
+        DseResult(std::string path, std::shared_ptr<cask::spmv::SpmvArchitecture> arch) {
           matrices.push_back(path);
           bestArchitecture = arch;
         }
-        DseResult(std::shared_ptr<spark::spmv::SpmvArchitecture> arch) {
+        DseResult(std::shared_ptr<cask::spmv::SpmvArchitecture> arch) {
           bestArchitecture = arch;
         }
     };

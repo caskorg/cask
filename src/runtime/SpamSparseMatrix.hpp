@@ -27,7 +27,7 @@
  * TODOs
  * - a consistent, safe mechanism for handling symmetric matrices?
  */
-namespace spam {
+namespace cask {
 
 class DokMatrix {
 
@@ -331,7 +331,7 @@ class SymCsrMatrix {
   }
 };
 
-void writeToFile(std::string path, std::vector<double> vector) {
+inline void writeToFile(std::string path, std::vector<double> vector) {
   std::ofstream f{path};
   if (!f)
     throw std::invalid_argument("Could not open file for writing");

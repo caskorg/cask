@@ -4,7 +4,7 @@
 #include <iostream>
 
 //std::vector<double> dfeImpl(
-    //spark::sparse::CsrMatrix<> a,
+    //cask::sparse::CsrMatrix<> a,
     //const std::vector<double>& bvec) {
   //std::cout << "Calling DFE cg solve" << std::endl;
   //if (a.size1() != a.size2() || a.size1() < 16)
@@ -65,7 +65,7 @@
 //}
 
 //std::vector<double> referenceCpuImpl(
-    //spark::sparse::CsrMatrix<> a,
+    //cask::sparse::CsrMatrix<> a,
     //const std::vector<double>& bvec) {
   //std::cout << "Calling cg solve" << std::endl;
   //using namespace boost::numeric;
@@ -102,7 +102,7 @@
 //}
 
 
-Eigen::VectorXd spark::sparse_linear_solvers::DfeCgSolver::solve(
+Eigen::VectorXd cask::sparse_linear_solvers::DfeCgSolver::solve(
             const Eigen::SparseMatrix<double>& A,
             const Eigen::VectorXd& b)
 {

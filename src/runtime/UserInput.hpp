@@ -6,7 +6,7 @@
 #include <boost/algorithm/string.hpp>
 #include <unordered_map>
 
-namespace spark {
+namespace cask {
   namespace userio {
 
     using UserInputParams = std::unordered_map<std::string, int>;

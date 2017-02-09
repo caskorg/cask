@@ -3,7 +3,7 @@
 
 #include <sstream>
 
-namespace spark {
+namespace cask {
   namespace model {
 
     class LogicResourceUsage {

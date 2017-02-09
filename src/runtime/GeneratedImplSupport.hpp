@@ -7,7 +7,7 @@
 #include <iostream>
 #include <climits>
 
-namespace spark {
+namespace cask {
   namespace runtime {
 
     // XXX Hell no...

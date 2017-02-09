@@ -254,10 +254,10 @@ class Spark:
       # Defines struct formats
       f.write('#include "{0}"\n'.format('GeneratedImplSupport.hpp'))
 
-      f.write('using namespace spark::runtime;\n')
+      f.write('using namespace cask::runtime;\n')
 
       f.write("""
-          spark::runtime::SpmvImplementationLoader::SpmvImplementationLoader() : ImplementationLoader() {
+          cask::runtime::SpmvImplementationLoader::SpmvImplementationLoader() : ImplementationLoader() {
           """)
 
       for i in range(len(prjs)):

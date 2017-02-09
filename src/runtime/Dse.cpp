@@ -3,10 +3,10 @@
 #include <unordered_map>
 #include "Converters.hpp"
 
-using namespace spark::spmv;
-using namespace spark::utils;
-using namespace spark::model;
-using namespace spark::dse;
+using namespace cask::spmv;
+using namespace cask::utils;
+using namespace cask::model;
+using namespace cask::dse;
 
 
 std::shared_ptr<SpmvArchitecture>
@@ -84,9 +84,9 @@ struct SpmvEqual {
   }
 };
 
-std::vector<DseResult> spark::dse::SparkDse::run (
+std::vector<DseResult> cask::dse::SparkDse::run (
     const Benchmark& benchmark,
-    const spark::dse::DseParameters& params)
+    const cask::dse::DseParameters& params)
 {
 
   std::vector<DseResult> bestArchitectures;
@@ -106,9 +106,9 @@ std::vector<DseResult> spark::dse::SparkDse::run (
     std::string basename(path.substr(pos, path.size() - pos));
     std::cout << basename << std::endl;
 
-    spark::io::MmReader<double> m(path);
+    cask::io::MmReader<double> m(path);
     auto start = std::chrono::high_resolution_clock::now();
-    auto eigenMatrix = spark::converters::tripletToEigen(m.mmreadMatrix(path));
+    auto eigenMatrix = cask::converters::tripletToEigen(m.mmreadMatrix(path));
     dfesnippets::timing::print_clock_diff("Reading took: ", start);
 
     // XXX this assumes a virtex device with 512 entries per BRAM
