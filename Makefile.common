@@ -1,7 +1,7 @@
 # ---- Source files ----
 ENGINEFILES?=$(wildcard ../src/*.maxj)
 
-DFESNIPPETS?=$(WHEREISROOT)/dfe-snippets
+DFESNIPPETS?=$(WHEREISROOT)/lib/dfe-snippets
 
 JFLAGS=-cp $(MAXCOMPILERDIR)/lib/MaxCompiler.jar:$(DFESNIPPETS)/src -1.6 -d .
 

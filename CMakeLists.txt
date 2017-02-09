@@ -65,7 +65,7 @@ endif()
 
 #
 # --- Include directories
-include_directories(dfe-snippets/include)
+include_directories(lib/dfe-snippets/include)
 include_directories(test)
 include_directories(include)
 include_directories(src/runtime)

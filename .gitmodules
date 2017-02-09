@@ -1,5 +1,5 @@
 [submodule "dfe-snippets"]
-	path = dfe-snippets
+	path = lib/dfe-snippets
   url = https://github.com/custom-computing-ic/dfe-snippets.git
 [submodule "lib/gtest"]
 	path = lib/gtest
