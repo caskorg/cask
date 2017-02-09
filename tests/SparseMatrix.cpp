@@ -3,7 +3,7 @@
 #include <LinearSolvers.hpp>
 #include <IO.hpp>
 #include <SparseMatrix.hpp>
-#include <SpamUtils.hpp>
+#include <Utils.hpp>
 #include <gtest/gtest.h>
 
 class TestSparseMatrix : public ::testing::Test { };

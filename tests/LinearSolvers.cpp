@@ -3,7 +3,7 @@
 #include <LinearSolvers.hpp>
 #include <IO.hpp>
 #include <SparseMatrix.hpp>
-#include <SpamUtils.hpp>
+#include <Utils.hpp>
 #include <gtest/gtest.h>
 
 class TestLinearSolvers : public ::testing::Test { };
@@ -16,11 +16,11 @@ TEST_F(TestLinearSolvers, CGWithIdentityPC) {
    cask::pcg<double, cask::IdentityPreconditioner>(a.matrix, &rhs[0], &sol[0], iterations);
    std::vector<double> exp_sol{1, 2, 3, 4};
 
-   cask::print(rhs, "b = ");
+   cask::utils::print(rhs, "b = ");
    std::cout << "Matrix" << std::endl;
    a.pretty_print();
-   cask::print(exp_sol, "exp x = ");
-   cask::print(sol, "got x = ");
+   cask::utils::print(exp_sol, "exp x = ");
+   cask::utils::print(sol, "got x = ");
    std::cout << "Iterations = " << iterations << std::endl;
 
    for (auto i = 0u; i < sol.size(); i++) {
@@ -36,11 +36,11 @@ TEST_F(TestLinearSolvers, CGSymWithIdentityPC) {
    cask::pcg<double, cask::IdentityPreconditioner>(a.matrix, &rhs[0], &sol[0], iterations);
    std::vector<double> exp_sol{-2, 2, 3, 3};
 
-   cask::print(rhs, "b = ");
+   cask::utils::print(rhs, "b = ");
    std::cout << "Matrix" << std::endl;
    a.pretty_print();
-   cask::print(exp_sol, "exp x = ");
-   cask::print(sol, "got x = ");
+   cask::utils::print(exp_sol, "exp x = ");
+   cask::utils::print(sol, "got x = ");
    std::cout << "Iterations = " << iterations << std::endl;
 
    for (auto i = 0u; i < sol.size(); i++) {
@@ -61,11 +61,11 @@ TEST_F(TestLinearSolvers, CGSymWithILUPC) {
        2.9987581910958183
        };
 
-   cask::print(rhs, "b = ");
+   cask::utils::print(rhs, "b = ");
    std::cout << "Matrix" << std::endl;
    a.pretty_print();
-   cask::print(exp_sol, "exp x = ");
-   cask::print(sol, "got x = ");
+   cask::utils::print(exp_sol, "exp x = ");
+   cask::utils::print(sol, "got x = ");
    std::cout << "Iterations = " << iterations << std::endl;
 
    for (auto i = 0u; i < sol.size(); i++) {
@@ -132,10 +132,10 @@ TEST_F(TestLinearSolvers, ILUComputeAndApply) {
    auto res = ilupc.apply(v);
    std::cout << "Preconditioner " << std::endl;
    ilupc.pretty_print();
-   cask::print(v,   "v            = ");
-   cask::print(res, "ILU.apply(v) = ");
+   cask::utils::print(v,   "v            = ");
+   cask::utils::print(res, "ILU.apply(v) = ");
    std::vector<double> expPcApply{-16.25, 7, 11, 15};
-   cask::print(expPcApply, "exp          = ");
+   cask::utils::print(expPcApply, "exp          = ");
 
    for (auto i = 0u; i < res.size(); i++) {
       ASSERT_DOUBLE_EQ(res[i], expPcApply[i]);

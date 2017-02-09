@@ -3,7 +3,7 @@
 #include <Spark/Benchmark.hpp>
 #include <Spark/LinearSolvers.hpp>
 #include <Spark/SparseMatrix.hpp>
-#include <Spark/SpamUtils.hpp>
+#include <Spark/Utils.hpp>
 
 template<typename P>
 void runCg(const cask::SymCsrMatrix &a,

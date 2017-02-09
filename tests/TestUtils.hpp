@@ -14,9 +14,9 @@ void pretty_print(const CsrMatrix& m,
 {
   std::cout << "Matrix" << std::endl;
   m.pretty_print();
-  cask::print(rhs, "Rhs = ");
-  cask::print(exp, "Exp = ");
-  cask::print(got, "Got = ");
+  cask::utils::print(rhs, "Rhs = ");
+  cask::utils::print(exp, "Exp = ");
+  cask::utils::print(got, "Got = ");
 }
 
 }

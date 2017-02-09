@@ -5,7 +5,7 @@
 #include <cstring>
 #include <iterator>
 #include "mkl.h"
-#include "SpamUtils.hpp"
+#include "Utils.hpp"
 #include "MklLayer.hpp"
 #include <unordered_map>
 #include <map>
@@ -114,7 +114,7 @@ class ILUPreconditioner {
  *  https://en.wikipedia.org/wiki/Conjugate_gradient_method
  */
 template<typename T, typename Precon>
-bool pcg(const CsrMatrix& a, double *rhs, double *x, int &iterations, bool verbose = false, Timer* t = nullptr) {
+bool pcg(const CsrMatrix& a, double *rhs, double *x, int &iterations, bool verbose = false, cask::utils::Timer* t = nullptr) {
     // configuration (TODO Should be exposed through params)
     char tr = 'l';
     int maxiters = 2000;
