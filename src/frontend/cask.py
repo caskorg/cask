@@ -95,7 +95,7 @@ def execute(command, logfile=None, silent=True):
 def runDse(benchFile, paramsFile, target, skipExecution=False):
   dseFile = "dse_out.json"
   if not skipExecution:
-    execute(['../build/main', benchFile, paramsFile], DSE_LOG_FILE)
+    execute(['../../build/main', benchFile, paramsFile], DSE_LOG_FILE)
   else:
     print '  --> Skip DSE run, load results from', dseFile
   params = []
@@ -129,7 +129,7 @@ def runDse(benchFile, paramsFile, target, skipExecution=False):
 
 def buildClient(target):
   print ' >> Building Client ----'
-  execute(['make', '-C', '../build/', 'test_spmv_' + target])
+  execute(['make', '-C', '../../build/', 'test_spmv_' + target])
 
 
 def runClient(benchmark, target, prj=None):
@@ -139,9 +139,9 @@ def runClient(benchmark, target, prj=None):
     if target == TARGET_DFE:
       cmd = ['bash', 'spark_dfe_run.sh', p]
     elif target == TARGET_SIM:
-      cmd = ['bash', 'simrunner', '../build/test_spmv_sim', p]
+      cmd = ['bash', 'simrunner', '../../build/test_spmv_sim', p]
     elif target == TARGET_DFE_MOCK:
-      cmd = ['bash', 'mockrunner', '../build/test_spmv_dfe_mock', p]
+      cmd = ['bash', 'mockrunner', '../../build/test_spmv_dfe_mock', p]
     outF = 'runs/run_' + target + '_'
     if prj:
       cmd.append(str(prj.prj_id))
@@ -197,7 +197,7 @@ class Spark:
       '-Wall',
       '-std=c++11',
       '-fPIC',
-      '-I../src/runtime',
+      '-I../runtime',
       ]
 
     # TODO move these checks in an earlier phase
@@ -539,14 +539,14 @@ def main():
   if args.reporting == REP_HTML:
     print colored('Generating HTML reports', 'red')
     for p in benchmark:
-      out, out_err = execute(['python', '../spam/sparsegrind/main.py',
+      out, out_err = execute(['python', '../../spam/sparsegrind/main.py',
               '-f', 'mm', '-a', 'summary', p], silent=False)
       outputDir = os.path.join('matrices', os.path.basename(p).replace('.mtx', ''))
       summaryFile = os.path.join(outputDir, 'summary.csv')
       check_make_dir(outputDir)
       with open(summaryFile, 'w') as f:
         f.write(out)
-      execute(['python', '../spam/sparsegrind/main.py',
+      execute(['python', '../../spam/sparsegrind/main.py',
               '-f', 'mm', '-a', 'plot', p], silent=False)
       shutil.copy('sparsity.png', outputDir)
 
