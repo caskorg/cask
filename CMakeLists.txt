@@ -5,10 +5,6 @@ set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0 --coverage -fno-inline -
 include(${CMAKE_SOURCE_DIR}/spam/scripts/cmake/Utils.cmake)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/spam/scripts/cmake/")
 
-# --- Project Options and Configurations
-OPTION(SparseLib_DisableTesting "Disable execution of SparseLib tests" OFF)
-
-
 # --- Useful functions and macros
 function(AddMaxelerSimTest binary name args)
     add_test(
@@ -53,7 +49,7 @@ if (EIGEN_HEADER)
   add_definitions(-DUSEEIGEN)
   set(SparkCpu_src
     "${SparkCpu_src}"
-    src/SparseLinearSolvers.cpp
+    src/runtime/SparseLinearSolvers.cpp
     )
 endif()
 
@@ -72,6 +68,7 @@ endif()
 include_directories(dfe-snippets/include)
 include_directories(tests)
 include_directories(include)
+include_directories(src/runtime)
 
 # For each application we use:
 # - a device library; this implements the low level device calls
@@ -82,14 +79,14 @@ include_directories(include)
 
 # SpMV Implementation Library
 set(SpmvImplLib_src
-  src/spmv/src/Spmv.cpp)
+  src/runtime/Spmv.cpp)
   # src/cg/src/ConjugateGradient.cpp)
 add_library(SpmvImplLib ${SpmvImplLib_src})
 
 set(SparkCpu_src
   "${SparkCpu_src}"
-  src/dse/Dse.cpp
-  src/execution/SharedLibLoader.cpp
+  src/runtime/Dse.cpp
+  src/runtime/SharedLibLoader.cpp
   )
 add_library(SparkCpuLib ${SparkCpu_src})
 
@@ -109,14 +106,7 @@ target_link_libraries(test_spmv_dfe_mock
   -lboost_program_options -lboost_filesystem -lboost_system -ldl -L../lib-generated -lSpmv_dfe_mock
   SparkCpuLib SpmvImplLib)
 
-# -- Test targets
-include_directories(unit-tests)
-add_executable(unit_test_spmv unit-tests/spmv_test.cpp)
-target_link_libraries(unit_test_spmv boost_unit_test_framework -lgcov)
-add_test(
-  NAME unit_test_spmv
-  COMMAND spmv_test)
-
+enable_testing()
 # -- Maxeler tests
 if (DEFINED ENV{MAXCOMPILERDIR} AND DEFINED ENV{MAXELEROSDIR})
   message(STATUS "  MAXCOMPILER --> $ENV{MAXCOMPILERDIR}")
@@ -143,16 +133,13 @@ if (DEFINED ENV{MAXCOMPILERDIR} AND DEFINED ENV{MAXELEROSDIR})
     -L../lib-generated -lSpmv_dfe -ldl -lboost_filesystem
     -lmaxeleros)
 
-  if (NOT SparseLib_DisableTesting)
-    enable_testing()
-    # Should include dfe-snippets headers as they might be used in tests
-    file(GLOB files test-matrices/*.mtx)
-    foreach(infileName ${files})
-      get_filename_component(matrix "${infileName}" NAME)
-      AddMaxelerSimTest("test_spmv_sim" "${matrix}" "../test-matrices/${matrix}")
-      AddMaxelerHwTest("test_spmv_dfe" "${matrix}" "../test-matrices/${matrix}")
-    endforeach()
-  endif()
+  # Should include dfe-snippets headers as they might be used in tests
+  file(GLOB files test-matrices/*.mtx)
+  foreach(infileName ${files})
+    get_filename_component(matrix "${infileName}" NAME)
+    AddMaxelerSimTest("test_spmv_sim" "${matrix}" "../test-matrices/${matrix}")
+    AddMaxelerHwTest("test_spmv_dfe" "${matrix}" "../test-matrices/${matrix}")
+  endforeach()
 
   add_executable(test_cg_sim tests/test_cg.cpp)
   target_link_libraries(test_cg_sim
@@ -169,16 +156,12 @@ if (DEFINED ENV{MAXCOMPILERDIR} AND DEFINED ENV{MAXELEROSDIR})
       # AddMaxelerHwTest("test_spmv_dfe" "${matrix}" "../test-matrices/${matrix}")
     endforeach()
   endif()
+endif()
 
-  add_subdirectory(lib/gtest)
-
-  # add_executable(spam src/main.cpp ${HEADERS})
-  # target_link_libraries(spam ${LibMKL_LIBRARIES} -lrt -fopenmp)
-
-  if (NOT SparseLib_DisableTesting)
-    AddGtestSuite(LinearSolvers)
-    AddGtestSuite(SparseMatrix)
-    AddGtestSuite(Io)
-    AddGtestSuite(MklLayer)
-  endif()
+add_subdirectory(lib/gtest)
+if (LibMKL_INCLUDE_DIRS)
+  AddGtestSuite(LinearSolvers)
+  AddGtestSuite(SparseMatrix)
+  AddGtestSuite(Io)
+  AddGtestSuite(MklLayer)
 endif()

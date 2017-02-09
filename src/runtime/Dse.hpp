@@ -2,10 +2,10 @@
 #define DSE_H
 
 #include <memory>
-#include <Spark/Spmv.hpp>
-#include <Spark/SimpleSpmv.hpp>
-#include <Spark/Utils.hpp>
-#include <Spark/Io.hpp>
+#include "Spmv.hpp"
+#include "SimpleSpmv.hpp"
+#include "Utils.hpp"
+#include "Io.hpp"
 #include <chrono>
 #include <stdexcept>
 #include <sstream>

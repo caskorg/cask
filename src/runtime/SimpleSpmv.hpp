@@ -3,11 +3,11 @@
 
 #include <sstream>
 
-#include <Spark/Spmv.hpp>
-#include <Spark/Utils.hpp>
-#include <Spark/Model.hpp>
-#include <Spark/device/SpmvDeviceInterface.h>
-#include <Spark/GeneratedImplSupport.hpp>
+#include "Spmv.hpp"
+#include "Utils.hpp"
+#include "Model.hpp"
+#include "SpmvDeviceInterface.h"
+#include "GeneratedImplSupport.hpp"
 
 
 namespace spark {

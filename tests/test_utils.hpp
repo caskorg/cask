@@ -10,9 +10,9 @@
 
 #include <Eigen/Sparse>
 
-#include <Spark/SparseLinearSolvers.hpp>
-#include <Spark/Converters.hpp>
-#include <Spark/Io.hpp>
+#include "SparseLinearSolvers.hpp"
+#include "Converters.hpp"
+#include "Io.hpp"
 
 #include <dfesnippets/NumericUtils.hpp>
 

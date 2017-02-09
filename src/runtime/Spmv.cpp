@@ -1,13 +1,12 @@
-#include <Spark/Spmv.hpp>
-#include <Spark/SimpleSpmv.hpp>
-
-#include <Spark/Converters.hpp>
+#include "Spmv.hpp"
+#include "SimpleSpmv.hpp"
+#include "Converters.hpp"
 #include <iostream>
 #include <tuple>
 #include <dfesnippets/VectorUtils.hpp>
 #include <dfesnippets/Timing.hpp>
 
-#include <Spark/GeneratedImplSupport.hpp>
+#include "GeneratedImplSupport.hpp"
 
 using namespace spark::spmv;
 using ssarch = spark::spmv::SimpleSpmvArchitecture;

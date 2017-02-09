@@ -1,10 +1,10 @@
-#include <Spark/Spmv.hpp>
-#include <Spark/SimpleSpmv.hpp>
-#include <Spark/Io.hpp>
-#include <Spark/Converters.hpp>
-#include <Spark/Execution.hpp>
-#include <Spark/UserInput.hpp>
-#include <Spark/GeneratedImplSupport.hpp>
+#include "Spmv.hpp"
+#include "SimpleSpmv.hpp"
+#include "Io.hpp"
+#include "Converters.hpp"
+#include "Execution.hpp"
+#include "UserInput.hpp"
+#include "GeneratedImplSupport.hpp"
 
 #include <string>
 #include <boost/filesystem.hpp>

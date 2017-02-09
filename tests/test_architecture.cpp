@@ -1,5 +1,5 @@
-#include <Spark/Dse.hpp>
-#include <Spark/Utils.hpp>
+#include <Dse.hpp>
+#include <Utils.hpp>
 #include <boost/program_options.hpp>
 #include <chrono>
 #include <string>

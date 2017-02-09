@@ -6,10 +6,10 @@
 #include <iterator>
 #include "mkl.h"
 #include "SpamUtils.hpp"
-#include <Spark/MklLayer.hpp>
+#include "MklLayer.hpp"
 #include <unordered_map>
 #include <map>
-#include <Spark/SpamSparseMatrix.hpp>
+#include "SpamSparseMatrix.hpp"
 #include <memory>
 
 using namespace std;

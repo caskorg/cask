@@ -3,10 +3,8 @@
 
 #include <stdexcept>
 #include <memory>
-
-#include <Spark/SparseMatrix.hpp>
+#include "SparseMatrix.hpp"
 #include <Eigen/Sparse>
-#include <Spark/SparseMatrix.hpp>
 
 namespace spark {
   namespace converters {

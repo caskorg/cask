@@ -9,7 +9,7 @@
 #include <fstream>
 #include <chrono>
 
-#include <Spark/SparseMatrix.hpp>
+#include "SparseMatrix.hpp"
 
 #include <dfesnippets/Timing.hpp>
 

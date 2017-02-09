@@ -1,7 +1,7 @@
 #include <iostream>
-#include <Spark/Dse.hpp>
+#include "Dse.hpp"
 #include <unordered_map>
-#include <Spark/Converters.hpp>
+#include "Converters.hpp"
 
 using namespace spark::spmv;
 using namespace spark::utils;

@@ -1,8 +1,8 @@
 #ifndef SPMV_H
 #define SPMV_H
 
-#include <Spark/SparseMatrix.hpp>
-#include <Spark/Model.hpp>
+#include "SparseMatrix.hpp"
+#include "Model.hpp"
 #include <boost/property_tree/ptree.hpp>
 #include <Eigen/Sparse>
 

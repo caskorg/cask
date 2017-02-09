@@ -1,9 +1,9 @@
 #include <vector>
-#include <Spark/Benchmark.hpp>
-#include <Spark/LinearSolvers.hpp>
-#include <Spark/IO.hpp>
-#include <Spark/SpamSparseMatrix.hpp>
-#include <Spark/SpamUtils.hpp>
+#include <Benchmark.hpp>
+#include <LinearSolvers.hpp>
+#include <IO.hpp>
+#include <SpamSparseMatrix.hpp>
+#include <SpamUtils.hpp>
 #include <gtest/gtest.h>
 
 class TestLinearSolvers : public ::testing::Test { };

@@ -197,7 +197,7 @@ class Spark:
       '-Wall',
       '-std=c++11',
       '-fPIC',
-      '-I../include',
+      '-I../src/runtime',
       ]
 
     # TODO move these checks in an earlier phase
@@ -252,7 +252,7 @@ class Spark:
           f.write('#include <{0}.h>\n'.format(p.name))
 
       # Defines struct formats
-      f.write('#include <Spark/{0}>\n'.format('GeneratedImplSupport.hpp'))
+      f.write('#include "{0}"\n'.format('GeneratedImplSupport.hpp'))
 
       f.write('using namespace spark::runtime;\n')
 
