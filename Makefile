@@ -1,9 +1,9 @@
-TMP_PATH="/tmp/spark_html_doc"
+TMP_PATH="/tmp/cask_html_doc"
 HTML_DIR="html"
 COV_DIR="coverage"
 MAT_DIR="matrices_html"
-TMP_COV_PATH="/tmp/spark_coverage"
-TMP_MAT_PATH="/tmp/spark_matrices"
+TMP_COV_PATH="/tmp/cask_coverage"
+TMP_MAT_PATH="/tmp/cask_matrices"
 TRASH=latex
 ROOT_PATH=$(shell pwd)
 
@@ -28,10 +28,10 @@ build/main:
 	cd build && cmake -DCMAKE_BUILD_TYPE=Release .. && make main -j
 
 hw: build/main
-	cd src/frontend && python spark.py -t dfe -p ../params.json -b ../../test-benchmark -d -bm best
+	cd src/frontend && python cask.py -t dfe -p ../params.json -b ../../test-benchmark -d -bm best
 
 sim: build/main
-	cd src/frontend && python spark.py -t sim -p ../params.json -b ../../test-benchmark -d -rb -rep html
+	cd src/frontend && python cask.py -t sim -p ../params.json -b ../../test-benchmark -d -rb -rep html
 	cd build & make -j12
 
 sim-test: sim
@@ -43,17 +43,17 @@ graphs:
 hw-flow:
 	mkdir -p build
 	cd build && cmake ..
-	cd src/frontend && python spark.py -d -t dfe -p params.json -b ../../test-benchmark -rb -rep html -bm best && cd ..
+	cd src/frontend && python cask.py -d -t dfe -p params.json -b ../../test-benchmark -rb -rep html -bm best && cd ..
 
 sim-flow:
 	mkdir -p build
 	cd build && cmake ..
-	cd src/frontend && python spark.py -d -t sim -p params.json -b ../../test-benchmark -rb -rep html -bm best && cd ..
+	cd src/frontend && python cask.py -d -t sim -p params.json -b ../../test-benchmark -rb -rep html -bm best && cd ..
 
 mock-flow:
 	mkdir -p build
 	cd build && cmake .. && make main && cd ..
-	cd src/frontend && python spark.py -d -t dfe_mock -p params.json -b ../../test-benchmark -rb -rep html --cpp=$(CXX) && cd ..
+	cd src/frontend && python cask.py -d -t dfe_mock -p params.json -b ../../test-benchmark -rb -rep html --cpp=$(CXX) && cd ..
 	cd build && make -j12
 
 matrix:
@@ -65,8 +65,8 @@ matrix:
 coverage:
 	rm -rf build && mkdir -p build
 	cd build && cmake -DCMAKE_BUILD_TYPE=Debug ..
-	cd src/frontend && python spark.py -t dfe_mock -p ../params.json -b ../../test-benchmark && cd ..
-	cd src/frontend && python spark.py -t sim -p ../params.json -b ../../test-benchmark && cd ..
+	cd src/frontend && python cask.py -t dfe_mock -p ../params.json -b ../../test-benchmark && cd ..
+	cd src/frontend && python cask.py -t sim -p ../params.json -b ../../test-benchmark && cd ..
 	cd build && make -j12
 	bash gen_cov
 
