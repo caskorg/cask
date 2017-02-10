@@ -2,8 +2,8 @@ cmake_minimum_required(VERSION 2.6)
 
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0 --coverage -fno-inline --coverage -fno-inline -fno-inline-small-functions -fno-default-inline")
 
-include(${CMAKE_SOURCE_DIR}/spam/scripts/cmake/Utils.cmake)
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/spam/scripts/cmake/")
+include(${CMAKE_SOURCE_DIR}/src/cmake/Utils.cmake)
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/src/cmake/")
 
 # --- Useful functions and macros
 function(AddMaxelerSimTest binary name args)
