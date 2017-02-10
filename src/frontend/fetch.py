@@ -21,6 +21,8 @@ class Matrix(object):
         self.sym = sym
         self.hasRhs = hasRhs
         self.rhsFile = None
+        self.hasSol = False
+        self.solFile = None
 
     def fullName(self):
         return self.group + '/' + self.name
@@ -74,7 +76,7 @@ class MatrixCollection(object):
         pass
 
     def __str__(self):
-        keys = ['group', 'name', 'id', 'rows', 'cols', 'nonZeros', 'valuetype', 'spd', 'sym', 'hasRhs']
+        keys = ['group', 'name', 'id', 'rows', 'cols', 'nonZeros', 'valuetype', 'spd', 'sym', 'hasRhs', 'hasSol']
         return tabulate([[getattr(m, k) for k in keys] for m in self.matrixList], keys)
 
     def getSpdLinearSystems(self):
@@ -89,11 +91,23 @@ def ToInt(stringVal):
 
 
 def fetchOtherProperties(matrices):
+    # Rebuild RHS information, if possible
     with open('uof_rhs_names.txt') as f:
         names = set(map(lambda x: x.strip(), f.readlines()))
         for m in matrices:
             if m.fullName() in names:
                 m.hasRhs = True
+
+    # Rebuild file path information
+    if os.path.exists('matrices'):
+        for m in matrices:
+            mpath = os.path.join('matrices', m.name, m.name + '.mtx')
+            bpath = os.path.join('matrices', m.name, m.name + '_b.mtx')
+            if os.path.exists(mpath):
+                m.file = mpath
+            if os.path.exists(bpath):
+                m.rhsFile = bpath
+
     return matrices
 
 
