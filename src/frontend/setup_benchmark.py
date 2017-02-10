@@ -32,31 +32,44 @@ import json
 from tabulate import tabulate
 from subprocess import call
 
+import urllib
+import utils
+
+SOLUTIONS_URL = 'https://www.doc.ic.ac.uk/~pg1709/solutions.tar.gz'
 
 def matrix_name(matrix_file):
     return matrix_file.replace('_SPD_x.mtx', '')
 
 
-def add_solutions(solutionArchive, collection):
-    if os.path.exists(solutionArchive):
-        call(["tar", "-xzf", solutionArchive])
-        for f in os.listdir("solutions"):
-            mname = matrix_name(f)
-            for m in collection.matrixList:
-                if m.name == mname:
-                    m.hasSol = True
-                    m.solFile = "solutions/" + f
+def add_solutions(collection, solutionArchive='solutions.tar.gz', url=SOLUTIONS_URL):
+    if not os.path.exists(solutionArchive):
+        utils.warn('Could not find expected solutions archive!')
+        utils.info('Attempting to download solutions from: ' + url)
+        found = urllib.urlopen(url)
+        if found.code != 200:
+            utils.error('Solution download failed: ' + url)
+            return
+        urllib.urlretrieve(url, solutionArchive)
+    call(["tar", "-xzf", solutionArchive])
+    for f in os.listdir("solutions"):
+        mname = matrix_name(f)
+        for m in collection.matrixList:
+            if m.name == mname:
+                m.hasSol = True
+                m.solFile = "solutions/" + f
+    
 
 
 def make_benchmark(collection):
     """Group all systems and solutions in a single directory"""
     # Check if we have all required information for the benchmark
     not_cached = collection.select(lambda x: not x.solFile or not x.file or not x.rhsFile)
-    print 'Info! All systems are cached, will not re-fetch'
     # import pdb;pdb.set_trace()
     if not_cached.matrixList:
         # Download the matrices which are not cached
         not_cached.download()
+    else:
+        utils.info('All systems are cached, will not re-fetch')
 
     # create benchmark directory
     benchmark_dir = 'benchmark_data'
@@ -82,7 +95,7 @@ def make_benchmark(collection):
 
 def run_benchmark(collection):
     """Run each solver on a system and record the results"""
-    solvers = ['../../build/spam']
+    solvers = ['../../build/test_cg_mock']
     headers = ['estimated error', 'solve took', 'setup took',
                'error', 'iterations', 'bench repetitions']
     all_data = []
@@ -91,7 +104,8 @@ def run_benchmark(collection):
             print 'Error! Missing solver', s
             continue
         for m in collection.matrixList:
-            call([s, '-mat', m.file, '-rhs', m.rhsFile, '-lhs', m.solFile])
+            print 'Solving', m.file, 'with solver', s
+            utils.execute([s, '-mat', m.file, '-rhs', m.rhsFile, '-lhs', m.solFile])
             for prec in ['ilu', 'upc']:
                 with open('sol.' + prec + '.mtx.log') as f:
                     json_data = json.load(f)
@@ -109,21 +123,23 @@ def main():
     systems = fetch.fetch().getSpdLinearSystems()
 
     # add solution information
-    add_solutions("solutions.tar.gz", systems)
+    add_solutions(systems)
 
     systems_without_solutions = systems.select(lambda x: not x.hasSol)
     if systems_without_solutions:
-        print 'Warning! Two systems do not have solutions'
+        utils.warn('Some systems do not have solutions')
         print systems_without_solutions
 
     systems_with_solutions = systems.select(lambda x: x.hasSol)
 
-    # print systems_with_solutions
+    if not systems_with_solutions.matrixList:
+        utils.warn('No system has an expected solution')
+        make_benchmark(systems_without_solutions)
+        run_benchmark(systems_without_solutions.head(10))
+        return
 
     make_benchmark(systems_with_solutions)
-
-    run_benchmark(systems_with_solutions.head(3))
-
+    run_benchmark(systems_with_solutions.head(10))
 
 if __name__ == '__main__':
     main()

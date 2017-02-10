@@ -1,9 +1,12 @@
 #include <vector>
-#include <Spark/IO.hpp>
-#include <Spark/Benchmark.hpp>
-#include <Spark/LinearSolvers.hpp>
-#include <Spark/SparseMatrix.hpp>
-#include <Spark/Utils.hpp>
+#include <IO.hpp>
+#include <Benchmark.hpp>
+#include <SparseLinearSolvers.hpp>
+#include <SparseMatrix.hpp>
+#include <Utils.hpp>
+#include <iostream>
+
+using namespace std;
 
 template<typename P>
 void runCg(const cask::SymCsrMatrix &a,
@@ -13,8 +16,8 @@ void runCg(const cask::SymCsrMatrix &a,
   int iterations = 0;
   bool verbose = false;
   std::vector<double> sol(a.n);
-  cask::Timer t;
-  cask::pcg<double, P>(a.matrix, &rhs[0], &sol[0], iterations, verbose, &t);
+  cask::utils::Timer t;
+  cask::sparse_linear_solvers::pcg<double, P>(a.matrix, &rhs[0], &sol[0], iterations, verbose, &t);
 
   ofstream logFile{outFile + ".log"};
   cask::benchmark::printSummary(
@@ -39,9 +42,9 @@ int main (int argc, char** argv) {
   std::vector<double> exp = cask::io::readVector(argv[6]);
 
   std::cout << "Running without preconditioning " << std::endl;
-  runCg<cask::IdentityPreconditioner>(a, exp, rhs, "sol.upc.mtx");
+  runCg<cask::sparse_linear_solvers::IdentityPreconditioner>(a, exp, rhs, "sol.upc.mtx");
   std::cout << "Running with ILU preconditioning " << std::endl;
-  runCg<cask::ILUPreconditioner>(a, exp, rhs, "sol.ilu.mtx");
+  runCg<cask::sparse_linear_solvers::ILUPreconditioner>(a, exp, rhs, "sol.ilu.mtx");
 
   return 0;
 }

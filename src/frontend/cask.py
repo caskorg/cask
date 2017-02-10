@@ -21,6 +21,8 @@ from scipy import io, sparse
 from subprocess import call
 from termcolor import colored
 
+import utils
+
 PRJ = 'Spmv'
 
 TARGET_DFE_MOCK = 'dfe_mock'
@@ -69,33 +71,10 @@ def print_from_iterator(lines_iterator, logfile=None):
       output += line
   return output
 
-def execute(command, logfile=None, silent=False):
-  if not silent:
-    print 'Executing ', ' '.join(command)
-  popen = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-
-  output = None
-  output_err = None
-  if logfile or not silent:
-    output = print_from_iterator(iter(popen.stdout.readline, b"") , logfile)
-    err_log = logfile + '.err' if logfile else None
-    output_err = print_from_iterator(iter(popen.stderr.readline,  b""), err_log)
-
-  popen.wait()
-  if popen.returncode != 0:
-    if logfile:
-      print 'log: ', logfile
-      print 'errlog:  ', logfile + '.err'
-    print colored("Error! '{0}' return code {1}".format(
-      ' '.join(command), str(popen.returncode)) ,
-      'red')
-
-  return output, output_err
-
 def runDse(benchFile, paramsFile, target, skipExecution=False):
   dseFile = "dse_out.json"
   if not skipExecution:
-    execute(['../../build/main', benchFile, paramsFile], DSE_LOG_FILE)
+    utils.execute(['../../build/main', benchFile, paramsFile], DSE_LOG_FILE)
   else:
     print '  --> Skip DSE run, load results from', dseFile
   params = []
@@ -129,7 +108,7 @@ def runDse(benchFile, paramsFile, target, skipExecution=False):
 
 def buildClient(target):
   print ' >> Building Client ----'
-  execute(['make', '-C', '../../build/', 'test_spmv_' + target])
+  utils.execute(['make', '-C', '../../build/', 'test_spmv_' + target])
 
 
 def runClient(benchmark, target, prj=None):
@@ -185,7 +164,7 @@ class Spark:
     if self.target != TARGET_DFE_MOCK:
       for p in prjs:
         objFile = p.name + '.o'
-        execute(
+        utils.execute(
             ['sliccompile', p.maxFileLocation(), objFile],
             logfile=p.logFile())
         prj_includes.append('-I' + p.resultsDir())
@@ -234,7 +213,7 @@ class Spark:
         '-lslic',])
 
     cmd.extend(['-lm', '-lpthread'])
-    execute(cmd)
+    utils.execute(cmd)
 
     # copy the generated library
     libDir = '../../lib-generated'
@@ -477,7 +456,7 @@ def main():
           columns = ['Matrix', 'Order', 'Nonzeros', 'Format', 'Type', 'Pattern', 'Nnz/row'])
 
   if args.dse:
-    print colored('Running DSE flow', 'red')
+    utils.info('Running DSE flow')
     # the DSE tool produces a JSON file with architectures to be built
     prjs, log_archs = runDse(args.benchmark_dir, args.param_file, args.target, args.dse_skip)
   else:
@@ -537,16 +516,16 @@ def main():
 
   # Reporting
   if args.reporting == REP_HTML:
-    print colored('Generating HTML reports', 'red')
+    info('Generating HTML reports')
     for p in benchmark:
-      out, out_err = execute(['python', 'sparsegrind.py',
+      out, out_err = utils.execute(['python', 'sparsegrind.py',
               '-f', 'mm', '-a', 'summary', p], silent=False)
       outputDir = os.path.join('matrices', os.path.basename(p).replace('.mtx', ''))
       summaryFile = os.path.join(outputDir, 'summary.csv')
       check_make_dir(outputDir)
       with open(summaryFile, 'w') as f:
         f.write(out)
-      execute(['python', 'sparsegrind.py',
+      utils.execute(['python', 'sparsegrind.py',
               '-f', 'mm', '-a', 'plot', p], silent=False)
       shutil.copy('sparsity.png', outputDir)
 

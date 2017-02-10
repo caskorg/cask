@@ -60,7 +60,7 @@ if (LibMKL_INCLUDE_DIRS)
   set(LIBS ${LIBS} ${LibMKL_LIBRARIES} -lrt -fopenmp)
   add_definitions(-DUSEMKL)
 else()
-  message(STATUS "Found MKL: no (set MKLROOT?)")
+  message(FATAL_ERROR "Found MKL: no (set MKLROOT?)")
 endif()
 
 #
@@ -106,6 +106,12 @@ target_link_libraries(test_spmv_dfe_mock
   -lboost_program_options -lboost_filesystem -lboost_system -ldl -L../lib-generated -lSpmv_dfe_mock
   SparkCpuLib SpmvImplLib)
 
+add_executable(test_cg_mock test/test_cg.cpp)
+target_link_libraries(test_cg_mock
+  SparkCpuLib SpmvImplLib
+  -L../lib-generated -ldl -lboost_filesystem -lSpmv_dfe_mock
+  ${LibMKL_LIBRARIES} -lrt -fopenmp)
+
 enable_testing()
 # -- Maxeler tests
 if (DEFINED ENV{MAXCOMPILERDIR} AND DEFINED ENV{MAXELEROSDIR})
@@ -122,14 +128,14 @@ if (DEFINED ENV{MAXCOMPILERDIR} AND DEFINED ENV{MAXELEROSDIR})
   # -- Simulation tests
   add_executable(test_spmv_sim test/test_spmv.cpp)
   target_link_libraries(test_spmv_sim
-    SparkCpuLib SparkCpuLib SpmvImplLib
+    SparkCpuLib SpmvImplLib
     -L../lib-generated -lSpmv_sim -ldl -lboost_filesystem
     -lmaxeleros)
 
   # -- Hardware tests
   add_executable(test_spmv_dfe EXCLUDE_FROM_ALL test/test_spmv.cpp)
   target_link_libraries(test_spmv_dfe
-    SparkCpuLib SparkCpuLib SpmvImplLib
+    SparkCpuLib SpmvImplLib
     -L../lib-generated -lSpmv_dfe -ldl -lboost_filesystem
     -lmaxeleros)
 
@@ -143,7 +149,7 @@ if (DEFINED ENV{MAXCOMPILERDIR} AND DEFINED ENV{MAXELEROSDIR})
 
   add_executable(test_cg_sim test/test_cg.cpp)
   target_link_libraries(test_cg_sim
-    SparkCpuLib SparkCpuLib SpmvImplLib
+    SparkCpuLib SpmvImplLib
     -L../lib-generated -lSpmv_sim -ldl -lboost_filesystem
     -lmaxeleros ${LibMKL_LIBRARIES} -lrt -fopenmp)
 
@@ -157,6 +163,7 @@ if (DEFINED ENV{MAXCOMPILERDIR} AND DEFINED ENV{MAXELEROSDIR})
     endforeach()
   endif()
 endif()
+
 
 add_subdirectory(lib/gtest)
 if (LibMKL_INCLUDE_DIRS)
