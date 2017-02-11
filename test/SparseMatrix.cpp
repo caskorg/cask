@@ -3,6 +3,7 @@
 #include <vector>
 
 class TestSparseMatrix : public ::testing::Test { };
+class TestVector : public ::testing::Test { };
 
 TEST_F(TestSparseMatrix, DokSetFromPattern) {
 
@@ -152,4 +153,16 @@ TEST_F(TestSparseMatrix, CsrDotProduct) {
   std::vector<double> b{1, 2, 3, 4};
   std::vector<double> e{1, 4, 5, 7};
   ASSERT_EQ(m.dot(b), e);
+}
+
+TEST_F(TestVector, VectorSubtract) {
+  cask::Vector a{1, 6, 9, 4};
+  cask::Vector b{3, 4, 5, 7};
+  cask::Vector exp{-2, 2, 4, -3};
+  ASSERT_EQ(a - b, exp);
+}
+
+TEST_F(TestVector, VectorNorm) {
+  cask::Vector a{1, 2, 3, 1, 1};
+  ASSERT_EQ(a.norm(), 4);
 }

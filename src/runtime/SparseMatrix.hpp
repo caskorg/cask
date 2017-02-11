@@ -33,6 +33,50 @@ namespace cask {
       };
   }
 
+// A dense vector representation
+class Vector {
+public:
+  std::vector<double> data;
+
+  Vector(int n) : data(n, 0) {}
+  Vector(std::initializer_list<double> l) : data(l) {}
+  Vector(const std::vector<double>& v) : data(v.begin(), v.end()) {}
+
+  Vector operator-(const Vector& other) const {
+    int n = size();
+    if (other.size() != data.size()) {
+      throw std::invalid_argument("Attempt to subtract vectors of different lengths: " +
+                                  std::to_string(other.size()) + " != " + std::to_string(n));
+    }
+    Vector v(n);
+    for (int i = 0; i < n; i++) {
+      v.data[i] = data[i] - other.data[i];
+    }
+    return v;
+  }
+
+  int size() const {
+    return data.size();
+  }
+
+  bool operator==(const Vector& other) const {
+    return data == other.data;
+  }
+
+  void print() {
+    for (int i : data)
+      std::cout << i << " ";
+    std::cout << std::endl;
+  }
+
+  double norm() {
+    double residual;
+    for (double d : data)
+      residual += d * d;
+    return std::sqrt(residual);
+  }
+};
+
 /**
  * Sparse matrix representations for some common storage formats:
  * - DoK (Dictionary of Keys) -- the de facto format for all/many construction tasks; random read/write access is
@@ -180,12 +224,12 @@ class DokMatrix {
     return lowerTriangular;
   }
 
-  std::vector<double> dot(const std::vector<double>& b) {
-    std::vector<double> result(b.size());
+  Vector dot(const std::vector<double>& b) const {
+    Vector result(b.size());
     for (auto &p : dok) {
       int row = p.first;
       for (auto &e : p.second) {
-        result[row] += b[e.first] * e.second;
+        result.data[row] += b[e.first] * e.second;
       }
     }
     return result;
@@ -333,7 +377,7 @@ class CsrMatrix {
     return CsrMatrix(toDok().getUpperTriangular());
   }
 
-  std::vector<double> dot(const std::vector<double>& b) {
+  Vector dot(const std::vector<double>& b) const {
     return toDok().dot(b);
   }
 
@@ -366,11 +410,12 @@ class SymCsrMatrix {
     matrix.toDok().explicitSymmetric().pretty_print();
   }
 
-  std::vector<double> dot(const std::vector<double>& b) {
+  Vector dot(const std::vector<double>& b) const {
     return matrix.toDok().explicitSymmetric().dot(b);
   }
 
 };
+
 
 inline void writeToFile(std::string path, std::vector<double> vector) {
   std::ofstream f{path};

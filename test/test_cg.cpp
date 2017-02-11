@@ -18,14 +18,15 @@ void runCg(const cask::SymCsrMatrix &a,
   std::vector<double> sol(a.n);
   cask::utils::Timer t;
   cask::sparse_linear_solvers::pcg<double, P>(a.matrix, &rhs[0], &sol[0], iterations, verbose, &t);
+  cask::Vector vrhs(rhs);
+  double estimatedL2Norm = (a.dot(sol) - vrhs).norm();
 
   ofstream logFile{outFile + ".log"};
   cask::benchmark::printSummary(
       t.get("cg:setup").count(),
       iterations,
       t.get("cg:solve").count(),
-      // TODO should measure system residual norm (i.e. l2Norm(A * x - b)
-      0,
+      estimatedL2Norm,
       cask::benchmark::residual(exp, sol),
       0,
       logFile
