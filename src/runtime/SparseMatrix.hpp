@@ -50,7 +50,7 @@ public:
     }
     Vector v(n);
     for (int i = 0; i < n; i++) {
-      v.data[i] = data[i] - other.data[i];
+      v[i] = data[i] - other[i];
     }
     return v;
   }
@@ -61,6 +61,14 @@ public:
 
   bool operator==(const Vector& other) const {
     return data == other.data;
+  }
+
+  const double& operator[](int i) const {
+    return data[i];
+  }
+
+  double& operator[](int i) {
+    return data[i];
   }
 
   void print() {
@@ -224,12 +232,12 @@ class DokMatrix {
     return lowerTriangular;
   }
 
-  Vector dot(const std::vector<double>& b) const {
+  Vector dot(const Vector& b) const {
     Vector result(b.size());
     for (auto &p : dok) {
       int row = p.first;
       for (auto &e : p.second) {
-        result.data[row] += b[e.first] * e.second;
+        result[row] += b[e.first] * e.second;
       }
     }
     return result;
@@ -377,7 +385,7 @@ class CsrMatrix {
     return CsrMatrix(toDok().getUpperTriangular());
   }
 
-  Vector dot(const std::vector<double>& b) const {
+  Vector dot(const Vector& b) const {
     return toDok().dot(b);
   }
 
@@ -410,7 +418,7 @@ class SymCsrMatrix {
     matrix.toDok().explicitSymmetric().pretty_print();
   }
 
-  Vector dot(const std::vector<double>& b) const {
+  Vector dot(const Vector& b) const {
     return matrix.toDok().explicitSymmetric().dot(b);
   }
 

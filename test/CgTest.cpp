@@ -1,10 +1,8 @@
-#include <vector>
-#include <IO.hpp>
 #include <Benchmark.hpp>
+#include <IO.hpp>
 #include <SparseLinearSolvers.hpp>
-#include <SparseMatrix.hpp>
-#include <Utils.hpp>
-#include <iostream>
+#include <vector>
+#include <gtest/gtest.h>
 
 using namespace std;
 
@@ -34,18 +32,28 @@ void runCg(const cask::SymCsrMatrix &a,
   cask::writeToFile(outFile, sol);
 }
 
-// Solve an SPD sparse system using the conjugate gradient method with Intel MKL
-int main (int argc, char** argv) {
-
-  cask::benchmark::parseArgs(argc, argv);
-  cask::SymCsrMatrix a = cask::io::readSymMatrix(argv[2]);
-  std::vector<double> rhs = cask::io::readVector(std::string(argv[4]));
-  std::vector<double> exp = cask::io::readVector(argv[6]);
+void run_test(std::string matrixPath, std::string lhsPath, std::string rhsPath) {
+  cask::SymCsrMatrix a = cask::io::readSymMatrix(matrixPath);
+  std::vector<double> rhs = cask::io::readVector(rhsPath);
+  std::vector<double> exp = cask::io::readVector(lhsPath);
 
   std::cout << "Running without preconditioning " << std::endl;
   runCg<cask::sparse_linear_solvers::IdentityPreconditioner>(a, exp, rhs, "sol.upc.mtx");
   std::cout << "Running with ILU preconditioning " << std::endl;
   runCg<cask::sparse_linear_solvers::ILUPreconditioner>(a, exp, rhs, "sol.ilu.mtx");
-
-  return 0;
 }
+
+TEST(CgTest, SolveTiny) {
+  run_test("test/systems/tiny.mtx", "test/systems/tiny_sol.mtx", "test/systems/tiny_b.mtx");
+}
+
+TEST(CgTest, SolveTinySym) {
+  run_test("test/systems/tinysym.mtx", "test/systems/tinysym_sol.mtx", "test/systems/tinysym_b.mtx");
+}
+
+// Solve an SPD sparse system using the conjugate gradient method with Intel MKL
+// int main (int argc, char** argv) {
+//   cask::benchmark::parseArgs(argc, argv);
+//   run_test(argv[2], argv[4], argv[6]);
+//   return 0;
+// }

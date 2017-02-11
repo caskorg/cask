@@ -5,6 +5,8 @@ set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0 --coverage -fno-inline -
 include(${CMAKE_SOURCE_DIR}/src/cmake/Utils.cmake)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/src/cmake/")
 
+include_directories(lib/gtest/googletest/include)
+
 # --- Useful functions and macros
 function(AddMaxelerSimTest binary name args)
     add_test(
@@ -106,11 +108,11 @@ target_link_libraries(test_spmv_dfe_mock
   -lboost_program_options -lboost_filesystem -lboost_system -ldl -L../lib-generated -lSpmv_dfe_mock
   SparkCpuLib SpmvImplLib)
 
-add_executable(test_cg_mock test/test_cg.cpp)
-target_link_libraries(test_cg_mock
-  SparkCpuLib SpmvImplLib
-  -L../lib-generated -ldl -lboost_filesystem -lSpmv_dfe_mock
-  ${LibMKL_LIBRARIES} -lrt -fopenmp)
+# add_executable(test_cg_mock test/test_cg.cpp)
+# target_link_libraries(test_cg_mock
+#   SparkCpuLib SpmvImplLib
+#   -L../lib-generated -ldl -lboost_filesystem -lSpmv_dfe_mock
+#   ${LibMKL_LIBRARIES} -lrt -fopenmp)
 
 enable_testing()
 # -- Maxeler tests
@@ -147,7 +149,7 @@ if (DEFINED ENV{MAXCOMPILERDIR} AND DEFINED ENV{MAXELEROSDIR})
     AddMaxelerHwTest("test_spmv_dfe" "${matrix}" "../tests/matrices/${matrix}")
   endforeach()
 
-  add_executable(test_cg_sim test/test_cg.cpp)
+  add_executable(test_cg_sim test/CgTest.cpp)
   target_link_libraries(test_cg_sim
     SparkCpuLib SpmvImplLib
     -L../lib-generated -lSpmv_sim -ldl -lboost_filesystem
@@ -171,4 +173,5 @@ if (LibMKL_INCLUDE_DIRS)
   AddGtestSuite(SparseMatrix)
   AddGtestSuite(Io)
   AddGtestSuite(MklLayer)
+  AddGtestSuite(CgTest)
 endif()

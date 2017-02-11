@@ -59,6 +59,8 @@ struct MmInfo {
 
 inline MmInfo readHeader(std::string path) {
   std::ifstream f{path};
+  if (!f)
+    throw std::invalid_argument("File not found " + path);
   std::string fileInfo;
   std::getline(f, fileInfo);
   std::regex mmHeaderRe("%%MatrixMarket (matrix|array) (coordinate|array) (real|integer) (symmetric|general)");

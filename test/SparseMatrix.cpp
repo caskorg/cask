@@ -150,8 +150,8 @@ TEST_F(TestSparseMatrix, CsrDotProduct) {
       0, 1, 1, 0,
       0, 0, 1, 1
   }};
-  std::vector<double> b{1, 2, 3, 4};
-  std::vector<double> e{1, 4, 5, 7};
+  cask::Vector b{1, 2, 3, 4};
+  cask::Vector e{1, 4, 5, 7};
   ASSERT_EQ(m.dot(b), e);
 }
 
