@@ -32,6 +32,7 @@ import json
 from tabulate import tabulate
 from subprocess import call
 
+import argparse
 import urllib
 import utils
 
@@ -115,6 +116,9 @@ def run_benchmark(collection):
 
 
 def main():
+    parser = argparse.ArgumentParser(description='Run Spark DSE flow')
+    parser.add_argument('-n', '--firstN', type=int, default=3)
+    args = parser.parse_args()
     # Download all SPD matrices if not already present
 
     # get matrix list and print it
@@ -135,11 +139,11 @@ def main():
     if not systems_with_solutions.matrixList:
         utils.warn('No system has an expected solution')
         make_benchmark(systems_without_solutions)
-        run_benchmark(systems_without_solutions.head(10))
+        run_benchmark(systems_without_solutions.head(args.firstN))
         return
 
     make_benchmark(systems_with_solutions)
-    run_benchmark(systems_with_solutions.head(10))
+    run_benchmark(systems_with_solutions.head(args.firstN))
 
 if __name__ == '__main__':
     main()
