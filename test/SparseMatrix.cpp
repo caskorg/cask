@@ -1,5 +1,6 @@
 #include <SparseMatrix.hpp>
 #include <gtest/gtest.h>
+#include <vector>
 
 class TestSparseMatrix : public ::testing::Test { };
 
@@ -47,8 +48,19 @@ TEST_F(TestSparseMatrix, DokExplicitSymmetry) {
    ASSERT_EQ(sym, expSym);
 }
 
-TEST_F(TestSparseMatrix, CsrToFromDok) {
+TEST_F(TestSparseMatrix, DokDotProduct) {
+   cask::DokMatrix dkMatrix{
+       1, 0, 0, 0,
+       1, 1, 0, 0,
+       1, 0, 1, 0,
+       1, 0, 0, 1
+   };
+   std::vector<double> b{1, 2, 3, 4};
+   std::vector<double> exp{1, 3, 4, 5};
+   ASSERT_EQ(dkMatrix.dot(b), exp);
+}
 
+TEST_F(TestSparseMatrix, CsrToFromDok) {
   cask::DokMatrix dokA{
        2, 1, 1, 1,
        1, 1, 0, 0,
@@ -110,4 +122,34 @@ TEST_F(TestSparseMatrix, CsrUpperTriangular) {
   u.pretty_print();
 
   ASSERT_EQ(u, expU);
+}
+
+
+TEST_F(TestSparseMatrix, SymCsrDotProduct) {
+  cask::SymCsrMatrix m{cask::DokMatrix{
+      1, 0, 0, 0,
+      1, 1, 0, 0,
+      1, 0, 1, 0,
+      1, 0, 1, 1
+  }};
+  // -- actual matrix:
+  // 1, 1, 1, 1,
+  // 1, 1, 0, 0,
+  // 1, 0, 1, 1,
+  // 1, 0, 1, 1
+  std::vector<double> b{1, 2, 3, 4};
+  std::vector<double> e{10, 3, 8, 8};
+  ASSERT_EQ(m.dot(b), e);
+}
+
+TEST_F(TestSparseMatrix, CsrDotProduct) {
+  cask::CsrMatrix m{cask::DokMatrix{
+      1, 0, 0, 0,
+      1, 0, 1, 0,
+      0, 1, 1, 0,
+      0, 0, 1, 1
+  }};
+  std::vector<double> b{1, 2, 3, 4};
+  std::vector<double> e{1, 4, 5, 7};
+  ASSERT_EQ(m.dot(b), e);
 }

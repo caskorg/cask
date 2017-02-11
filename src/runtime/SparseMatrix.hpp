@@ -180,6 +180,17 @@ class DokMatrix {
     return lowerTriangular;
   }
 
+  std::vector<double> dot(const std::vector<double>& b) {
+    std::vector<double> result(b.size());
+    for (auto &p : dok) {
+      int row = p.first;
+      for (auto &e : p.second) {
+        result[row] += b[e.first] * e.second;
+      }
+    }
+    return result;
+  }
+
 };
 
 // TODO verify preconditions:
@@ -322,6 +333,10 @@ class CsrMatrix {
     return CsrMatrix(toDok().getUpperTriangular());
   }
 
+  std::vector<double> dot(const std::vector<double>& b) {
+    return toDok().dot(b);
+  }
+
 };
 
 /** A symmetric matrix for which only the lower triangle is stored explicitly, in CSR format */
@@ -350,6 +365,11 @@ class SymCsrMatrix {
     std::cout << "Implicit values: " << std::endl;
     matrix.toDok().explicitSymmetric().pretty_print();
   }
+
+  std::vector<double> dot(const std::vector<double>& b) {
+    return matrix.toDok().explicitSymmetric().dot(b);
+  }
+
 };
 
 inline void writeToFile(std::string path, std::vector<double> vector) {
