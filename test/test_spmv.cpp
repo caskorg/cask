@@ -2,7 +2,6 @@
 #include "SimpleSpmv.hpp"
 #include "IO.hpp"
 #include "Converters.hpp"
-#include "Execution.hpp"
 #include "UserInput.hpp"
 #include "GeneratedImplSupport.hpp"
 
@@ -17,7 +16,6 @@
 const std::string LIB_DIR = "../lib-generated/";
 
 using namespace std;
-using namespace cask::execution;
 
 int test(string path, int implId) {
   std::cout << "File: " << path << std::endl;
