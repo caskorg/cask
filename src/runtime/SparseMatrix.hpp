@@ -410,7 +410,7 @@ class CsrMatrix {
     return toDok().dot(b);
   }
 
-  CsrMatrix sliceRows(int startRow, int nRows) {
+  CsrMatrix sliceRows(int startRow, int nRows) const {
     //startPos = row_ptr[startRow];
     std::vector<int> newRowPtr, newColInd;
     std::vector<double> newValues;

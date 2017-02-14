@@ -29,7 +29,7 @@ namespace cask {
         virtual double getGFlopsCount() = 0;
         virtual std::string to_string() = 0;
         virtual cask::model::ImplementationParameters getImplementationParameters() = 0;
-        virtual void preprocess(const cask::sparse::EigenSparseMatrix& mat) = 0;
+        virtual void preprocess(const cask::CsrMatrix& mat) = 0;
         virtual cask::Vector spmv(const cask::Vector& x) = 0;
         virtual std::string get_name() = 0;
         virtual boost::property_tree::ptree write_params() = 0;
@@ -116,7 +116,7 @@ namespace cask {
       // design parameters
       const int cacheSize, inputWidth, numPipes, maxRows;
 
-      cask::sparse::EigenSparseMatrix mat;
+      cask::CsrMatrix mat;
       std::vector<Partition> partitions;
       cask::runtime::GeneratedSpmvImplementation* impl;
 
@@ -197,7 +197,7 @@ namespace cask {
         }
 
         virtual double getGFlopsCount() {
-          return 2 * this->mat.nonZeros() / 1E9;
+          return 2 * this->mat.nnzs / 1E9;
         }
 
         // NOTE: only call this after a call to preprocessMatrix
@@ -209,7 +209,7 @@ namespace cask {
           using namespace cask::model;
 
           // XXX these should be architecture params
-          int maxRows = (this->mat.rows() / 512) * 512;
+          int maxRows = (this->mat.n / 512) * 512;
           const int virtex6EntriesPerBram = 512;
 
           LogicResourceUsage interPartitionReductionKernel(2768,1505, maxRows / virtex6EntriesPerBram, 0);
@@ -246,7 +246,7 @@ namespace cask {
           return s.str();
         }
 
-        virtual void preprocess(const cask::sparse::EigenSparseMatrix& mat) override;
+        virtual void preprocess(const cask::CsrMatrix& mat) override;
 
         virtual cask::Vector spmv(const cask::Vector& v) override;
 
@@ -255,12 +255,12 @@ namespace cask {
         }
 
       private:
-        std::vector<cask::sparse::EigenSparseMatrix> do_partition(
-            const cask::sparse::EigenSparseMatrix& mat,
+        std::vector<cask::CsrMatrix> do_partition(
+            const cask::CsrMatrix& mat,
             int numPipes);
 
         Partition do_blocking(
-            const Eigen::SparseMatrix<double, Eigen::RowMajor, int32_t>& mat,
+            const cask::CsrMatrix& mat,
             int blockSize,
             int inputWidth);
 
