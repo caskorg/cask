@@ -87,7 +87,6 @@ add_library(SpmvImplLib ${SpmvImplLib_src})
 
 set(SparkCpu_src
   "${SparkCpu_src}"
-        include/Cask.hpp
   src/runtime/Dse.cpp
   )
 add_library(SparkCpuLib ${SparkCpu_src})

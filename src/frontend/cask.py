@@ -516,7 +516,7 @@ def main():
 
   # Reporting
   if args.reporting == REP_HTML:
-    info('Generating HTML reports')
+    utils.info('Generating HTML reports')
     for p in benchmark:
       out, out_err = utils.execute(['python', 'sparsegrind.py',
               '-f', 'mm', '-a', 'summary', p], silent=False)

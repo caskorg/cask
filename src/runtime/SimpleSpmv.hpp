@@ -6,7 +6,7 @@
 #include "Spmv.hpp"
 #include "Utils.hpp"
 #include "Model.hpp"
-#include "SpmvDeviceInterface.h"
+// #include "SpmvDeviceInterface.h"
 #include "GeneratedImplSupport.hpp"
 
 
@@ -98,12 +98,6 @@ namespace cask {
           tree.put("max_rows", maxRows);
           return tree;
         }
-
-        SimpleSpmvArchitecture() :
-          cacheSize(getSpmv_PartitionSize()),
-          inputWidth(getSpmv_InputWidth()),
-          numPipes(getSpmv_NumPipes()),
-          maxRows(getSpmv_MaxRows()) {}
 
         SimpleSpmvArchitecture(int _cacheSize, int  _inputWidth, int _numPipes, int _maxRows) :
           cacheSize(_cacheSize),
@@ -314,8 +308,6 @@ namespace cask {
       }
 
       public:
-      FstSpmvArchitecture() : SimpleSpmvArchitecture() {}
-
       FstSpmvArchitecture(int _cacheSize, int  _inputWidth, int _numPipes, int _maxRows) :
         SimpleSpmvArchitecture(_cacheSize, _inputWidth, _numPipes, _maxRows) {}
 
@@ -368,8 +360,6 @@ namespace cask {
         }
 
       public:
-      SkipEmptyRowsArchitecture() : SimpleSpmvArchitecture(){}
-
       SkipEmptyRowsArchitecture(int _cacheSize, int  _inputWidth, int _numPipes, int _maxRows) :
         SimpleSpmvArchitecture(_cacheSize, _inputWidth, _numPipes, maxRows) {}
 
@@ -378,19 +368,17 @@ namespace cask {
       }
     };
 
-    class PrefetchingArchitecture : public SkipEmptyRowsArchitecture {
-      protected:
+     class PrefetchingArchitecture : public SkipEmptyRowsArchitecture {
+       protected:
 
-      public:
-      PrefetchingArchitecture() : SkipEmptyRowsArchitecture(){}
+       public:
+       PrefetchingArchitecture(int _cacheSize, int  _inputWidth, int _numPipes, int _maxRows) :
+         SkipEmptyRowsArchitecture(_cacheSize, _inputWidth, _numPipes, _maxRows) {}
 
-      PrefetchingArchitecture(int _cacheSize, int  _inputWidth, int _numPipes, int _maxRows) :
-        SkipEmptyRowsArchitecture(_cacheSize, _inputWidth, _numPipes, _maxRows) {}
-
-      virtual std::string get_name() override {
-        return std::string("PrefetchingArchitecture");
-      }
-    };
+       virtual std::string get_name() override {
+         return std::string("PrefetchingArchitecture");
+       }
+     };
 
   }
 }
