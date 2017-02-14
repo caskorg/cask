@@ -25,6 +25,17 @@ TEST_F(TestSparseMatrix, DokSetFromPattern) {
    ASSERT_EQ(dkMatrix.at(3, 3), 1);
 }
 
+TEST(TestDokMatrix, SetFromPatternWithGivenRows) {
+  cask::DokMatrix dkMatrix{
+      1, {4, 5, 3, 2}};
+  EXPECT_EQ(dkMatrix.nnzs, 4);
+  EXPECT_EQ(dkMatrix.n, 1);
+  EXPECT_EQ(dkMatrix.at(0, 0), 4);
+  EXPECT_EQ(dkMatrix.at(0, 1), 5);
+  EXPECT_EQ(dkMatrix.at(0, 2), 3);
+  EXPECT_EQ(dkMatrix.at(0, 3), 2);
+}
+
 TEST_F(TestSparseMatrix, DokExplicitSymmetry) {
    cask::DokMatrix dkMatrix{
        1, 0, 0, 0,
@@ -123,6 +134,30 @@ TEST_F(TestSparseMatrix, CsrUpperTriangular) {
   u.pretty_print();
 
   ASSERT_EQ(u, expU);
+}
+
+TEST(CsrMatrix, RowSlice) {
+  cask::CsrMatrix a{cask::DokMatrix{
+      1, 2, 5, 4,
+      0, 1, 0, 0,
+      0, 0, 1, 0,
+      0, 0, 0, 1
+  }};
+  cask::CsrMatrix expU(1, {1, 2, 5, 4});
+  auto u = a.sliceRows(0, 1);
+  EXPECT_EQ(u.values, expU.values);
+  EXPECT_EQ(u.row_ptr, expU.row_ptr);
+  EXPECT_EQ(u.col_ind, expU.col_ind);
+
+  cask::CsrMatrix expU2{2, {0, 1, 0, 0,
+                            0, 0, 1, 0}};
+  auto u2 = a.sliceRows(1, 2);
+  EXPECT_EQ(u2.values, expU2.values);
+  EXPECT_EQ(u2.row_ptr, expU2.row_ptr);
+  EXPECT_EQ(u2.col_ind, expU2.col_ind);
+
+  auto u3 = a.sliceRows(0, 4);
+  EXPECT_EQ(a, u3);
 }
 
 

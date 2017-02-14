@@ -107,7 +107,7 @@ public:
 class DokMatrix {
 
  public:
-  int n;
+  int n, m;
   int nnzs;
 
   // use of std::map important: values are sorted by column index internaly
@@ -115,22 +115,29 @@ class DokMatrix {
 
   DokMatrix() : n(0), nnzs(0) {}
 
-  DokMatrix(int _n) : n(_n), nnzs(0) {}
+  DokMatrix(int _n) : n(_n), m(_n), nnzs(0) {}
 
-  DokMatrix(int _n, int _nnzs) : n(_n), nnzs(_nnzs) {}
+  DokMatrix(int _n, int _nnzs) : n(_n), m(_n), nnzs(_nnzs) {}
 
   // Initialize the matrix as a dense matrix, with the given values, in order;
   // matrix is assumed square with n = sqrt(pattern.size()); 0 entries must be
   // entered explicitly
-  DokMatrix(const std::initializer_list<double>& pattern) {
-    n = floor((sqrt(pattern.size())));
+  DokMatrix(const std::initializer_list<double>& pattern) :
+      DokMatrix(floor((sqrt(pattern.size()))), pattern) { }
+
+  // Initialize the matrix as a dense matrix, with the given values, in order;
+  // matrix is assumed of size n rows by pattern.size() / n columns;
+  // 0 entries must be entered explicitly
+  DokMatrix(int n, const std::initializer_list<double>& pattern) : n(n) {
     nnzs = std::count_if(pattern.begin(), pattern.end(), [](double x){return x != 0;});
     auto it = pattern.begin();
+    m = pattern.size() / n;
     for (int i = 0; i < n; i++)
-      for (int j = 0; j < n; j++) {
+      for (int j = 0; j < m; j++) {
         double value = *it;
-        if (value != 0)
+        if (value != 0) {
           dok[i][j] = value;
+        }
         it++;
       }
   }
@@ -176,7 +183,7 @@ class DokMatrix {
 
   void pretty_print() const {
     for (int i = 0; i < n; i++) {
-      for (int j = 0; j < n; j++) {
+      for (int j = 0; j < m; j++) {
         std::cout << at(i, j) << " ";
       }
       std::cout << "\n";
@@ -184,7 +191,7 @@ class DokMatrix {
   }
 
   double at(int i, int j) const {
-    assert(i < n && j < n);
+    assert(i < n && j < m);
     if (dok.count(i) == 0)
       return 0;
     if (dok.at(i).count(j) == 0)
@@ -262,7 +269,13 @@ class CsrMatrix {
 
   CsrMatrix() : n(0), nnzs(0) {}
 
-  explicit CsrMatrix(const DokMatrix &m) {
+  CsrMatrix(std::initializer_list<double> mat) : CsrMatrix(DokMatrix(mat)){
+  }
+
+  CsrMatrix(int n, std::initializer_list<double> mat) : CsrMatrix(DokMatrix(n, mat)){
+  }
+
+  CsrMatrix(const DokMatrix &m) {
     nnzs = m.nnzs;
     n = m.n;
     int pos = 0;
@@ -286,6 +299,12 @@ class CsrMatrix {
     col_ind.assign(_col_ind, _col_ind + _nnzs);
     row_ptr.assign(_row_ptr, _row_ptr + n + 1);
   }
+
+  CsrMatrix(int n, int nnzs,
+            const std::vector<double> &values,
+            const std::vector<int> &col_ind,
+            const std::vector<int> &row_ptr) :
+      n(n), nnzs(nnzs), values(values), col_ind(col_ind), row_ptr(row_ptr) {}
 
   // Prints all matrix values
   void pretty_print() const {
@@ -389,6 +408,25 @@ class CsrMatrix {
 
   Vector dot(const Vector& b) const {
     return toDok().dot(b);
+  }
+
+  CsrMatrix sliceRows(int startRow, int nRows) {
+    //startPos = row_ptr[startRow];
+    std::vector<int> newRowPtr, newColInd;
+    std::vector<double> newValues;
+    int nnzs = 0;
+    int offset = row_ptr[startRow];
+    for (int i = startRow; i < startRow + nRows; i++) {
+      int r = row_ptr[i];
+      newRowPtr.push_back(r - offset);
+      for (int j = r; j < row_ptr[i + 1]; j++) {
+        newValues.push_back(values[j]);
+        newColInd.push_back(col_ind[j]);
+        nnzs++;
+      }
+    }
+    newRowPtr.push_back(newValues.size());
+    return CsrMatrix(nRows, nnzs, newValues, newColInd, newRowPtr);
   }
 
 };
