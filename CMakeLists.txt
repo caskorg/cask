@@ -147,16 +147,6 @@ if (DEFINED ENV{MAXCOMPILERDIR} AND DEFINED ENV{MAXELEROSDIR})
     AddMaxelerSimTest("test_spmv_sim" "${matrix}" "../test/matrices/${matrix}")
     AddMaxelerHwTest("test_spmv_dfe" "${matrix}" "../test/matrices/${matrix}")
   endforeach()
-
-  if (NOT SparseLib_DisableTesting)
-    # Should include dfe-snippets headers as they might be used in tests
-    file(GLOB files test/matrices/*.mtx)
-    foreach(infileName ${files})
-      get_filename_component(matrix "${infileName}" NAME)
-      AddMaxelerSimTest("test_cg_sim" "cg_${matrix}" "../test/matrices/${matrix}")
-      # AddMaxelerHwTest("test_spmv_dfe" "${matrix}" "../test/matrices/${matrix}")
-    endforeach()
-  endif()
 endif()
 
 

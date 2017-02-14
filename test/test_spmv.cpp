@@ -40,11 +40,10 @@ int test(string path, int implId) {
   a.preprocess(*eigenMatrix);
   // TODO need a consistent way to handle params
   //cout << a->getParams();
-  a.preprocess(*eigenMatrix);
   cask::Vector got = a.spmv(x);
 
   Eigen::VectorXd ex(cols);
-  for (int i = 0; i < cols; i++) x[i] = (double)i * 0.25;
+  for (int i = 0; i < cols; i++) ex[i] = (double)i * 0.25;
   Eigen::VectorXd exp = *eigenMatrix * ex;
 
   auto mismatches =
