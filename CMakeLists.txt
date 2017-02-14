@@ -12,14 +12,14 @@ function(AddMaxelerSimTest binary name args)
     add_test(
       NAME test_sim_${name}
       WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-      COMMAND ../scripts/simrunner ./${binary} ${args})
+      COMMAND ../src/frontend/simrunner ./${binary} ${args})
 endfunction()
 
 function(AddMaxelerHwTest binary name args)
     add_test(
       NAME test_hw_${name}
       WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-      COMMAND ../scripts/hwrunner ./${binary} ${args})
+      COMMAND ../src/frontend/hwrunner ./${binary} ${args})
 endfunction()
 
 # ---
@@ -139,8 +139,8 @@ if (DEFINED ENV{MAXCOMPILERDIR} AND DEFINED ENV{MAXELEROSDIR})
   file(GLOB files test/matrices/*.mtx)
   foreach(infileName ${files})
     get_filename_component(matrix "${infileName}" NAME)
-    AddMaxelerSimTest("test_spmv_sim" "${matrix}" "../tests/matrices/${matrix}")
-    AddMaxelerHwTest("test_spmv_dfe" "${matrix}" "../tests/matrices/${matrix}")
+    AddMaxelerSimTest("test_spmv_sim" "${matrix}" "../test/matrices/${matrix}")
+    AddMaxelerHwTest("test_spmv_dfe" "${matrix}" "../test/matrices/${matrix}")
   endforeach()
 
   if (NOT SparseLib_DisableTesting)
@@ -148,8 +148,8 @@ if (DEFINED ENV{MAXCOMPILERDIR} AND DEFINED ENV{MAXELEROSDIR})
     file(GLOB files test/matrices/*.mtx)
     foreach(infileName ${files})
       get_filename_component(matrix "${infileName}" NAME)
-      AddMaxelerSimTest("test_cg_sim" "cg_${matrix}" "../tests/matrices/${matrix}")
-      # AddMaxelerHwTest("test_spmv_dfe" "${matrix}" "../tests/matrices/${matrix}")
+      AddMaxelerSimTest("test_cg_sim" "cg_${matrix}" "../test/matrices/${matrix}")
+      # AddMaxelerHwTest("test_spmv_dfe" "${matrix}" "../test/matrices/${matrix}")
     endforeach()
   endif()
 endif()
