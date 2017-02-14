@@ -53,7 +53,7 @@ sim-flow:
 mock-flow:
 	mkdir -p build
 	cd build && cmake .. && make main && cd ..
-	cd src/frontend && python cask.py -d -t dfe_mock -p params.json -b ../../test/test-benchmark -rb -rep html --cpp=$(CXX) -bm best -ds && cd ..
+	cd src/frontend && python cask.py -d -t dfe_mock -p params.json -b ../../test/test-benchmark -rb -rep html --cpp=$(CXX) -bm best && cd ..
 	cd build && make -j12
 
 matrix:
