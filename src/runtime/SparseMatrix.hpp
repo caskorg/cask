@@ -13,15 +13,17 @@
 #include <vector>
 #include <iostream>
 
+#include <Eigen/Sparse>
+
 namespace cask {
   namespace sparse {
 
     using CsrMatrix = std::tuple<std::vector<uint32_t>, std::vector<int>, std::vector<double>>;
-
+    using EigenSparseMatrix = Eigen::SparseMatrix<double, Eigen::RowMajor, int32_t>;
     using PartitionedCsrMatrix = std::vector<CsrMatrix>;
 
     template<typename value_type>
-      class SparkCooMatrix {
+  class SparkCooMatrix {
 
         public:
         using CoordType = std::tuple<int, int, value_type>;

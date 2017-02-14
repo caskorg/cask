@@ -10,15 +10,7 @@
 namespace cask {
   namespace runtime {
 
-    // XXX Hell no...
-
-    // base class for all generated implementations
-    struct GeneratedImplementation {
-      virtual ~GeneratedImplementation() {
-      }
-    };
-
-    class GeneratedSpmvImplementation : public GeneratedImplementation {
+    class GeneratedSpmvImplementation {
 
       /* type of function pointers for Spmv_run/dramWrite/dramRead function */
       using SpmvFunctionPtr = void (*)(
@@ -214,26 +206,11 @@ namespace cask {
 
     };
 
-    /**
-     * Loads generated implementations.
-     *
-     * Meant more as a base for classes generated from spark.py.
-     */
-    class ImplementationLoader {
-      protected:
-        std::vector<GeneratedImplementation*> impls;
-      public:
-      ImplementationLoader() {}
-
-      virtual ~ImplementationLoader() {
-        for (const auto& s : impls) {
-          delete s;
-        }
-      }
-    };
-
     // provide interface for SpmvImplementation loader
-    class SpmvImplementationLoader : public ImplementationLoader {
+    class SpmvImplementationLoader {
+
+      std::vector<GeneratedSpmvImplementation*> impls;
+
       public:
       SpmvImplementationLoader();
 
@@ -244,12 +221,11 @@ namespace cask {
       GeneratedSpmvImplementation* architectureWithParams(int maxRows) {
         GeneratedSpmvImplementation* bestArch = nullptr;
         for (const auto& a : this->impls) {
-          GeneratedSpmvImplementation* simpl = static_cast<GeneratedSpmvImplementation*>(a);
           std::cout << maxRows << std::endl;
-          std::cout << simpl->maxRows() << std::endl;
-          if (simpl->maxRows() >= maxRows &&
-              (!bestArch || simpl->maxRows() < bestArch->maxRows())) {
-            bestArch = simpl;
+          std::cout << a->maxRows() << std::endl;
+          if (a->maxRows() >= maxRows &&
+              (!bestArch || a->maxRows() < bestArch->maxRows())) {
+            bestArch = a;
           }
         }
         return  bestArch;

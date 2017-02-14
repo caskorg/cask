@@ -86,9 +86,14 @@ set(SpmvImplLib_src
 add_library(SpmvImplLib ${SpmvImplLib_src})
 
 set(SparkCpu_src
-  "${SparkCpu_src}"
-  src/runtime/Dse.cpp
-  )
+        "${SparkCpu_src}"
+        include/Cask.hpp
+        src/runtime/SparseMatrix.hpp
+        src/runtime/IO.hpp
+        src/runtime/Model.hpp
+        src/runtime/Utils.hpp
+        src/runtime/Dse.cpp)
+
 add_library(SparkCpuLib ${SparkCpu_src})
 
 add_executable(main src/main.cpp )
@@ -155,8 +160,11 @@ if (DEFINED ENV{MAXCOMPILERDIR} AND DEFINED ENV{MAXELEROSDIR})
 endif()
 
 
+
 add_subdirectory(lib/gtest)
 if (LibMKL_INCLUDE_DIRS)
+  # AddGtestSuite(ClientTestCg)
+  # AddGtestSuite(ClientTestSpmv)
   AddGtestSuite(LinearSolvers)
   AddGtestSuite(SparseMatrix)
   AddGtestSuite(Io)

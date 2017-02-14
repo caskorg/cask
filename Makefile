@@ -53,7 +53,7 @@ sim-flow:
 mock-flow:
 	mkdir -p build
 	cd build && cmake .. && make main && cd ..
-	cd src/frontend && python cask.py -d -t dfe_mock -p params.json -b ../../test/test-benchmark -rb -rep html --cpp=$(CXX) -bm best && cd ..
+	cd src/frontend && python cask.py -d -t dfe_mock -p params.json -b ../../test/test-benchmark -rb -rep html --cpp=$(CXX) -bm best -ds && cd ..
 	cd build && make -j12
 
 matrix:
@@ -75,6 +75,9 @@ clean-tags:
 
 tags:
 	ctags include/ src/ -R *
+
+gtags:
+	find src/runtime/ include/ test/ -type f -print | gtags -f -
 
 doc:
 	doxygen docs/doxygen.conf

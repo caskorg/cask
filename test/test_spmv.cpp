@@ -1,5 +1,4 @@
 #include "Spmv.hpp"
-#include "SimpleSpmv.hpp"
 #include "IO.hpp"
 #include "Converters.hpp"
 #include "UserInput.hpp"
@@ -37,11 +36,11 @@ int test(string path, int implId) {
   else
     deviceImpl = implLoader.architectureWithId(implId);
 
-  auto a = new cask::spmv::SimpleSpmvArchitecture(deviceImpl);
+  auto a = new cask::spmv::BasicSpmv(deviceImpl);
   // TODO need a consistent way to handle params
   //cout << a->getParams();
   a->preprocess(*eigenMatrix);
-  Eigen::VectorXd got = a->dfespmv(x);
+  Eigen::VectorXd got = a->spmv(x);
   Eigen::VectorXd exp = *eigenMatrix * x;
   delete a;
 

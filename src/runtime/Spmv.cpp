@@ -1,5 +1,4 @@
 #include "Spmv.hpp"
-#include "SimpleSpmv.hpp"
 #include "Converters.hpp"
 #include <iostream>
 #include <tuple>
@@ -7,9 +6,11 @@
 #include <dfesnippets/Timing.hpp>
 
 #include "GeneratedImplSupport.hpp"
+#include "Utils.hpp"
 
 using namespace cask::spmv;
-using ssarch = cask::spmv::SimpleSpmvArchitecture;
+using ssarch = cask::spmv::BasicSpmv;
+namespace cutils = cask::utils;
 
 // how many cycles does it take to resolve the accesses
 int ssarch::countComputeCycles(uint32_t* v, int size, int inputWidth)
@@ -31,7 +32,7 @@ int ssarch::countComputeCycles(uint32_t* v, int size, int inputWidth)
 
 // transform a given matrix with n rows in blocks of size n X blockSize
 cask::spmv::Partition ssarch::do_blocking(
-    const EigenSparseMatrix& m,
+    const cask::sparse::EigenSparseMatrix& m,
     int blockSize,
     int inputWidth)
 {
@@ -93,8 +94,8 @@ cask::spmv::Partition ssarch::do_blocking(
     reductionCycles -= diff;
     cycles += this->countComputeCycles(&std::get<0>(p)[0], n, inputWidth) - diff;
 
-    cask::spmv::align(p_indptr, sizeof(int) * inputWidth);
-    cask::spmv::align(p_values, sizeof(double) * inputWidth);
+    cutils::align(p_indptr, sizeof(int) * inputWidth);
+    cutils::align(p_values, sizeof(double) * inputWidth);
     std::copy(p_colptr.begin(), p_colptr.end(), back_inserter(m_colptr));
     for (size_t i = 0; i < p_values.size(); i++)
       m_indptr_value.push_back(indptr_value( p_values[i], p_indptr[i]));
@@ -104,11 +105,11 @@ cask::spmv::Partition ssarch::do_blocking(
   br.m_colptr_unpaddedLength = m_colptr.size();
   br.m_indptr_values_unpaddedLength = m_indptr_value.size();
   //std::cout << "m_colptr unaligned size" << m_colptr.size() << std::endl;
-  cask::spmv::align(m_colptr, 384);
-  cask::spmv::align(m_indptr_value, 384);
+  cutils::align(m_colptr, 384);
+  cutils::align(m_indptr_value, 384);
   std::vector<double> out(n, 0);
-  cask::spmv::align(out, 384);
-  cask::spmv::align(v, sizeof(double) * blockSize);
+  cutils::align(out, 384);
+  cutils::align(v, sizeof(double) * blockSize);
 
   br.nBlocks = nBlocks;
   br.n = n;
@@ -124,23 +125,10 @@ cask::spmv::Partition ssarch::do_blocking(
   return br;
 }
 
-template<typename T>
-long size_bytes(const std::vector<T>& v) {
-  return sizeof(T) * v.size();
-}
-
 struct PartitionWriteResult {
   int outStartAddr, outSize, colptrStartAddress, colptrSize;
   int vStartAddress, indptrValuesStartAddress, indptrValuesSize;
 };
-
-int align(int bytes, int to) {
-  int quot = bytes / to;
-  if (bytes % to != 0)
-    return (quot + 1) * to;
-  return bytes;
-}
-
 
 // write the data for a partition, starting at the given offset
 PartitionWriteResult writeDataForPartition(
@@ -150,8 +138,8 @@ PartitionWriteResult writeDataForPartition(
     const std::vector<double>& v) {
   // for each partition write this down
   PartitionWriteResult pwr;
-  pwr.indptrValuesStartAddress = align(offset, 384);
-  pwr.indptrValuesSize = size_bytes(br.m_indptr_values);
+  pwr.indptrValuesStartAddress = cutils::align(offset, 384);
+  pwr.indptrValuesSize = cutils::size_bytes(br.m_indptr_values);
   impl->write(
       pwr.indptrValuesSize,
       pwr.indptrValuesStartAddress,
@@ -159,12 +147,12 @@ PartitionWriteResult writeDataForPartition(
 
   pwr.vStartAddress = pwr.indptrValuesStartAddress + pwr.indptrValuesSize;
   impl->write(
-      size_bytes(v),
+      cutils::size_bytes(v),
       pwr.vStartAddress,
       (uint8_t *)&v[0]);
 
-  pwr.colptrStartAddress = pwr.vStartAddress + size_bytes(v);
-  pwr.colptrSize = size_bytes(br.m_colptr);
+  pwr.colptrStartAddress = pwr.vStartAddress + cutils::size_bytes(v);
+  pwr.colptrSize = cutils::size_bytes(br.m_colptr);
   impl->write(
       pwr.colptrSize,
       pwr.colptrStartAddress,
@@ -176,7 +164,7 @@ PartitionWriteResult writeDataForPartition(
 }
 
 
-Eigen::VectorXd ssarch::dfespmv(Eigen::VectorXd x)
+Eigen::VectorXd ssarch::spmv(Eigen::VectorXd x)
 {
   using namespace std;
 
@@ -205,8 +193,8 @@ Eigen::VectorXd ssarch::dfespmv(Eigen::VectorXd x)
   int cacheSize = this->cacheSize;
 
   vector<double> v = cask::converters::eigenVectorToStdVector(x);
-  cask::spmv::align(v, sizeof(double) * cacheSize);
-  cask::spmv::align(v, 384);
+  cutils::align(v, sizeof(double) * cacheSize);
+  cutils::align(v, 384);
 
   std::vector<int> nrows, totalCycles, reductionCycles, paddingCycles, colptrSizes, indptrValuesSizes, outputResultSizes;
   std::vector<int> colptrUnpaddedSizes, indptrValuesUnpaddedLengths;
@@ -284,7 +272,7 @@ Eigen::VectorXd ssarch::dfespmv(Eigen::VectorXd x)
   for (size_t i = 0; i < outputStartAddresses.size(); i++) {
     std::vector<double> tmp(outputResultSizes[i] / sizeof(double), 0);
     this->impl->read(
-        size_bytes(tmp),
+        cutils::size_bytes(tmp),
         outputStartAddresses[i],
         (uint8_t*)&tmp[0]);
     std::copy(tmp.begin(), tmp.begin() + nrows[i], std::back_inserter(total));
@@ -294,8 +282,8 @@ Eigen::VectorXd ssarch::dfespmv(Eigen::VectorXd x)
   return cask::converters::stdvectorToEigen(total);
 }
 
-std::vector<EigenSparseMatrix> ssarch::do_partition(const EigenSparseMatrix& mat, int numPipes) {
-  std::vector<EigenSparseMatrix> res;
+std::vector<cask::sparse::EigenSparseMatrix> ssarch::do_partition(const cask::sparse::EigenSparseMatrix& mat, int numPipes) {
+  std::vector<cask::sparse::EigenSparseMatrix> res;
   int rowsPerPartition = mat.rows() / numPipes;
   int start = 0;
   for (int i = 0; i < numPipes - 1; i++) {
@@ -308,7 +296,7 @@ std::vector<EigenSparseMatrix> ssarch::do_partition(const EigenSparseMatrix& mat
 }
 
 void ssarch::preprocess(
-    const EigenSparseMatrix& mat) {
+    const cask::sparse::EigenSparseMatrix& mat) {
   this->mat = mat;
 
   int rowsPerPartition = mat.rows() / numPipes;

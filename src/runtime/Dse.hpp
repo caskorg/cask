@@ -3,7 +3,6 @@
 
 #include <memory>
 #include "Spmv.hpp"
-#include "SimpleSpmv.hpp"
 #include "Utils.hpp"
 #include "IO.hpp"
 #include <chrono>
@@ -62,14 +61,14 @@ namespace cask {
 
     class DseResult {
       public:
-        std::shared_ptr<cask::spmv::SpmvArchitecture> bestArchitecture;
+        std::shared_ptr<cask::spmv::Spmv> bestArchitecture;
         std::vector<std::string> matrices;
 
-        DseResult(std::string path, std::shared_ptr<cask::spmv::SpmvArchitecture> arch) {
+        DseResult(std::string path, std::shared_ptr<cask::spmv::Spmv> arch) {
           matrices.push_back(path);
           bestArchitecture = arch;
         }
-        DseResult(std::shared_ptr<cask::spmv::SpmvArchitecture> arch) {
+        DseResult(std::shared_ptr<cask::spmv::Spmv> arch) {
           bestArchitecture = arch;
         }
     };

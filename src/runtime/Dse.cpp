@@ -9,10 +9,10 @@ using namespace cask::model;
 using namespace cask::dse;
 
 
-std::shared_ptr<SpmvArchitecture>
+std::shared_ptr<Spmv>
 better(
-    std::shared_ptr<SpmvArchitecture> a1,
-    std::shared_ptr<SpmvArchitecture> a2) {
+    std::shared_ptr<Spmv> a1,
+    std::shared_ptr<Spmv> a2) {
 
   if (a1 == nullptr)
     return a2;
@@ -27,7 +27,7 @@ better(
   return a2;
 }
 
-std::shared_ptr<SpmvArchitecture> dse_run(
+std::shared_ptr<Spmv> dse_run(
     std::string basename,
     SpmvArchitectureSpace* af,
     const Eigen::SparseMatrix<double, Eigen::RowMajor>& mat,
@@ -41,7 +41,7 @@ std::shared_ptr<SpmvArchitecture> dse_run(
 
   const ImplementationParameters maxParams{maxResources, 39};
 
-  std::shared_ptr<SpmvArchitecture> bestArchitecture, a;
+  std::shared_ptr<Spmv> bestArchitecture, a;
 
   while (a = af->next()) {
     auto start = std::chrono::high_resolution_clock::now();
@@ -70,15 +70,15 @@ std::shared_ptr<SpmvArchitecture> dse_run(
 }
 
 struct SpmvHash {
-  std::size_t operator()(const std::shared_ptr<SpmvArchitecture>& a) const {
+  std::size_t operator()(const std::shared_ptr<Spmv>& a) const {
     return 1;
   }
 };
 
 struct SpmvEqual {
   bool operator()(
-      const std::shared_ptr<SpmvArchitecture>& a,
-      const std::shared_ptr<SpmvArchitecture>& b) const
+      const std::shared_ptr<Spmv>& a,
+      const std::shared_ptr<Spmv>& b) const
   {
     return *a == *b;
   }
@@ -92,7 +92,7 @@ std::vector<DseResult> cask::dse::SparkDse::run (
   std::vector<DseResult> bestArchitectures;
 
   std::unordered_map<
-    std::shared_ptr<SpmvArchitecture>,
+    std::shared_ptr<Spmv>,
     std::vector<std::string>,
     SpmvHash,
     SpmvEqual
@@ -117,17 +117,17 @@ std::vector<DseResult> cask::dse::SparkDse::run (
       maxRows = (maxRows / 512 + 1) * 512;
 
     std::vector<SpmvArchitectureSpace*> factories{
-      new SimpleSpmvArchitectureSpace<SimpleSpmvArchitecture>(
+      new SimpleSpmvArchitectureSpace<BasicSpmv>(
           params.numPipesRange, params.inputWidthRange, params.cacheSizeRange, maxRows),
-          //new SimpleSpmvArchitectureSpace<FstSpmvArchitecture>(
+          //new SimpleSpmvArchitectureSpace<FstSpmv>(
               //params.numPipesRange, params.inputWidthRange, params.cacheSizeRange),
-          //new SimpleSpmvArchitectureSpace<SkipEmptyRowsArchitecture>(
+          //new SimpleSpmvArchitectureSpace<SkipEmptyRowsSpmv>(
               //params.numPipesRange, params.inputWidthRange, params.cacheSizeRange),
           //new SimpleSpmvArchitectureSpace<PrefetchingArchitecture>(numPipesRange, inputWidthRange, cacheSizeRange)
     };
 
     std::cout << "File Architecture CacheSize InputWidth NumPipes EstClockCycles EstGflops LUTS FFs DSPs BRAMs MemBandwidth Observation" << std::endl;
-    std::shared_ptr<SpmvArchitecture> bestOverall;
+    std::shared_ptr<Spmv> bestOverall;
     for (auto sas : factories) {
       bestOverall = better(
           bestOverall,
