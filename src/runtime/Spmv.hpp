@@ -349,32 +349,6 @@ namespace cask {
     };
 
 
-    // FST based architecture, for now we assume it's the same though it probably isn't
-    class FstSpmv : public BasicSpmv {
-      protected:
-
-      virtual int countComputeCycles(uint32_t* v, int size, int inputWidth) override {
-        int cycles = 0;
-        for (int i = 0; i < size; i++) {
-          int toread = v[i] - (i > 0 ? v[i - 1] : 0);
-          do {
-            toread -= std::min(toread, inputWidth);
-            cycles++;
-          } while (toread > 0);
-        }
-        return cycles;
-      }
-
-      public:
-      FstSpmv(int _cacheSize, int  _inputWidth, int _numPipes, int _maxRows) :
-        BasicSpmv(_cacheSize, _inputWidth, _numPipes, _maxRows) {}
-
-      virtual std::string get_name() override {
-        return std::string("Fst");
-      }
-
-    };
-
     // Model for an architecture which can skip sequences of empty rows
     class SkipEmptyRowsSpmv : public BasicSpmv {
       protected:
