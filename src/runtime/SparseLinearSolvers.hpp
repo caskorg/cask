@@ -1,10 +1,13 @@
 #ifndef SPARSE_LINEAR_SOLVERS_HPP
 #define SPARSE_LINEAR_SOLVERS_HPP
 
-#include "MklLayer.hpp"
 #include "SparseMatrix.hpp"
 #include "Utils.hpp"
+
+#ifdef USEMKL
+#include "MklLayer.hpp"
 #include "mkl.h"
+#endif
 
 #include <Eigen/Sparse>
 #include <cmath>
@@ -29,7 +32,7 @@ namespace cask {
 
         virtual void preprocess(
             const Eigen::SparseMatrix<double> &A) {
-        }
+  }
 
         virtual Eigen::VectorXd solve(
             const Eigen::SparseMatrix<double>& A,
@@ -68,6 +71,8 @@ class IdentityPreconditioner {
       return x;
   }
 };
+
+#ifdef USEMKL
 
 class ILUPreconditioner {
  public:
@@ -232,6 +237,8 @@ bool pcg(const CsrMatrix& a, double *rhs, double *x, int &iterations, bool verbo
       t->toc("cg:solve");
     return false;
 }
+#endif
+
   }
 }
 

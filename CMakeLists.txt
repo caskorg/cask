@@ -62,7 +62,7 @@ if (LibMKL_INCLUDE_DIRS)
   set(LIBS ${LIBS} ${LibMKL_LIBRARIES} -lrt -fopenmp)
   add_definitions(-DUSEMKL)
 else()
-  message(FATAL_ERROR "Found MKL: no (set MKLROOT?)")
+  message(STATUS "Found MKL: no (set MKLROOT?)")
 endif()
 
 #

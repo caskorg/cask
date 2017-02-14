@@ -1,3 +1,4 @@
+#include "Utils.hpp"
 #include "SparseLinearSolvers.hpp"
 
 //extern "C" {

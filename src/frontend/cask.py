@@ -236,7 +236,7 @@ class Spark:
       f.write('using namespace cask::runtime;\n')
 
       f.write("""
-          cask::runtime::SpmvImplementationLoader::SpmvImplementationLoader() : ImplementationLoader() {
+          cask::runtime::SpmvImplementationLoader::SpmvImplementationLoader() {
           """)
 
       for i in range(len(prjs)):
