@@ -29,8 +29,8 @@ namespace cask {
         virtual double getGFlopsCount() = 0;
         virtual std::string to_string() = 0;
         virtual cask::model::ImplementationParameters getImplementationParameters() = 0;
-        virtual void preprocess(const Eigen::SparseMatrix<double, Eigen::RowMajor>& mat) = 0;
-        virtual Eigen::VectorXd spmv(Eigen::VectorXd x) = 0;
+        virtual void preprocess(const cask::sparse::EigenSparseMatrix& mat) = 0;
+        virtual cask::Vector spmv(const cask::Vector& x) = 0;
         virtual std::string get_name() = 0;
         virtual boost::property_tree::ptree write_params() = 0;
         virtual boost::property_tree::ptree write_est_impl_params() = 0;
@@ -248,7 +248,7 @@ namespace cask {
 
         virtual void preprocess(const cask::sparse::EigenSparseMatrix& mat) override;
 
-        virtual Eigen::VectorXd spmv(Eigen::VectorXd x) override;
+        virtual cask::Vector spmv(const cask::Vector& v) override;
 
         virtual std::string get_name() override {
           return std::string("Simple");

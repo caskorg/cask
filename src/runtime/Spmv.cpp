@@ -164,7 +164,7 @@ PartitionWriteResult writeDataForPartition(
 }
 
 
-Eigen::VectorXd ssarch::spmv(Eigen::VectorXd x)
+cask::Vector ssarch::spmv(const cask::Vector& x)
 {
   using namespace std;
 
@@ -192,7 +192,7 @@ Eigen::VectorXd ssarch::spmv(Eigen::VectorXd x)
 
   int cacheSize = this->cacheSize;
 
-  vector<double> v = cask::converters::eigenVectorToStdVector(x);
+  vector<double> v = x.data;
   cutils::align(v, sizeof(double) * cacheSize);
   cutils::align(v, 384);
 
@@ -279,7 +279,7 @@ Eigen::VectorXd ssarch::spmv(Eigen::VectorXd x)
   }
 
   // remove the elements which were only for padding
-  return cask::converters::stdvectorToEigen(total);
+  return cask::Vector{total};
 }
 
 std::vector<cask::sparse::EigenSparseMatrix> ssarch::do_partition(const cask::sparse::EigenSparseMatrix& mat, int numPipes) {
