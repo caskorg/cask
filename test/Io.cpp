@@ -7,6 +7,7 @@ class TestMmIo : public ::testing::Test { };
 TEST_F(TestMmIo, ReadGenericMatrix) {
   cask::CsrMatrix a = cask::io::readMatrix("test/matrices/test_dense_4.mtx");
   EXPECT_EQ(a.n, 4);
+  EXPECT_EQ(a.m, 4);
   EXPECT_EQ(a.nnzs, 16);
   cask::DokMatrix dk = a.toDok();
   EXPECT_EQ(dk.at(0,0), 0.160600717781);
@@ -40,6 +41,7 @@ TEST_F(TestMmIo, ReadHeader) {
 TEST_F(TestMmIo, ReadSymCsr) {
   cask::SymCsrMatrix a = cask::io::readSymMatrix("test/systems/tiny.mtx");
   ASSERT_EQ(a.n, 4);
+  ASSERT_EQ(a.m, 4);
   ASSERT_EQ(a.nnzs, 4);
   cask::DokMatrix exp{
       1, 0, 0, 0,
@@ -50,6 +52,7 @@ TEST_F(TestMmIo, ReadSymCsr) {
 
   a = cask::io::readSymMatrix("test/systems/tinysym.mtx");
   ASSERT_EQ(a.n, 4);
+  ASSERT_EQ(a.m, 4);
   ASSERT_EQ(a.nnzs, 6);
   cask::DokMatrix exp2{
       1, 0, 0, 1,

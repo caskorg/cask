@@ -128,7 +128,7 @@ inline DokMatrix readDokMatrix(std::string path, const MmInfo& info) {
   std::stringstream ss;
   ss << line;
   ss >> n >> m >> l;
-  cask::DokMatrix mat(n);
+  cask::DokMatrix mat(n, m);
 
   for (int k = 0; k < l; k++) {
     int i, j;

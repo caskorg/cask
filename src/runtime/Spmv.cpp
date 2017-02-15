@@ -37,11 +37,11 @@ cask::spmv::Partition ssarch::do_blocking(
     int inputWidth)
 {
 
-  const int* indptr = m.row_ptr.data();
+  const int* indptr = m.col_ind.data();
   const double* values = m.values.data();
-  const int* colptr = m.col_ind.data();
+  const int* colptr = m.row_ptr.data();
   int rows = m.n;
-  int cols = m.n;
+  int cols = m.m;
   int n = rows;
   //std::cout << "Mat rows " << n << std::endl;
 
