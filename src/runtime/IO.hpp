@@ -52,7 +52,7 @@ struct MmInfo {
   bool isSymmetric() const {
     return symmetry == "symmetric";
   }
-  bool isCoordinate() {
+  bool isCoordinate() const {
     return format == "coordinate";
   }
 };
@@ -114,31 +114,7 @@ inline std::vector<double> readVector(std::string path) {
   return v;
 }
 
-inline cask::CsrMatrix readMatrix(std::string path) {
-  MmInfo info = readHeader(path);
-  if (!info.isMatrix()) {
-    throw std::invalid_argument("Error! Expecting MatrixMarket matrix in " + path);
-  }
-
-  if (info.isSymmetric()) {
-    throw std::invalid_argument("Error! Symmetric Matrix found in " +
-        path + " To read symmetric matrix use cask::io::readSymMatrix()");
-  }
-
-  throw std::invalid_argument("Error! Generic matrix in MatrixMarket not supported");
-}
-
-inline cask::SymCsrMatrix readSymMatrix(std::string path) {
-  MmInfo info = readHeader(path);
-  if (!info.isMatrix()) {
-    throw std::invalid_argument("Error! Expecting MatrixMarket matrix in " + path);
-  }
-
-  if (!info.isSymmetric()) {
-    throw std::invalid_argument("Error! Matrix found in " + path +
-        " is not symmetric. To read unsymmetric matrix use cask::io::readSymMatrix()");
-  }
-
+inline DokMatrix readDokMatrix(std::string path, const MmInfo& info) {
   std::ifstream f{path};
   std::string line;
   while (std::getline(f, line)) {
@@ -158,11 +134,37 @@ inline cask::SymCsrMatrix readSymMatrix(std::string path) {
     int i, j;
     double val;
     f >> i >> j >> val;
-    // MM format is 1-indexed
+// MM format is 1-indexed
     mat.set(i - 1, j - 1, val);
   }
+  return mat;
+}
 
-  return cask::SymCsrMatrix(mat);
+inline cask::CsrMatrix readMatrix(std::string path) {
+  MmInfo info = readHeader(path);
+  if (!info.isMatrix()) {
+    throw std::invalid_argument("Error! Expecting MatrixMarket matrix in " + path);
+  }
+
+  if (info.isSymmetric()) {
+    throw std::invalid_argument("Error! Symmetric Matrix found in " +
+        path + " To read symmetric matrix use cask::io::readSymMatrix()");
+  }
+  return cask::CsrMatrix(readDokMatrix(path, info));
+  // throw std::invalid_argument("Error! Generic matrix in MatrixMarket not supported");
+}
+
+inline cask::SymCsrMatrix readSymMatrix(std::string path) {
+  MmInfo info = readHeader(path);
+  if (!info.isMatrix()) {
+    throw std::invalid_argument("Error! Expecting MatrixMarket matrix in " + path);
+  }
+
+  if (!info.isSymmetric()) {
+    throw std::invalid_argument("Error! Matrix found in " + path +
+        " is not symmetric. To read unsymmetric matrix use cask::io::readSymMatrix()");
+  }
+  return cask::SymCsrMatrix(readDokMatrix(path, info));
 }
 
 template<typename value_type>
