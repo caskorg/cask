@@ -19,6 +19,8 @@ import precision
 import reorder
 import storage
 
+matplotlib.use('Agg')
+
 
 def storage_analysis(matrix):
     """Plots the storage cost in bytes of various formats."""
