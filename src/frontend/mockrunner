@@ -1,1 +1,1 @@
-LD_PRELOAD=../../lib-generated/libSpmv_dfe_mock.so $@
+LD_PRELOAD=lib-generated/libSpmv_dfe_mock.so $@

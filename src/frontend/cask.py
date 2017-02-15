@@ -42,7 +42,29 @@ DIR_PATH_RUNS = 'runs'
 
 DSE_LOG_FILE = 'dse_run.log'
 
+# ABS_PATH_TO_ROOT=
+
+print 'Path and stuff......'
+PATH_TO_CASK_FILE = os.path.dirname(os.path.abspath(__file__))
+PATH_TO_ROOT = os.path.abspath(os.path.join(PATH_TO_CASK_FILE, '../../'))
+WORKING_DIR = os.getcwd()
+BUILD_DIR = os.path.join(PATH_TO_ROOT, 'build')
+SOURCE_DIR = os.path.join(PATH_TO_ROOT, 'src')
+OUTPUT_DIR = WORKING_DIR
+
+print WORKING_DIR, PATH_TO_ROOT, PATH_TO_CASK_FILE
+
 pd.options.display.float_format = '{:.2f}'.format
+
+def build_path(path=''):
+  print 'Build dir -->', BUILD_DIR
+  return os.path.join(BUILD_DIR, path)
+
+def src_path(path=''):
+  return os.path.join(SOURCE_DIR, path)
+
+def output_path(path=''):
+  return os.path.join(OUTPUT_DIR, path)
 
 def preProcessBenchmark(benchDirPath):
   entries = []
@@ -74,7 +96,7 @@ def print_from_iterator(lines_iterator, logfile=None):
 def runDse(benchFile, paramsFile, target, skipExecution=False):
   dseFile = "dse_out.json"
   if not skipExecution:
-    utils.execute(['../../build/main', benchFile, paramsFile], DSE_LOG_FILE)
+    utils.execute([build_path('main'), benchFile, paramsFile], DSE_LOG_FILE)
   else:
     print '  --> Skip DSE run, load results from', dseFile
   params = []
@@ -101,14 +123,14 @@ def runDse(benchFile, paramsFile, target, skipExecution=False):
             int(est_impl_ps['DSPs']),
             float(est_impl_ps['memory_bandwidth']),
             float(arch['estimated_gflops']), ])
-      prjs.append(maxbuild.PrjConfig(ps, target, PRJ, prj_id, '../spmv/build/'))
+      prjs.append(maxbuild.PrjConfig(ps, target, PRJ, prj_id, src_path('spmv/build/')))
   return prjs, architectures
 
 
 
 def buildClient(target):
   print ' >> Building Client ----'
-  utils.execute(['make', '-C', '../../build/', 'test_spmv_' + target])
+  utils.execute(['make', '-C', build_path(), 'test_spmv_' + target])
 
 
 def runClient(benchmark, target, prj=None):
@@ -118,9 +140,9 @@ def runClient(benchmark, target, prj=None):
     if target == TARGET_DFE:
       cmd = ['bash', 'spark_dfe_run.sh', p]
     elif target == TARGET_SIM:
-      cmd = ['bash', 'simrunner', '../../build/test_spmv_sim', p]
+      cmd = ['bash', src_path('frontend/simrunner'), build_path('test_spmv_sim'), p]
     elif target == TARGET_DFE_MOCK:
-      cmd = ['bash', 'mockrunner', '../../build/test_spmv_dfe_mock', p]
+      cmd = ['bash', src_path('frontend/mockrunner'), build_path('test_spmv_dfe_mock'), p]
     outF = 'runs/run_' + target + '_'
     if prj:
       cmd.append(str(prj.prj_id))
@@ -176,7 +198,7 @@ class Spark:
       '-Wall',
       '-std=c++11',
       '-fPIC',
-      '-I../runtime',
+      '-I' + src_path('runtime'),
       ]
 
     # TODO move these checks in an earlier phase
@@ -216,7 +238,7 @@ class Spark:
     utils.execute(cmd)
 
     # copy the generated library
-    libDir = '../../lib-generated'
+    libDir = 'lib-generated'
     if os.path.exists(libDir):
       shutil.rmtree(libDir)
     os.makedirs(libDir)
@@ -224,7 +246,8 @@ class Spark:
     shutil.move(libName, libDir)
 
   def generateImplementationHeader(self, prjs):
-    with open('GeneratedImplementations.cpp', 'w') as f:
+    genFilePath = output_path('GeneratedImplementations.cpp')
+    with open(genFilePath, 'w') as f:
       # Include maxfile headers
       if self.target != TARGET_DFE_MOCK:
         for p in prjs:
@@ -518,14 +541,14 @@ def main():
   if args.reporting == REP_HTML:
     utils.info('Generating HTML reports')
     for p in benchmark:
-      out, out_err = utils.execute(['python', 'sparsegrind.py',
+      out, out_err = utils.execute(['python', src_path('frontend/sparsegrind.py'),
               '-f', 'mm', '-a', 'summary', p], silent=False)
       outputDir = os.path.join('matrices', os.path.basename(p).replace('.mtx', ''))
       summaryFile = os.path.join(outputDir, 'summary.csv')
       check_make_dir(outputDir)
       with open(summaryFile, 'w') as f:
         f.write(out)
-      utils.execute(['python', 'sparsegrind.py',
+      utils.execute(['python', src_path('frontend/sparsegrind.py'),
               '-f', 'mm', '-a', 'plot', p], silent=False)
       shutil.copy('sparsity.png', outputDir)
 

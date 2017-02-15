@@ -25,7 +25,7 @@ def print_from_iterator(lines_iterator, logfile=None):
       output += line
   return output
 
-def execute(command, logfile=None, silent=True):
+def execute(command, logfile=None, silent=False):
   if not silent:
     print 'Executing ', ' '.join(command)
   popen = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
