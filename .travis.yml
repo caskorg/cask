@@ -30,12 +30,12 @@ addons:
       - libatlas-base-dev
       - gfortran
       - libboost1.55-all-dev
-      - g++-4.8
+      - g++-4.9
 
 before_script:
   - mkdir build
   - cd build
-  - INCLUDE=../ci/travis/eigen CXX="g++-4.8" cmake ..
+  - INCLUDE=../ci/travis/eigen CXX="g++-4.9" cmake ..
   - cd ..
 
-script: CXX="g++-4.8" make mock-flow
+script: CXX="g++-4.9" make mock-flow
