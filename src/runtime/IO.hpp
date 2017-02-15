@@ -114,6 +114,13 @@ inline std::vector<double> readVector(std::string path) {
   return v;
 }
 
+// Note! symmetric entries are not explicitly stored, it is up to the caller
+// to ensure this is handled appropriately for example by using a test such as:
+//
+// if (info.isSymmetric()) {
+//   return readDokMatrix(path, info).explicitSymmetric());
+// }
+//
 inline DokMatrix readDokMatrix(std::string path, const MmInfo& info) {
   std::ifstream f{path};
   std::string line;
@@ -140,6 +147,7 @@ inline DokMatrix readDokMatrix(std::string path, const MmInfo& info) {
   return mat;
 }
 
+// NB if the matrix is symmetric, returns a CsrMatrix with _explicitly_ stored symmetric values
 inline cask::CsrMatrix readMatrix(std::string path) {
   MmInfo info = readHeader(path);
   if (!info.isMatrix()) {
@@ -147,9 +155,9 @@ inline cask::CsrMatrix readMatrix(std::string path) {
   }
 
   if (info.isSymmetric()) {
-    throw std::invalid_argument("Error! Symmetric Matrix found in " +
-        path + " To read symmetric matrix use cask::io::readSymMatrix()");
+    return cask::CsrMatrix(readDokMatrix(path, info).explicitSymmetric());
   }
+
   return cask::CsrMatrix(readDokMatrix(path, info));
   // throw std::invalid_argument("Error! Generic matrix in MatrixMarket not supported");
 }

@@ -109,13 +109,7 @@ std::vector<DseResult> cask::dse::SparkDse::run (
     cask::io::MmReader<double> m(path);
     auto start = std::chrono::high_resolution_clock::now();
     // auto eigenMatrix = cask::converters::tripletToEigen(m.mmreadMatrix(path));
-    CsrMatrix eigenMatrix;
-    auto mmInfo = cask::io::readHeader(path);
-    if (mmInfo.isSymmetric()) {
-      auto m = cask::io::readDokMatrix(path, mmInfo);
-      eigenMatrix = cask::CsrMatrix(m.explicitSymmetric());
-    } else
-      eigenMatrix = cask::io::readMatrix(path);
+    CsrMatrix eigenMatrix = cask::io::readMatrix(path);
     dfesnippets::timing::print_clock_diff("Reading took: ", start);
 
     // XXX this assumes a virtex device with 512 entries per BRAM
