@@ -37,7 +37,8 @@ int test(string path, int implId) {
     deviceImpl = implLoader.architectureWithId(implId);
 
   cask::spmv::BasicSpmv a(deviceImpl);
-  a.preprocess(*eigenMatrix);
+  auto csrMatrix = cask::io::readMatrix(path);
+  a.preprocess(csrMatrix);
   // TODO need a consistent way to handle params
   //cout << a->getParams();
   cask::Vector got = a.spmv(x);

@@ -32,16 +32,16 @@ int ssarch::countComputeCycles(uint32_t* v, int size, int inputWidth)
 
 // transform a given matrix with n rows in blocks of size n X blockSize
 cask::spmv::Partition ssarch::do_blocking(
-    const cask::sparse::EigenSparseMatrix& m,
+    const cask::CsrMatrix& m,
     int blockSize,
     int inputWidth)
 {
 
-  const int* indptr = m.innerIndexPtr();
-  const double* values = m.valuePtr();
-  const int* colptr = m.outerIndexPtr();
-  int rows = m.rows();
-  int cols = m.cols();
+  const int* indptr = m.col_ind.data();
+  const double* values = m.values.data();
+  const int* colptr = m.row_ptr.data();
+  int rows = m.n;
+  int cols = m.m;
   int n = rows;
   //std::cout << "Mat rows " << n << std::endl;
 
@@ -173,19 +173,19 @@ cask::Vector ssarch::spmv(const cask::Vector& x)
     // answers for large matrices
     // XXX figure out where to place this constant;
     const int minRowsWithDramReduction = 35000;
-    if (mat.rows() < minRowsWithDramReduction ) {
+    if (mat.n < minRowsWithDramReduction ) {
       stringstream ss;
       ss << "Matrix is too small! Minimum supported rows with DRAM reduction: ";
       ss << minRowsWithDramReduction;
-      ss << " actual rows: " << mat.rows();
+      ss << " actual rows: " << mat.n;
       throw invalid_argument(ss.str());
     }
   } else {
-    if (maxRows < mat.rows()) {
+    if (maxRows < mat.n) {
       stringstream ss;
       ss << "Matrix is too large! Maximum supported rows: ";
       ss << maxRows;
-      ss << " actual rows: " << mat.rows();
+      ss << " actual rows: " << mat.n;
       throw invalid_argument(ss.str());
     }
   }
@@ -253,8 +253,8 @@ cask::Vector ssarch::spmv(const cask::Vector& x)
   // must ensure that params match with build parameters
   double frequency = 100 * 1e6;
   double est =(double) totalCycles[0] / frequency;
-  double gflopsEst = (2.0 * (double)this->mat.nonZeros() / est) / 1E9;
-  double gflopsActual = (2.0 * (double)this->mat.nonZeros() / took) / 1E9;
+  double gflopsEst = (2.0 * (double)this->mat.nnzs / est) / 1E9;
+  double gflopsActual = (2.0 * (double)this->mat.nnzs / took) / 1E9;
 
   double bwidthEst = this->numPipes * this->inputWidth * frequency / (1024.0  *
       1024 * 1024) * (8 + 4);
@@ -282,36 +282,36 @@ cask::Vector ssarch::spmv(const cask::Vector& x)
   return cask::Vector{total};
 }
 
-std::vector<cask::sparse::EigenSparseMatrix> ssarch::do_partition(const cask::sparse::EigenSparseMatrix& mat, int numPipes) {
-  std::vector<cask::sparse::EigenSparseMatrix> res;
-  int rowsPerPartition = mat.rows() / numPipes;
+std::vector<cask::CsrMatrix> ssarch::do_partition(const cask::CsrMatrix& mat, int numPipes) {
+  std::vector<cask::CsrMatrix> res;
+  int rowsPerPartition = mat.n / numPipes;
   int start = 0;
   for (int i = 0; i < numPipes - 1; i++) {
-    res.push_back(mat.middleRows(start, rowsPerPartition));
+    res.push_back(mat.sliceRows(start, rowsPerPartition));
     start += rowsPerPartition;
   }
   // put all rows left in the last partition
-  res.push_back(mat.middleRows(start, mat.rows() - start));
+  res.push_back(mat.sliceRows(start, mat.n - start));
   return res;
 }
 
 void ssarch::preprocess(
-    const cask::sparse::EigenSparseMatrix& mat) {
+    const cask::CsrMatrix& mat) {
   this->mat = mat;
 
-  int rowsPerPartition = mat.rows() / numPipes;
+  int rowsPerPartition = mat.n / numPipes;
   int start = 0;
   for (int i = 0; i < numPipes - 1; i++) {
     this->partitions.push_back(
         do_blocking(
-          mat.middleRows(start, rowsPerPartition),
+          mat.sliceRows(start, rowsPerPartition),
           this->cacheSize, this->inputWidth));
     start += rowsPerPartition;
   }
 
   // put all rows left in the last partition
   this->partitions.push_back(
-      do_blocking(mat.middleRows(start, mat.rows() - start),
+      do_blocking(mat.sliceRows(start, mat.n - start),
         this->cacheSize, this->inputWidth));
 
 }

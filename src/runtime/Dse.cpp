@@ -30,7 +30,7 @@ better(
 std::shared_ptr<Spmv> dse_run(
     std::string basename,
     SpmvArchitectureSpace* af,
-    const Eigen::SparseMatrix<double, Eigen::RowMajor>& mat,
+    const cask::CsrMatrix& mat,
     const DseParameters& params)
 {
   int it = 0;
@@ -108,11 +108,12 @@ std::vector<DseResult> cask::dse::SparkDse::run (
 
     cask::io::MmReader<double> m(path);
     auto start = std::chrono::high_resolution_clock::now();
-    auto eigenMatrix = cask::converters::tripletToEigen(m.mmreadMatrix(path));
+    // auto eigenMatrix = cask::converters::tripletToEigen(m.mmreadMatrix(path));
+    CsrMatrix eigenMatrix = cask::io::readMatrix(path);
     dfesnippets::timing::print_clock_diff("Reading took: ", start);
 
     // XXX this assumes a virtex device with 512 entries per BRAM
-    int maxRows = eigenMatrix->rows();
+    int maxRows = eigenMatrix.n;
     if (maxRows % 512 != 0)
       maxRows = (maxRows / 512 + 1) * 512;
 
@@ -131,7 +132,7 @@ std::vector<DseResult> cask::dse::SparkDse::run (
     for (auto sas : factories) {
       bestOverall = better(
           bestOverall,
-          dse_run(basename, sas, *eigenMatrix, params));
+          dse_run(basename, sas, eigenMatrix, params));
     }
 
     if (!bestOverall)

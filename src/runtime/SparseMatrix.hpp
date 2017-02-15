@@ -113,11 +113,11 @@ class DokMatrix {
   // use of std::map important: values are sorted by column index internaly
   std::unordered_map<int, std::map<int, double>> dok;
 
-  DokMatrix() : n(0), nnzs(0) {}
+  DokMatrix() : n(0), m(0), nnzs(0) {}
 
-  DokMatrix(int _n) : n(_n), m(_n), nnzs(0) {}
+  DokMatrix(int _n, int m) : n(_n), m(m), nnzs(0) {}
 
-  DokMatrix(int _n, int _nnzs) : n(_n), m(_n), nnzs(_nnzs) {}
+  DokMatrix(int _n, int m, int _nnzs) : n(_n), m(m), nnzs(_nnzs) {}
 
   // Initialize the matrix as a dense matrix, with the given values, in order;
   // matrix is assumed square with n = sqrt(pattern.size()); 0 entries must be
@@ -144,7 +144,7 @@ class DokMatrix {
 
   DokMatrix explicitSymmetric() {
     int newNnzs = 0;
-    DokMatrix m(n);
+    DokMatrix m(n, this->m);
     for (auto &&s : dok) {
       for (auto &&p : s.second) {
         int i = s.first;
@@ -178,7 +178,7 @@ class DokMatrix {
   }
 
   bool operator==(const DokMatrix& other) const {
-    return n == other.n && nnzs == other.nnzs && dok == other.dok;
+    return n == other.n && m == other.m && nnzs == other.nnzs && dok == other.dok;
   }
 
   void pretty_print() const {
@@ -200,7 +200,7 @@ class DokMatrix {
   }
 
   void set(int i, int j, double val) {
-    assert(i < n && j < n);
+    assert(i < n && j < m);
     dok[i][j] = val;
     nnzs++;
   }
@@ -214,7 +214,7 @@ class DokMatrix {
   }
 
   DokMatrix getLowerTriangular() const {
-    DokMatrix lowerTriangular(n);
+    DokMatrix lowerTriangular(n, m);
     for (auto &e : dok) {
       for (auto &ee : e.second) {
         int i = e.first;
@@ -228,7 +228,7 @@ class DokMatrix {
   }
 
   DokMatrix getUpperTriangular() const {
-    DokMatrix lowerTriangular(n);
+    DokMatrix lowerTriangular(n, m);
     for (auto &e : dok) {
       for (auto &ee : e.second) {
         int i = e.first;
@@ -261,13 +261,13 @@ class DokMatrix {
 class CsrMatrix {
   // TODO move to include/, make API
  public:
-  int n;
+  int n, m;
   int nnzs;
   std::vector<double> values;
   std::vector<int> col_ind;
   std::vector<int> row_ptr;
 
-  CsrMatrix() : n(0), nnzs(0) {}
+  CsrMatrix() : n(0), m(0), nnzs(0) {}
 
   CsrMatrix(std::initializer_list<double> mat) : CsrMatrix(DokMatrix(mat)){
   }
@@ -277,7 +277,8 @@ class CsrMatrix {
 
   CsrMatrix(const DokMatrix &m) {
     nnzs = m.nnzs;
-    n = m.n;
+    this->n = m.n;
+    this->m = m.m;
     int pos = 0;
     for (int i = 0; i < n; i++) {
       row_ptr.push_back(pos);
@@ -292,19 +293,19 @@ class CsrMatrix {
     row_ptr.push_back(nnzs);
   }
 
-  CsrMatrix(int _n, int _nnzs, double *_values, int *_col_ind, int *_row_ptr) :
-      n(_n),
+  CsrMatrix(int _n, int _m, int _nnzs, double *_values, int *_col_ind, int *_row_ptr) :
+      n(_n), m(_m),
       nnzs(_nnzs) {
     values.assign(_values, _values + _nnzs);
     col_ind.assign(_col_ind, _col_ind + _nnzs);
     row_ptr.assign(_row_ptr, _row_ptr + n + 1);
   }
 
-  CsrMatrix(int n, int nnzs,
+  CsrMatrix(int n, int m, int nnzs,
             const std::vector<double> &values,
             const std::vector<int> &col_ind,
             const std::vector<int> &row_ptr) :
-      n(n), nnzs(nnzs), values(values), col_ind(col_ind), row_ptr(row_ptr) {}
+      n(n), m(m), nnzs(nnzs), values(values), col_ind(col_ind), row_ptr(row_ptr) {}
 
   // Prints all matrix values
   void pretty_print() const {
@@ -362,7 +363,7 @@ class CsrMatrix {
   }
 
   DokMatrix toDok() const {
-    DokMatrix m(n, nnzs);
+    DokMatrix m(n, this->m, nnzs);
     for (int i = 0; i < n; i++) {
       for (int k = row_ptr[i]; k < row_ptr[i + 1]; k++) {
         m.dok[i][col_ind[k]] = values[k];
@@ -373,6 +374,7 @@ class CsrMatrix {
 
   bool operator==(const CsrMatrix& o) const {
     return n == o.n &&
+        m == o.m &&
         nnzs == o.nnzs &&
         values == o.values &&
         row_ptr == o.row_ptr &&
@@ -410,7 +412,7 @@ class CsrMatrix {
     return toDok().dot(b);
   }
 
-  CsrMatrix sliceRows(int startRow, int nRows) {
+  CsrMatrix sliceRows(int startRow, int nRows) const {
     //startPos = row_ptr[startRow];
     std::vector<int> newRowPtr, newColInd;
     std::vector<double> newValues;
@@ -426,7 +428,7 @@ class CsrMatrix {
       }
     }
     newRowPtr.push_back(newValues.size());
-    return CsrMatrix(nRows, nnzs, newValues, newColInd, newRowPtr);
+    return CsrMatrix(nRows, this->m, nnzs, newValues, newColInd, newRowPtr);
   }
 
 };
@@ -434,12 +436,12 @@ class CsrMatrix {
 /** A symmetric matrix for which only the lower triangle is stored explicitly, in CSR format */
 class SymCsrMatrix {
  public:
-  int n;
+  int n, m;
   int nnzs;
   CsrMatrix matrix;
 
   // Construct a symmetric matrix from a lower triangular matrix in DoK format
-  explicit SymCsrMatrix(const DokMatrix& l) : n(l.n), matrix(l) {
+  explicit SymCsrMatrix(const DokMatrix& l) : n(l.n), m(l.m), matrix(l) {
     int diagNnzs = 0;
     for (int i = 0; i < l.n; i++)
       if (l.at(i, i) != 0)
