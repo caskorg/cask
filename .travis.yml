@@ -1,7 +1,4 @@
-language: cpp
-
-compiler:
-  - gcc
+language: python
 
 install:
   - (cd ci/travis/ && bash setup.sh)
