@@ -2,7 +2,7 @@
 # Usage:   bash run-hw.sh path/to/binary
 # Example: bash run-hw.sh build/bin/fpgaNaive_dfe
 
-HARDWARE_SO_DIR=../lib-generated
+HARDWARE_SO_DIR=lib-generated
 
 MAXOS_HW=/opt/maxeler/maxeleros/lib/libmaxeleros.so
 

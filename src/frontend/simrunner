@@ -1,4 +1,4 @@
-HARDWARE_SO_DIR=../lib-generated
+HARDWARE_SO_DIR=lib-generated
 MAXOS_SIM=${MAXCOMPILERDIR}/lib/maxeleros-sim/lib/libmaxeleros.so
 export LD_LIBRARY_PATH=${HARDWARE_SO_DIR}:${LD_LIBRARY_PATH}
 

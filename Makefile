@@ -43,17 +43,22 @@ graphs:
 hw-flow:
 	mkdir -p build
 	cd build && cmake ..
-	cd src/frontend && python cask.py -d -t dfe -p params.json -b ../../test/test-benchmark -rb -rep html -bm best && cd ..
+	mkdir -p output
+	cd output && python ../src/frontend/cask.py -d -t dfe -p ../src/frontend/params.json -b ../test/test-benchmark -rb -rep html --cpp=$(CXX) -bm best && cd ..
+	cd build && make -j12
 
 sim-flow:
 	mkdir -p build
 	cd build && cmake ..
-	cd src/frontend && python cask.py -d -t sim -p params.json -b ../../test/test-benchmark -rb -rep html -bm best && cd ..
+	mkdir -p output
+	cd output && python ../src/frontend/cask.py -d -t sim -p ../src/frontend/params.json -b ../test/test-benchmark -rb -rep html --cpp=$(CXX) -bm best && cd ..
+	cd build && make -j12
 
 mock-flow:
 	mkdir -p build
 	cd build && cmake .. && make main && cd ..
-	cd src/frontend && python cask.py -d -t dfe_mock -p params.json -b ../../test/test-benchmark -rb -rep html --cpp=$(CXX) -bm best && cd ..
+	mkdir -p output
+	cd output && python ../src/frontend/cask.py -d -t dfe_mock -p ../src/frontend/params.json -b ../test/test-benchmark -rb -rep html --cpp=$(CXX) -bm best && cd ..
 	cd build && make -j12
 
 matrix:
