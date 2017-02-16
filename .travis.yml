@@ -16,11 +16,13 @@ addons:
   apt:
     sources:
       - boost-latest
+      - ubuntu-toolchain-r-test
     packages:
       - libblas-dev
       - liblapack-dev
       - libatlas-base-dev
       - gfortran
       - libboost1.55-all-dev
+      - g++-4.9
 
-script: make mock-flow
+script: CXX=$(which g++-4.9) make mock-flow
