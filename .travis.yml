@@ -1,4 +1,6 @@
 language: python
+dist: trusty
+sudo: false
 
 install:
   - pip install --upgrade pip setuptools wheel
@@ -9,16 +11,11 @@ install:
   - pip install tabulate
   - pip install termcolor html
 
-sudo: false
-
-cache:
-  - pip
-  - apt
+cache: pip
 
 addons:
   apt:
     sources:
-      - ubuntu-toolchain-r-test
       - boost-latest
     packages:
       - libblas-dev
@@ -26,12 +23,5 @@ addons:
       - libatlas-base-dev
       - gfortran
       - libboost1.55-all-dev
-      - g++-4.9
 
-before_script:
-  - mkdir build
-  - cd build
-  - INCLUDE=../ci/travis/eigen CXX="g++-4.9" cmake ..
-  - cd ..
-
-script: CXX="g++-4.9" make mock-flow
+script: make mock-flow
