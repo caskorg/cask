@@ -110,6 +110,7 @@ if (BUILD_SIM)
     add_executable(test_spmv_sim test/test_spmv.cpp)
     target_link_libraries(test_spmv_sim
             SparkCpuLib DfeSpmvSimLib -ldl -lboost_filesystem -lmaxeleros)
+    file(GLOB files test/matrices/*.mtx)
     foreach(infileName ${files})
       get_filename_component(matrix "${infileName}" NAME)
       AddMaxelerSimTest("test_spmv_sim" "${matrix}" "../test/matrices/${matrix}")
