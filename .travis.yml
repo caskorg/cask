@@ -2,11 +2,8 @@ language: python
 
 install:
   - (cd ci/travis/ && bash setup.sh)
-  - travis_wait pip install scipy
-  - pip install matplotlib
   - pip install networkx
   - pip install beautifulsoup4
-  - travis_wait pip install pandas
   - pip install tabulate
   - pip install termcolor html
 
@@ -28,6 +25,14 @@ addons:
       - gfortran
       - libboost1.55-all-dev
       - g++-4.9
+      - python-numpy
+      - python-scipy
+      - python-matplotlib
+      - ipython
+      - ipython-notebook
+      - python-pandas
+      - python-sympy
+      - python-nose
 
 before_script:
   - mkdir build
