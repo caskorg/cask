@@ -1,6 +1,8 @@
 language: python
 
 install:
+  - pip install --upgrade pip setuptools wheel
+  - pip install --only-binary=numpy,scipy,matplotlib,pandas numpy scipy matplotlib pandas
   - (cd ci/travis/ && bash setup.sh)
   - pip install networkx
   - pip install beautifulsoup4
@@ -25,14 +27,6 @@ addons:
       - gfortran
       - libboost1.55-all-dev
       - g++-4.9
-      - python-numpy
-      - python-scipy
-      - python-matplotlib
-      - ipython
-      - ipython-notebook
-      - python-pandas
-      - python-sympy
-      - python-nose
 
 before_script:
   - mkdir build
