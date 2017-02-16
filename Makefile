@@ -56,10 +56,7 @@ sim-flow:
 
 mock-flow:
 	mkdir -p build
-	cd build && cmake .. && make main && cd ..
-	mkdir -p output
-	cd output && python ../src/frontend/cask.py -d -t dfe_mock -p ../src/frontend/params.json -b ../test/test-benchmark -rb -rep html --cpp=$(CXX) -bm best && cd ..
-	cd build && make -j12
+	cd build && cmake .. && make -j8 && ctest -E Client*
 
 matrix:
 	# TODO must run build beforehand

@@ -297,7 +297,7 @@ class Spark:
     # library generation is sequential
     self.generateImplementationHeader(self.prjs)
     self.runLibraryBuild(self.prjs, 'libSpmv_' + self.target + '.so')
-    buildClient(self.target)
+    # buildClient(self.target)
 
   def runBenchmark(self, benchmark, benchmark_mode):
     if benchmark_mode == BENCHMARK_NONE:
