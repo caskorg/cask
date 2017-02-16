@@ -7,6 +7,11 @@ TMP_MAT_PATH="/tmp/cask_matrices"
 TRASH=latex
 ROOT_PATH=$(shell pwd)
 
+CMAKE=cmake3
+ifeq (, $(shell which cmake3))
+	CMAKE=cmake
+endif
+
 help:
 	@ echo "Available targets are"
 	@ echo "To run the entire flow on a benchmark:"
@@ -49,14 +54,14 @@ hw-flow:
 
 sim-flow:
 	mkdir -p build
-	cd build && cmake ..
-	mkdir -p output
-	cd output && python ../src/frontend/cask.py -d -t sim -p ../src/frontend/params.json -b ../test/test-benchmark -rb -rep html --cpp=$(CXX) -bm best && cd ..
-	cd build && make -j12
+	cd build && $(CMAKE) -DBUILD_SIM=true .. -DBUILD_HW=false
+	make -C build Eigen3
+	make -C build
+	cd build && ctest -E Client*
 
 mock-flow:
 	mkdir -p build
-	cd build && cmake -DCMAKE_CXX_COMPILER=$(CXX) ..
+	cd build && $(CMAKE) -DCMAKE_CXX_COMPILER=$(CXX) -DBUILD_SIM=false -DBUILD_HW=false ..
 	make -C build Eigen3
 	make -C build -j8
 	cd build && ctest -E Client*

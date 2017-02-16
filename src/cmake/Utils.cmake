@@ -25,3 +25,19 @@ function(AddMaxelerHwTest binary name args)
           WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
           COMMAND ../src/frontend/hwrunner ./${binary} ${args})
 endfunction()
+
+function (AddCaskGeneratedLibrary target name)
+  set (LIB_FILE ${CMAKE_SOURCE_DIR}/build/lib-generated/libSpmv_${target}.so)
+  add_custom_command(
+    OUTPUT ${LIB_FILE}
+    DEPENDS main ${CMAKE_SOURCE_DIR}/src/frontend/cask.py
+    COMMAND python ../src/frontend/cask.py -d -t ${target} -p ../src/frontend/params.json -b ../test/test-benchmark -rb -bm best --cpp=${CMAKE_CXX_COMPILER}
+    )
+
+  add_custom_target(${name}_target DEPENDS ${LIB_FILE})
+  add_library(${name} SHARED IMPORTED)
+  add_dependencies(${name} ${name}_target)
+  set_target_properties(${name}
+    PROPERTIES
+    IMPORTED_LOCATION ${LIB_FILE})
+endfunction()

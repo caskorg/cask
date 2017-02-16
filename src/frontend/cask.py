@@ -239,11 +239,10 @@ class Spark:
 
     # copy the generated library
     libDir = 'lib-generated'
-    if os.path.exists(libDir):
-      shutil.rmtree(libDir)
-    os.makedirs(libDir)
+    if not os.path.exists(libDir):
+      os.makedirs(libDir)
     shutil.copy(libName, libDir + '/{}.0'.format(libName))
-    shutil.move(libName, libDir)
+    shutil.copy(libName, libDir)
 
   def generateImplementationHeader(self, prjs):
     genFilePath = output_path('GeneratedImplementations.cpp')
