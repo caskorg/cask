@@ -58,7 +58,8 @@ mock-flow:
 	mkdir -p build
 	cd build && cmake -DCMAKE_CXX_COMPILER=$(CXX) ..
 	make -C build Eigen3
-	make -C build -j8 && ctest -E Client*
+	make -C build -j8
+	cd build && ctest -E Client*
 
 matrix:
 	# TODO must run build beforehand

@@ -19,8 +19,9 @@ else()
   message(STATUS "Build hardware: NO")
 endif()
 
+# --- Download and include Eigen3
 include(ExternalProject)
-set(Eigen3_VERSION "3.2.8")
+set(Eigen3_VERSION "3.3.1")
 ExternalProject_Add( Eigen3
         URL "http://bitbucket.org/eigen/eigen/get/${Eigen3_VERSION}.tar.gz"
         UPDATE_COMMAND ""
@@ -28,6 +29,7 @@ ExternalProject_Add( Eigen3
         BUILD_COMMAND ""
         INSTALL_COMMAND ""
 )
+include_directories(${CMAKE_BINARY_DIR}/Eigen3-prefix/src/Eigen3)
 
 SET (BOOST_ROOT "/opt/boost/boost_1_57_0")
 SET (BOOST_INCLUDEDIR "/opt/boost/boost-1.57.0/include")
@@ -50,7 +52,6 @@ endif (NOT Boost_FOUND)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -march=native")
 
-include_directories(Eigen3-prefix/src/Eigen3/Eigen)
 
 find_package(MKL REQUIRED)
 if (LibMKL_INCLUDE_DIRS)
