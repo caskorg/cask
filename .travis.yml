@@ -28,7 +28,7 @@ addons:
 before_script:
   - mkdir build
   - cd build
-  - INCLUDE=../ci/travis/eigen CXX="g++-4.9" cmake ..
+  - INCLUDE=../ci/travis/eigen cmake ..
   - cd ..
 
 script: make mock-flow
