@@ -47,14 +47,14 @@ graphs:
 
 hw-flow:
 	mkdir -p build
-	cd build && cmake ..
-	mkdir -p output
-	cd output && python ../src/frontend/cask.py -d -t dfe -p ../src/frontend/params.json -b ../test/test-benchmark -rb -rep html --cpp=$(CXX) -bm best && cd ..
-	cd build && make -j12
+	cd build && $(CMAKE) -DBUILD_SIM=true -DBUILD_HW=true ..
+	make -C build Eigen3
+	make -C build
+	cd build && ctest -E Client*
 
 sim-flow:
 	mkdir -p build
-	cd build && $(CMAKE) -DBUILD_SIM=true .. -DBUILD_HW=false
+	cd build && $(CMAKE) -DBUILD_SIM=true -DBUILD_HW=false ..
 	make -C build Eigen3
 	make -C build
 	cd build && ctest -E Client*
