@@ -5,7 +5,6 @@ sudo: false
 install:
   - pip install --upgrade pip setuptools wheel
   - pip install --only-binary=numpy,scipy,matplotlib,pandas numpy scipy matplotlib pandas
-  - (cd ci/travis/ && bash setup.sh)
   - pip install networkx
   - pip install beautifulsoup4
   - pip install tabulate
@@ -23,12 +22,5 @@ addons:
       - libatlas-base-dev
       - gfortran
       - libboost1.55-all-dev
-
-
-before_script:
-  - mkdir build
-  - cd build
-  - INCLUDE=../ci/travis/eigen cmake ..
-  - cd ..
 
 script: make mock-flow

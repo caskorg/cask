@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.6)
+cmake_minimum_required(VERSION 3.0.2)
 
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0 --coverage -fno-inline --coverage -fno-inline -fno-inline-small-functions -fno-default-inline")
 
@@ -19,11 +19,22 @@ else()
   message(STATUS "Build hardware: NO")
 endif()
 
+include(ExternalProject)
+set(Eigen3_VERSION "3.2.8")
+ExternalProject_Add( Eigen3
+        URL "http://bitbucket.org/eigen/eigen/get/${Eigen3_VERSION}.tar.gz"
+        UPDATE_COMMAND ""
+        CONFIGURE_COMMAND ""
+        BUILD_COMMAND ""
+        INSTALL_COMMAND ""
+)
+
 SET (BOOST_ROOT "/opt/boost/boost_1_57_0")
 SET (BOOST_INCLUDEDIR "/opt/boost/boost-1.57.0/include")
 SET (BOOST_LIBRARYDIR "/opt/boost/boost-1.57.0/lib")
 SET (BOOST_MIN_VERSION "1.55.0")
 set (Boost_NO_BOOST_CMAKE ON)
+
 FIND_PACKAGE(Boost ${BOOST_MIN_VERSION} REQUIRED)
 if (NOT Boost_FOUND)
   message(FATAL_ERROR "Fatal error: Boost (version >= 1.41) required.")
@@ -39,14 +50,7 @@ endif (NOT Boost_FOUND)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -march=native")
 
-find_path(EIGEN_HEADER Eigen)
-if (EIGEN_HEADER)
-  message(STATUS "  --> EIGEN ${EIGEN_HEADER}")
-  include_directories(${EIGEN_HEADER})
-  add_definitions(-DUSEEIGEN)
-else()
-  message(STATUS "Found Eigen: no")
-endif()
+include_directories(Eigen3-prefix/src/Eigen3/Eigen)
 
 find_package(MKL REQUIRED)
 if (LibMKL_INCLUDE_DIRS)
