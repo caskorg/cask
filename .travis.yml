@@ -2,11 +2,11 @@ language: python
 
 install:
   - (cd ci/travis/ && bash setup.sh)
-  - pip install scipy
+  - travis_wait pip install scipy
   - pip install matplotlib
   - pip install networkx
   - pip install beautifulsoup4
-  - pip install pandas
+  - travis_wait pip install pandas
   - pip install tabulate
   - pip install termcolor html
 
