@@ -9,6 +9,8 @@ from math import log, ceil
 import argparse
 import collections
 import matplotlib
+# Must be called before importing matplotlib.pylab
+matplotlib.use('Agg')
 import matplotlib.pylab as pl
 import matrixio
 import numpy as np
@@ -17,7 +19,6 @@ import os.path
 import precision
 import reorder
 import storage
-matplotlib.use('Agg')
 
 
 def storage_analysis(matrix):
