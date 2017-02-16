@@ -8,19 +8,22 @@
 
 class TestLinearSolvers : public ::testing::Test { };
 
-TEST_F(TestLinearSolvers, CGWithIdentityPC) {
-   std::vector<double> rhs = cask::io::readVector("test/systems/tiny_b.mtx");
-   cask::SymCsrMatrix a = cask::io::readSymMatrix("test/systems/tiny.mtx");
-   int iterations = 0;
-   std::vector<double> sol(a.n);
-   cask::sparse_linear_solvers::pcg<double, cask::sparse_linear_solvers::IdentityPreconditioner>(a.matrix, &rhs[0], &sol[0], iterations);
-   std::vector<double> exp_sol{1, 2, 3, 4};
+using namespace cask;
+using namespace cask::sparse_linear_solvers;
 
-   cask::utils::print(rhs, "b = ");
+TEST_F(TestLinearSolvers, CGWithIdentityPC) {
+   Vector rhs = io::readVector("test/systems/tiny_b.mtx");
+   SymCsrMatrix a = io::readSymMatrix("test/systems/tiny.mtx");
+   int iterations = 0;
+   Vector sol(a.n);
+   pcg<double, IdentityPreconditioner>(a.matrix, &rhs[0], &sol[0], iterations);
+   Vector exp_sol{1, 2, 3, 4};
+
+   rhs.print("b = ");
    std::cout << "Matrix" << std::endl;
    a.pretty_print();
-   cask::utils::print(exp_sol, "exp x = ");
-   cask::utils::print(sol, "got x = ");
+   exp_sol.print("exp = ");
+   sol.print("got x = ");
    std::cout << "Iterations = " << iterations << std::endl;
 
    for (auto i = 0u; i < sol.size(); i++) {
@@ -29,18 +32,18 @@ TEST_F(TestLinearSolvers, CGWithIdentityPC) {
 }
 
 TEST_F(TestLinearSolvers, CGSymWithIdentityPC) {
-   std::vector<double> rhs = cask::io::readVector("test/systems/tinysym_b.mtx");
-   cask::SymCsrMatrix a = cask::io::readSymMatrix("test/systems/tinysym.mtx");
+   Vector rhs = io::readVector("test/systems/tinysym_b.mtx");
+   SymCsrMatrix a = io::readSymMatrix("test/systems/tinysym.mtx");
    int iterations = 0;
-   std::vector<double> sol(a.n);
-   cask::sparse_linear_solvers::pcg<double, cask::sparse_linear_solvers::IdentityPreconditioner>(a.matrix, &rhs[0], &sol[0], iterations);
-   std::vector<double> exp_sol{-2, 2, 3, 3};
+   Vector sol(a.n);
+   pcg<>(a.matrix, &rhs[0], &sol[0], iterations);
+   Vector exp_sol{-2, 2, 3, 3};
 
-   cask::utils::print(rhs, "b = ");
+   rhs.print("b = ");
    std::cout << "Matrix" << std::endl;
    a.pretty_print();
-   cask::utils::print(exp_sol, "exp x = ");
-   cask::utils::print(sol, "got x = ");
+   exp_sol.print("exp = ");
+   sol.print("got x =");
    std::cout << "Iterations = " << iterations << std::endl;
 
    for (auto i = 0u; i < sol.size(); i++) {
@@ -49,23 +52,23 @@ TEST_F(TestLinearSolvers, CGSymWithIdentityPC) {
 }
 
 TEST_F(TestLinearSolvers, CGSymWithILUPC) {
-   std::vector<double> rhs = cask::io::readVector("test/systems/tinysym_b.mtx");
-   cask::SymCsrMatrix a = cask::io::readSymMatrix("test/systems/tinysym.mtx");
+   Vector rhs = io::readVector("test/systems/tinysym_b.mtx");
+   SymCsrMatrix a = io::readSymMatrix("test/systems/tinysym.mtx");
    int iterations = 0;
-   std::vector<double> sol(a.n);
-   cask::sparse_linear_solvers::pcg<double, cask::sparse_linear_solvers::ILUPreconditioner>(a.matrix, &rhs[0], &sol[0], iterations);
-   std::vector<double> exp_sol{
+   Vector sol(a.n);
+   pcg<double, ILUPreconditioner>(a.matrix, &rhs[0], &sol[0], iterations);
+   Vector exp_sol{
        -1.9982580059252246,
        2.0000862488691915,
        3.0001293733037859,
        2.9987581910958183
        };
 
-   cask::utils::print(rhs, "b = ");
+   rhs.print("b = ");
    std::cout << "Matrix" << std::endl;
    a.pretty_print();
-   cask::utils::print(exp_sol, "exp x = ");
-   cask::utils::print(sol, "got x = ");
+   exp_sol.print("exp x = ");
+   sol.print("got x =");
    std::cout << "Iterations = " << iterations << std::endl;
 
    for (auto i = 0u; i < sol.size(); i++) {
@@ -74,12 +77,12 @@ TEST_F(TestLinearSolvers, CGSymWithILUPC) {
 }
 
 TEST_F(TestLinearSolvers, ILUCompute2) {
-   cask::CsrMatrix a{cask::DokMatrix{
+   CsrMatrix a{
        2, 1, 1, 1,
        1, 1, 0, 0,
        1, 0, 1, 0,
        1, 0, 0, 1
-   }};
+   };
 
    cask::sparse_linear_solvers::ILUPreconditioner ilupc{a};
 

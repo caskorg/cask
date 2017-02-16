@@ -6,6 +6,7 @@
 #include <sstream>
 #include <Spmv.hpp>
 #include "../src/runtime/GeneratedImplSupport.hpp"
+#include "../src/runtime/Cg.hpp"
 
 namespace cask {
 
@@ -22,6 +23,15 @@ class CaskContext {
   cask::spmv::BasicSpmv getSpmv(SymCsrMatrix& matrix) {
     // TODO should choose between the various implementtation types
     return cask::spmv::BasicSpmv(spmvManager.architectureWithParams(matrix.n));
+  }
+
+  cask::spmv::BasicSpmv getSpmv(CsrMatrix& matrix) {
+    // TODO should choose between the various implementtation types
+    return cask::spmv::BasicSpmv(spmvManager.architectureWithParams(matrix.n));
+  }
+
+  cask::solvers::Cg getCg(SymCsrMatrix& matrix) {
+
   }
 
 };

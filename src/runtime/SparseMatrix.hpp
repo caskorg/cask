@@ -73,17 +73,30 @@ public:
     return data[i];
   }
 
-  void print() {
+  void print(std::string label="") const {
+    std::cout << label;
     for (int i : data)
       std::cout << i << " ";
     std::cout << std::endl;
   }
 
-  double norm() {
+  double norm() const {
     double residual;
     for (double d : data)
       residual += d * d;
     return std::sqrt(residual);
+  }
+
+  double distance(const Vector& exp) const {
+    return (*this - exp).norm();
+  }
+
+  void writeToFile(std::string path) {
+    std::ofstream f{path};
+    if (!f)
+      throw std::invalid_argument("Could not open file for writing");
+    for (auto v : data)
+      f << v << std::endl;
   }
 };
 
@@ -465,15 +478,6 @@ class SymCsrMatrix {
   }
 
 };
-
-
-inline void writeToFile(std::string path, std::vector<double> vector) {
-  std::ofstream f{path};
-  if (!f)
-    throw std::invalid_argument("Could not open file for writing");
-  for (auto v : vector)
-    f << v << std::endl;
-}
 
 }
 

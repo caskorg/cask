@@ -11,14 +11,16 @@ TEST(ClientTestSpmv, TinySymSpmv) {
     using namespace cask;
 
     CaskContext cc;
-    SymCsrMatrix a = io::readSymMatrix("test/systems/tinysym.mtx");
-    std::vector<double> rhs = cask::io::readVector("test/systems/tinysym_b.mtx");
+    CsrMatrix a = io::readMatrix("test/systems/tinysym.mtx");
+    Vector rhs = cask::io::readVector("test/systems/tinysym_b.mtx");
     Vector v(rhs);
 
     auto spmv = cc.getSpmv(a);
-    // spmv.preprocess(a);
-    // Vector res = spmv.spmv(a, v);
-    // std::vector<double> exp = io::readVector("test/systems/tinysym_sol.mtx");
-    // Vector vExp{exp};
-    // ASSERT_EQ(vExp, res);
+    spmv.preprocess(a);
+    Vector exp = io::readVector("test/systems/tinysym_sol.mtx");
+    spmv.spmv(v).print("Spmv res = ");
+    exp.print("Exp = ");
+
+    // make test fail until we implement it
+    ASSERT_TRUE(false);
 }

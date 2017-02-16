@@ -3,39 +3,38 @@
 #include <SparseLinearSolvers.hpp>
 #include <vector>
 #include <gtest/gtest.h>
+#include <SparseMatrix.hpp>
 
 using namespace std;
 
 template<typename P>
 void runCg(const cask::SymCsrMatrix &a,
-           const vector<double> &exp,
-           vector<double> &rhs,
+           const cask::Vector& exp,
+           cask::Vector& rhs,
            std::string outFile) {
   int iterations = 0;
   bool verbose = false;
-  std::vector<double> sol(a.n);
+  cask::Vector sol(a.n);
   cask::utils::Timer t;
-  cask::sparse_linear_solvers::pcg<double, P>(a.matrix, &rhs[0], &sol[0], iterations, verbose, &t);
-  cask::Vector vrhs(rhs);
-  double estimatedL2Norm = (a.dot(sol) - vrhs).norm();
+  cask::sparse_linear_solvers::pcg<double, P>(a.matrix, &(rhs.data[0]), &(sol.data[0]), iterations, verbose, &t);
 
   ofstream logFile{outFile + ".log"};
   cask::benchmark::printSummary(
       t.get("cg:setup").count(),
       iterations,
       t.get("cg:solve").count(),
-      estimatedL2Norm,
-      cask::benchmark::residual(exp, sol),
+      sol.distance(rhs),
+      exp.distance(sol),
       0,
       logFile
   );
-  cask::writeToFile(outFile, sol);
+  sol.writeToFile(outFile);
 }
 
 void run_test(std::string matrixPath, std::string lhsPath, std::string rhsPath) {
   cask::SymCsrMatrix a = cask::io::readSymMatrix(matrixPath);
-  std::vector<double> rhs = cask::io::readVector(rhsPath);
-  std::vector<double> exp = cask::io::readVector(lhsPath);
+  auto rhs = cask::io::readVector(rhsPath);
+  auto exp = cask::io::readVector(lhsPath);
 
   std::cout << "Running without preconditioning " << std::endl;
   runCg<cask::sparse_linear_solvers::IdentityPreconditioner>(a, exp, rhs, "sol.upc.mtx");

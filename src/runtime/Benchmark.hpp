@@ -40,13 +40,6 @@ void parseArgs(int argc, char** argv) {
   checkFileExists(argv[6]);
 }
 
-double residual(std::vector<double> got, std::vector<double> exp) {
-  double residual = 0;
-  for (auto i = 0u; i < got.size(); i++) {
-    residual += (got[i] - exp[i]) * (got[i] - exp[i]);
-  }
-  return std::sqrt(residual);
-}
 
 
 template<typename T>

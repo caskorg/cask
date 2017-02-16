@@ -93,7 +93,7 @@ set(SparkCpu_src
         src/runtime/IO.hpp
         src/runtime/Model.hpp
         src/runtime/Utils.hpp
-        src/runtime/Dse.cpp)
+        src/runtime/Dse.cpp src/runtime/Cg.cpp)
 
 add_library(SparkCpuLib ${SparkCpu_src})
 
@@ -150,11 +150,20 @@ if (DEFINED ENV{MAXCOMPILERDIR} AND DEFINED ENV{MAXELEROSDIR})
   endforeach()
 endif()
 
+find_library(DfeSpmvMockLib
+        Spmv_dfe_mock
+        PATH ${CMAKE_SOURCE_DIR}/output/lib-generated)
+
+if (DfeSpmvMockLib-NOTFOUND)
+    message(FATAL_ERROR "DFE SpMV Mock not found")
+else ()
+  message(STATUS "DFE mock found!")
+endif()
 
 
 add_subdirectory(lib/gtest)
 if (LibMKL_INCLUDE_DIRS)
-  # AddGtestSuite(ClientTestCg)
+  AddGtestSuiteWithCask(ClientTestCg)
   AddGtestSuiteWithCask(ClientTestSpmv)
   AddGtestSuite(LinearSolvers)
   AddGtestSuite(SparseMatrix)

@@ -159,7 +159,7 @@ class ILUPreconditioner {
  *  Standard preconditioned CG, (Saad et al)
  *  https://en.wikipedia.org/wiki/Conjugate_gradient_method
  */
-template<typename T, typename Precon>
+template<typename T=double, typename Precon=IdentityPreconditioner>
 bool pcg(const CsrMatrix& a, double *rhs, double *x, int &iterations, bool verbose = false, cask::utils::Timer* t = nullptr) {
     // configuration (TODO Should be exposed through params)
     char tr = 'l';

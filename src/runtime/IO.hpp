@@ -70,7 +70,7 @@ inline MmInfo readHeader(std::string path) {
   throw std::invalid_argument("Not a valid MatrixMarket file in " + path);
 }
 
-inline std::vector<double> readVector(std::string path) {
+inline cask::Vector readVector(std::string path) {
   MmInfo info = readHeader(path);
 
   assert(info.isMatrix());
@@ -89,7 +89,7 @@ inline std::vector<double> readVector(std::string path) {
   std::stringstream s;
   s << line;
   s >> n >> m;
-  std::vector<double> v(n);
+  Vector v(n);
 
   if (info.format == "coordinate") {
     int l;
