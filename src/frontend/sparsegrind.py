@@ -5,20 +5,18 @@ A module for analysing sparse matrices. Can be used to analyse:
 3. storage format
 """
 
+from math import log, ceil
 import argparse
 import collections
+import matplotlib
+import matplotlib.pylab as pl
+import matrixio
 import numpy as np
 import os
 import os.path
-from math import log, ceil
-
-import matplotlib.pylab as pl
-
-import matrixio
 import precision
 import reorder
 import storage
-
 matplotlib.use('Agg')
 
 
