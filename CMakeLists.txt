@@ -83,7 +83,7 @@ set (LIB_FILE ${CMAKE_SOURCE_DIR}/build/lib-generated/libSpmv_dfe_mock.so)
 add_custom_command(
        OUTPUT ${LIB_FILE}
        DEPENDS main ${CMAKE_SOURCE_DIR}/src/frontend/cask.py
-       COMMAND python ../src/frontend/cask.py -d -t dfe_mock -p ../src/frontend/params.json -b ../test/test-benchmark -rb -bm best
+       COMMAND python ../src/frontend/cask.py -d -t dfe_mock -p ../src/frontend/params.json -b ../test/test-benchmark -rb -bm best --cpp=${CMAKE_CXX_COMPILER}
 )
 
 add_custom_target(DfeSpmvMock_target DEPENDS ${LIB_FILE})
