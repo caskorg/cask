@@ -488,6 +488,7 @@ def main():
       ps = {}
       for k, v in data['dse_params'].iteritems():
         ps[k] = str(v['default'])
+        # XXX prj_id is not defined at this point, how do we create a project with the default values?
     params = [maxbuild.PrjConfig(ps, args.target, PRJ, prj_id, '../spmv/build/')]
 
   arch_df = pd.DataFrame(log_archs,
