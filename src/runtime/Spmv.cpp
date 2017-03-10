@@ -39,41 +39,14 @@ cask::spmv::Partition ssarch::do_blocking(
     int blockSize,
     int inputWidth)
 {
-
-  const int* colptr = m.col_ind.data();
-  const double* values = m.values.data();
-  const int* rowptr = m.row_ptr.data();
   int rows = m.n;
   int cols = m.m;
   int n = rows;
   //std::cout << "Mat rows " << n << std::endl;
-
-  int nBlocks = cols / blockSize + (cols % blockSize == 0 ? 0 : 1);
   //std::cout << "Npartitions: " << nPartitions << std::endl;
 
-  // XXX constructing a CSR matrix this way is not safe because m and n are not updated
-  // XXX this is actually sliceing columns of a CSR matrix
-  // TODO should make a separate method on the CSR class
-  std::vector<cask::CsrMatrix> partitions(nBlocks);
-
-  for (int i = 0; i < rows; i++) {
-    for (int j = 0; j < nBlocks; j++) {
-      auto& p = partitions[j].row_ptr;
-      if (p.size() == 0)
-        p.push_back(0);
-      else
-        p.push_back(p.back());
-    }
-    //std::cout << "i = " << i << std::endl;
-    //std::cout << "colptr" << colptr[i] << std::endl;
-    for (int j = rowptr[i]; j < rowptr[i+1]; j++) {
-      auto& p = partitions[colptr[j] / blockSize];
-      int idxInPartition = colptr[j] - (colptr[j] / blockSize ) * blockSize;
-      p.col_ind.push_back(idxInPartition);
-      p.values.push_back(values[j]);
-      p.row_ptr.back()++;
-    }
-  }
+  std::vector<cask::CsrMatrix> partitions = m.sliceColumns(blockSize); // (nBlocks);
+  int nBlocks = partitions.size();
 
   //if (n > Spmv_maxRows)
     //throw std::invalid_argument(
