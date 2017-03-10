@@ -16,7 +16,7 @@ using ssarch = cask::spmv::BasicSpmv;
 namespace cutils = cask::utils;
 
 // how many cycles does it take to resolve the accesses
-int ssarch::countComputeCycles(uint32_t* v, int size, int inputWidth)
+int ssarch::countComputeCycles(int32_t* v, int size, int inputWidth)
 {
   int cycles = 0;
   int crtPos = 0;
@@ -40,9 +40,9 @@ cask::spmv::Partition ssarch::do_blocking(
     int inputWidth)
 {
 
-  const int* indptr = m.col_ind.data();
+  const int* colptr = m.col_ind.data();
   const double* values = m.values.data();
-  const int* colptr = m.row_ptr.data();
+  const int* rowptr = m.row_ptr.data();
   int rows = m.n;
   int cols = m.m;
   int n = rows;
@@ -51,11 +51,14 @@ cask::spmv::Partition ssarch::do_blocking(
   int nBlocks = cols / blockSize + (cols % blockSize == 0 ? 0 : 1);
   //std::cout << "Npartitions: " << nPartitions << std::endl;
 
-  std::vector<cask::sparse::CsrMatrix> partitions(nBlocks);
+  // XXX constructing a CSR matrix this way is not safe because m and n are not updated
+  // XXX this is actually sliceing columns of a CSR matrix
+  // TODO should make a separate method on the CSR class
+  std::vector<cask::CsrMatrix> partitions(nBlocks);
 
   for (int i = 0; i < rows; i++) {
     for (int j = 0; j < nBlocks; j++) {
-      auto& p = std::get<0>(partitions[j]);
+      auto& p = partitions[j].row_ptr;
       if (p.size() == 0)
         p.push_back(0);
       else
@@ -63,12 +66,12 @@ cask::spmv::Partition ssarch::do_blocking(
     }
     //std::cout << "i = " << i << std::endl;
     //std::cout << "colptr" << colptr[i] << std::endl;
-    for (int j = colptr[i]; j < colptr[i+1]; j++) {
-      auto& p = partitions[indptr[j] / blockSize];
-      int idxInPartition = indptr[j] - (indptr[j] / blockSize ) * blockSize;
-      std::get<1>(p).push_back(idxInPartition);
-      std::get<2>(p).push_back(values[j]);
-      std::get<0>(p).back()++;
+    for (int j = rowptr[i]; j < rowptr[i+1]; j++) {
+      auto& p = partitions[colptr[j] / blockSize];
+      int idxInPartition = colptr[j] - (colptr[j] / blockSize ) * blockSize;
+      p.col_ind.push_back(idxInPartition);
+      p.values.push_back(values[j]);
+      p.row_ptr.back()++;
     }
   }
 
@@ -88,14 +91,14 @@ cask::spmv::Partition ssarch::do_blocking(
   int emptyCycles = 0;
   for (auto& p : partitions) {
     auto pp = preprocessBlock(p, partition++, partitions.size());
-    auto& p_colptr = std::get<0>(pp);
-    auto& p_indptr = std::get<1>(pp);
-    auto& p_values = std::get<2>(pp);
+    auto& p_colptr = pp.row_ptr;
+    auto& p_indptr = pp.col_ind;
+    auto& p_values = pp.values;
 
-    int diff = std::get<0>(p).size() - p_colptr.size();
+    int diff = p.row_ptr.size() - p_colptr.size();
     emptyCycles += diff;
     reductionCycles -= diff;
-    cycles += this->countComputeCycles(&std::get<0>(p)[0], n, inputWidth) - diff;
+    cycles += this->countComputeCycles(&p.row_ptr[0], n, inputWidth) - diff;
 
     cutils::align(p_indptr, sizeof(int) * inputWidth);
     cutils::align(p_values, sizeof(double) * inputWidth);
@@ -331,19 +334,6 @@ cask::Vector ssarch::spmv(const cask::Vector& x)
 
   // remove the elements which were only for padding
   return cask::Vector{total};
-}
-
-std::vector<cask::CsrMatrix> ssarch::do_partition(const cask::CsrMatrix& mat, int numPipes) {
-  std::vector<cask::CsrMatrix> res;
-  int rowsPerPartition = mat.n / numPipes;
-  int start = 0;
-  for (int i = 0; i < numPipes - 1; i++) {
-    res.push_back(mat.sliceRows(start, rowsPerPartition));
-    start += rowsPerPartition;
-  }
-  // put all rows left in the last partition
-  res.push_back(mat.sliceRows(start, mat.n - start));
-  return res;
 }
 
 void ssarch::preprocess(

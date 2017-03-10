@@ -42,8 +42,8 @@ namespace cask {
         virtual ~Spmv() {}
 
       protected:
-        virtual cask::sparse::CsrMatrix preprocessBlock(
-            const cask::sparse::CsrMatrix& in,
+        virtual cask::CsrMatrix preprocessBlock(
+            const cask::CsrMatrix& in,
             int blockNumber,
             int nBlocks) {
           return in;
@@ -83,6 +83,9 @@ namespace cask {
     } __attribute__((packed));
 #pragma pack()
 
+    /* A partition is a horizontal stripe of an input matrix. Each
+     partition can be further divided into vertical stripes, which
+     we call blocks. */
     struct Partition {
       int nBlocks, n, paddingCycles, totalCycles, vector_load_cycles, outSize;
       int reductionCycles, emptyCycles;
@@ -120,7 +123,7 @@ namespace cask {
       std::vector<Partition> partitions;
       cask::runtime::GeneratedSpmvImplementation* impl;
 
-      virtual int countComputeCycles(uint32_t* v, int size, int inputWidth);
+      virtual int countComputeCycles(int32_t* v, int size, int inputWidth);
 
       virtual bool equals(const Spmv& a) const override {
         const BasicSpmv* other = dynamic_cast<const BasicSpmv*>(&a);
@@ -255,10 +258,6 @@ namespace cask {
         }
 
       private:
-        std::vector<cask::CsrMatrix> do_partition(
-            const cask::CsrMatrix& mat,
-            int numPipes);
-
         Partition do_blocking(
             const cask::CsrMatrix& mat,
             int blockSize,
@@ -353,8 +352,8 @@ namespace cask {
     class SkipEmptyRowsSpmv : public BasicSpmv {
       protected:
 
-        std::vector<uint32_t> encodeEmptyRows(std::vector<uint32_t> pin, bool encode) {
-          std::vector<uint32_t> encoded;
+        std::vector<int32_t> encodeEmptyRows(std::vector<int32_t> pin, bool encode) {
+          std::vector<int32_t> encoded;
           if (!encode) {
             return pin;
           }
@@ -380,15 +379,16 @@ namespace cask {
           return encoded;
         }
 
-        virtual cask::sparse::CsrMatrix preprocessBlock(
-            const cask::sparse::CsrMatrix& in,
+        virtual cask::CsrMatrix preprocessBlock(
+            const cask::CsrMatrix& in,
             int blockNumber,
             int nBlocks) override {
           bool encode = blockNumber != 0 && blockNumber != nBlocks - 1;
-          return std::make_tuple(
-              encodeEmptyRows(std::get<0>(in), encode),
-              std::get<1>(in),
-              std::get<2>(in));
+          cask::CsrMatrix m;
+          m.row_ptr = encodeEmptyRows(in.row_ptr, encode);
+          m.values = in.values;
+          m.col_ind = in.col_ind;
+          return m;
         }
 
       public:
