@@ -103,7 +103,7 @@ class SpmvKernel extends Kernel {
         DFEVar rowCounter = control.count.makeCounter(rowCounterParams).getCount();
       debug.dfePrintf(
           printEnable,
-          "Kernel -- row %d totalCycles %d, readmask %d rowFinished %d rowLength %d output: %f cycleCounter %d validPartialSums %d newSum %f firstRead %d skipCount %d",
+          "Kernel " + getName() + " -- row %d totalCycles %d, readmask %d rowFinished %d rowLength %d output: %f cycleCounter %d validPartialSums %d newSum %f firstRead %d skipCount %d",
           rowCounter, totalCycles, readMask, rowFinished, rowLength, r.getOutput(), cycleCounter, validPartialSums, newSum, firstReadPosition, skipCount);
 
       debug.dfePrintf(printEnable, "\n");

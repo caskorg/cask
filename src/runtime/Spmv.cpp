@@ -126,37 +126,76 @@ cask::spmv::Partition ssarch::do_blocking(
 }
 
 struct PartitionWriteResult {
-  int outStartAddr, outSize, colptrStartAddress, colptrSize;
-  int vStartAddress, indptrValuesStartAddress, indptrValuesSize;
+  int64_t outStartAddr, outSize, colptrStartAddress, colptrSize;
+  int64_t vStartAddress, indptrValuesStartAddress, indptrValuesSize;
 };
+
+template<typename T>
+std::vector<T> msinglearray(int size, int pos, T value) {
+  std::vector<T> v(size);
+  v[pos] = value;
+  return v;
+}
 
 // write the data for a partition, starting at the given offset
 PartitionWriteResult writeDataForPartition(
     cask::runtime::GeneratedSpmvImplementation *impl,
     int offset,
     const Partition& br,
-    const std::vector<double>& v) {
+    const std::vector<double>& v,
+                                           int controllerNum) {
   // for each partition write this down
   PartitionWriteResult pwr;
   pwr.indptrValuesStartAddress = cutils::align(offset, 384);
   pwr.indptrValuesSize = cutils::size_bytes(br.m_indptr_values);
-  impl->write(
-      pwr.indptrValuesSize,
-      pwr.indptrValuesStartAddress,
-      (uint8_t *)&br.m_indptr_values[0]);
+  int numControllers = 2;
+  // std::vector<int64_t> sizes = {pwr.indptrValuesSize};
+  // std::vector<int64_t> addrs = {pwr.indptrValuesStartAddress};
+  auto sizes = msinglearray(numControllers, controllerNum, pwr.indptrValuesSize);
+  auto addrs = msinglearray(numControllers, controllerNum, pwr.indptrValuesStartAddress);
+  // std::vector<const indptr_value*> data = {&br.m_indptr_values[0]};
+  // std::cout << "Writing to controller" << controllerNum << std::endl;
+  // std::cout << "Write 1 " << std::endl;
+  // cutils::print(sizes, "sizes=");
+  // cutils::print(addrs, "addrs=");
+  // std::cout << "indptr_values=";
+  for (auto t : br.m_indptr_values) {
+    std::cout << t.indptr <<"," << t.value << " ";
+  }
+  impl->write(&sizes[0],
+              &sizes[0],
+              &addrs[0],
+              (uint8_t*)&br.m_indptr_values[0],
+              (uint8_t*)&br.m_indptr_values[0]);
+              // (uint8_t*)&data[0]);
 
   pwr.vStartAddress = pwr.indptrValuesStartAddress + pwr.indptrValuesSize;
-  impl->write(
-      cutils::size_bytes(v),
-      pwr.vStartAddress,
-      (uint8_t *)&v[0]);
+  sizes = msinglearray(numControllers, controllerNum, cutils::size_bytes(v));
+  addrs = msinglearray(numControllers, controllerNum, pwr.vStartAddress);
+  // std::cout << "Write 2 " << std::endl;
+  // cutils::print(sizes, "sizes=");
+  // cutils::print(addrs, "addrs=");
+  // data  = msinglearray(numControllers, controllerNum, &v[0]);
+  impl->write(&sizes[0],
+              &sizes[0],
+              &addrs[0],
+              (uint8_t*)&v[0],
+              (uint8_t*)&v[0]);
 
+  // std::cout << "Write 3 " << std::endl;
+  // data = msinglearray(numControllers, controllerNum, &br.m_colptr[0]);
   pwr.colptrStartAddress = pwr.vStartAddress + cutils::size_bytes(v);
   pwr.colptrSize = cutils::size_bytes(br.m_colptr);
-  impl->write(
-      pwr.colptrSize,
-      pwr.colptrStartAddress,
-      (uint8_t *)&br.m_colptr[0]);
+  sizes = msinglearray(numControllers, controllerNum, pwr.colptrSize);
+  addrs = msinglearray(numControllers, controllerNum, pwr.colptrStartAddress);
+  // cutils::print(sizes, "sizes=");
+  // cutils::print(addrs, "addrs=");
+  // cutils::print(br.m_colptr, "colptr=");
+  impl->write(&sizes[0],
+              &sizes[0],
+              &addrs[0],
+              (uint8_t*)&br.m_colptr[0],
+              (uint8_t*)&br.m_colptr[0]);
 
   pwr.outStartAddr = pwr.colptrStartAddress + pwr.colptrSize;
   pwr.outSize = br.outSize;
@@ -211,7 +250,7 @@ cask::Vector ssarch::spmv(const cask::Vector& x)
     colptrUnpaddedSizes.push_back(p.m_colptr_unpaddedLength);
     indptrValuesUnpaddedLengths.push_back(p.m_indptr_values_unpaddedLength);
 
-    PartitionWriteResult pr = writeDataForPartition(this->impl, offset, p, v);
+    PartitionWriteResult pr = writeDataForPartition(this->impl, offset, p, v, i);
     outputStartAddresses.push_back(pr.outStartAddr);
     outputResultSizes.push_back(pr.outSize);
     colptrStartAddresses.push_back(pr.colptrStartAddress);
@@ -220,7 +259,8 @@ cask::Vector ssarch::spmv(const cask::Vector& x)
     indptrValuesSizes.push_back(pr.indptrValuesSize);
     indptrValuesStartAddresses.push_back(pr.indptrValuesStartAddress);
 
-    offset = pr.outStartAddr + p.outSize;
+    // offset = pr.outStartAddr + p.outSize;
+    i++;
   }
 
   // npartitions and vector load cycles should be the same for all partitions
