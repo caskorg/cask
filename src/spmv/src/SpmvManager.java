@@ -48,18 +48,11 @@ public class SpmvManager extends CustomManager{
         addMaxFileConstant("numPipes", numPipes);
         addMaxFileConstant("dramReductionEnabled", dramReductionEnabled ? 1 : 0);
 
-        ManagerUtils.setDRAMMaxDeviceFrequency(this, ep);
+        ManagerUtils.setDRAMFreq(this, ep, 400);
         config.setAllowNonMultipleTransitions(true);
 
-
-        // TODO group pipes into separate memory controllers
-        // There is a limit of 15 streams per controller; so we build at most 6 controllers
-        // each with at most 3 pipes
-        // for (int j = 0; j < numControllers; j++) {
-        // defaultInterface = addLMemInterface("ctrl0", 1);
-        // addComputePipe(0, inputWidth, defaultInterface);
-
-        for (int i = 0; i < numPipes; i++) { 
+        // TODO support multiple pipes per controller
+        for (int i = 0; i < numPipes; i++) {
             LMemInterface iface = addLMemInterface("ctrl" + i, 1);
             addComputePipe(i, inputWidth, iface);
         }
@@ -108,6 +101,11 @@ public class SpmvManager extends CustomManager{
         DFELink fromCpu = addStreamFromCPU("fromcpu" + id);
         DFELink cpu2lmem = iface.addStreamToLMem("cpu2lmem" + id, LMemCommandGroup.MemoryAccessPattern.LINEAR_1D);
         cpu2lmem <== fromCpu;
+
+        // LMEM --> CPU
+        DFELink toCpu = addStreamToCPU("tocpu" + id);
+        DFELink lmem2cpu = iface.addStreamFromLMem("lmem2cpu" + id, LMemCommandGroup.MemoryAccessPattern.LINEAR_1D);
+        toCpu <== lmem2cpu;
     }
 
     DFELink addPaddingKernel(String stream, LMemInterface iface) {
@@ -348,8 +346,6 @@ public class SpmvManager extends CustomManager{
             reductionCycles.get(i),
             nIterations);
 
-      ei.ignoreStream("tocpu");
-      ei.ignoreLMem("lmem2cpu");
       ei.ignoreAll(Direction.IN_OUT);
       return ei;
     }
@@ -358,17 +354,12 @@ public class SpmvManager extends CustomManager{
     //     return defaultInterface;
     // }
 
-    public static EngineInterface dramWrite(SpmvManager m, String controllerName) {
+    public static EngineInterface dramWrite(SpmvManager m) {
         EngineInterface ei = new EngineInterface("dramWrite");
         CPUTypes TYPE = CPUTypes.INT;
-        // InterfaceParam size = ei.addParam("size_bytes", TYPE);
-        // InterfaceParam start = ei.addParam("start_bytes", TYPE);
-        // ei.setStream("fromcpu", CPUTypes.UINT8, size);
         InterfaceParamArray size = ei.addParamArray("size_bytes_memory_ctl", TYPE);
         InterfaceParamArray start = ei.addParamArray("start_bytes_memory_ctl", TYPE);
         InterfaceParamArray sizeCPU = ei.addParamArray("size_bytes_cpu", TYPE);
-
-        // ei.setLMemLinear(controllerName, "cpu2lmem", start, size);
         // Demux split = m.demux("split");
         // split.getInput() <== fromCpu;
         for (int i = 0; i < m.numPipes; i++ ) {
@@ -379,14 +370,16 @@ public class SpmvManager extends CustomManager{
         return ei;
     }
 
-    public static EngineInterface dramRead(CustomManager m, String controllerName) {
-        m.addStreamToCPU("tocpu") <== m.addStreamFromOnCardMemory("lmem2cpu", MemoryControlGroup.MemoryAccessPattern.LINEAR_1D);
+    public static EngineInterface dramRead(SpmvManager m) {
         EngineInterface ei = new EngineInterface("dramRead");
         CPUTypes TYPE = CPUTypes.INT;
-        InterfaceParam size = ei.addParam("size_bytes", TYPE);
-        InterfaceParam start = ei.addParam("start_bytes", TYPE);
-        ei.setStream("tocpu", CPUTypes.UINT8, size);
-        ei.setLMemLinear(controllerName, "lmem2cpu", start, size);
+        InterfaceParamArray size = ei.addParamArray("size_bytes_memory_ctl", TYPE);
+        InterfaceParamArray start = ei.addParamArray("start_bytes_memory_ctl", TYPE);
+        InterfaceParamArray sizeCPU = ei.addParamArray("size_bytes_cpu", TYPE);
+        for (int i = 0; i < m.numPipes; i++ ) {
+            ei.setStream("tocpu" + i, CPUTypes.UINT8, sizeCPU.get(i));
+            ei.setLMemLinear("ctrl" + i, "lmem2cpu" + i, start.get(i), size.get(i));
+        }
         ei.ignoreAll(Direction.IN_OUT);
         return ei;
     }
@@ -394,11 +387,11 @@ public class SpmvManager extends CustomManager{
     public static void main(String[] args) {
 
       SpmvManager manager = new SpmvManager(new SpmvEngineParams(args));
-      ManagerUtils.debug(manager);
-      manager.createSLiCinterface(dramWrite(manager, "ctrl0"));
-      manager.createSLiCinterface(dramRead(manager, "ctrl0"));
+      // ManagerUtils.debug(manager);
+      manager.createSLiCinterface(dramWrite(manager));
+      manager.createSLiCinterface(dramRead(manager));
       manager.createSLiCinterface(manager.interfaceDefault());
-      ManagerUtils.setFullBuild(manager, BuildConfig.Effort.HIGH, 2, 2);
+      ManagerUtils.setFullBuild(manager, BuildConfig.Effort.HIGH, 6, 2);
       manager.build();
     }
 }

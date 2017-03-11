@@ -8,6 +8,9 @@
 #include "GeneratedImplSupport.hpp"
 #include "Utils.hpp"
 
+// XXX num controllers is hardcoded
+const int numControllers = 2;
+
 using namespace cask::spmv;
 using ssarch = cask::spmv::BasicSpmv;
 namespace cutils = cask::utils;
@@ -148,7 +151,6 @@ PartitionWriteResult writeDataForPartition(
   PartitionWriteResult pwr;
   pwr.indptrValuesStartAddress = cutils::align(offset, 384);
   pwr.indptrValuesSize = cutils::size_bytes(br.m_indptr_values);
-  int numControllers = 2;
   // std::vector<int64_t> sizes = {pwr.indptrValuesSize};
   // std::vector<int64_t> addrs = {pwr.indptrValuesStartAddress};
   auto sizes = msinglearray(numControllers, controllerNum, pwr.indptrValuesSize);
@@ -159,9 +161,9 @@ PartitionWriteResult writeDataForPartition(
   // cutils::print(sizes, "sizes=");
   // cutils::print(addrs, "addrs=");
   // std::cout << "indptr_values=";
-  for (auto t : br.m_indptr_values) {
-    std::cout << t.indptr <<"," << t.value << " ";
-  }
+  //for (auto t : br.m_indptr_values) {
+    //std::cout << t.indptr <<"," << t.value << " ";
+  //}
   impl->write(&sizes[0],
               &sizes[0],
               &addrs[0],
@@ -309,11 +311,16 @@ cask::Vector ssarch::spmv(const cask::Vector& x)
   logResult("BWidth (est)", bwidthEst);
 
   std::vector<double> total;
+  std::cout << "Start addresses" << outputStartAddresses.size() << std::endl;
   for (size_t i = 0; i < outputStartAddresses.size(); i++) {
     std::vector<double> tmp(outputResultSizes[i] / sizeof(double), 0);
+    auto sizes = msinglearray(numControllers, i, cutils::size_bytes(tmp));
+    auto addrs = msinglearray(numControllers, i, outputStartAddresses[i]);
     this->impl->read(
-        cutils::size_bytes(tmp),
-        outputStartAddresses[i],
+        &sizes[0],
+        &sizes[0],
+        &addrs[0],
+        (uint8_t*)&tmp[0],
         (uint8_t*)&tmp[0]);
     std::copy(tmp.begin(), tmp.begin() + nrows[i], std::back_inserter(total));
   }

@@ -27,9 +27,11 @@ namespace cask {
         const uint8_t *instream_fromcpu1);
 
       using SpmvDramReadFunctionPtr = void (*)(
-          int64_t param_size_bytes,
-          int64_t param_start_bytes,
-          uint8_t *instream_fromcpu);
+          const int64_t *param_size_bytes_cpu,
+          const int64_t *param_size_bytes_memory_ctl,
+          const int64_t *param_start_bytes_memory_ctl,
+          uint8_t *outstream_tocpu0,
+          uint8_t *outstream_tocpu1);
 
       protected:
       const int id;
@@ -131,15 +133,18 @@ namespace cask {
                      instream_fromcpu1);
       }
 
-
       virtual void read(
-          int64_t param_size_bytes,
-          int64_t param_start_bytes,
-          uint8_t *outstream_tocpu) {
+          const int64_t *param_size_bytes_cpu,
+          const int64_t *param_size_bytes_memory_ctl,
+          const int64_t *param_start_bytes_memory_ctl,
+          uint8_t *outstream_tocpu0,
+          uint8_t *outstream_tocpu1) {
         (*dramRead)(
-          param_size_bytes,
-          param_start_bytes,
-          outstream_tocpu);
+          param_size_bytes_cpu,
+          param_size_bytes_memory_ctl,
+          param_start_bytes_memory_ctl,
+          outstream_tocpu0,
+          outstream_tocpu1);
       }
 
     };
