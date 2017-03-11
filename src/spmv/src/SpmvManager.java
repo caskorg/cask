@@ -5,7 +5,6 @@ import com.maxeler.maxcompiler.v2.managers.custom.stdlib.*;
 import com.maxeler.maxcompiler.v2.managers.engine_interfaces.*;
 import com.maxeler.maxcompiler.v2.managers.engine_interfaces.EngineInterface.*;
 import com.maxeler.maxcompiler.v2.managers.BuildConfig;
-import com.maxeler.maxcompiler.v2.statemachine.manager.ManagerStateMachine;
 
 import com.custom_computing_ic.dfe_snippets.manager.*;
 
@@ -170,7 +169,6 @@ public class SpmvManager extends CustomManager{
 
       String computeKernel = getComputeKernel(id);
       String reductionKernel = getReductionKernel(id);
-      String paddingKernel = getPaddingKernel("" + id);
       String readControl = getReadControl(id);
 
       ei.setTicks(computeKernel, totalCycles * nIterations);
@@ -219,15 +217,10 @@ public class SpmvManager extends CustomManager{
           indptrValuesStartAddress,
           memoryController);
 
-      InterfaceParam zero = ei.addConstant(0l);
-
       ei.setScalar(readControl, "nrows", n);
       ei.setScalar(readControl, "vectorLoadCycles", vectorLoadCycles);
       ei.setScalar(readControl, "nPartitions", nPartitions);
       ei.setScalar(readControl, "nIterations", nIterations);
-
-      InterfaceParam spmvOutputWidthBytes = ei.addConstant(CPUTypes.DOUBLE.sizeInBytes());
-      InterfaceParam spmvOutputSizeBytes = n * spmvOutputWidthBytes;
 
       InterfaceParam size = nIterations;
       if (dramReductionEnabled) {
