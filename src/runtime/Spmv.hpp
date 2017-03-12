@@ -117,7 +117,7 @@ namespace cask {
       protected:
 
       // design parameters
-      const int cacheSize, inputWidth, numPipes, maxRows;
+      const int cacheSize, inputWidth, numPipes, maxRows, numControllers;
 
       cask::CsrMatrix mat;
       std::vector<Partition> partitions;
@@ -137,6 +137,7 @@ namespace cask {
             cacheSize == other.cacheSize &&
             inputWidth == other.inputWidth &&
             numPipes == other.numPipes &&
+            numControllers == other.numControllers &&
             maxRows == other.maxRows;
         }
 
@@ -157,14 +158,16 @@ namespace cask {
           tree.put("cache_size", cacheSize);
           tree.put("input_width", inputWidth);
           tree.put("max_rows", maxRows);
+          tree.put("num_controllers", numControllers);
           return tree;
         }
 
-        BasicSpmv(int _cacheSize, int  _inputWidth, int _numPipes, int _maxRows) :
+        BasicSpmv(int _cacheSize, int  _inputWidth, int _numPipes, int _maxRows, int _numControllers) :
           cacheSize(_cacheSize),
           inputWidth(_inputWidth),
           numPipes(_numPipes),
-          maxRows(_maxRows) {}
+          maxRows(_maxRows),
+          numControllers(_numControllers) {}
 
         /**
          * For execution we build the architecture and give it a pointer to the
@@ -175,6 +178,7 @@ namespace cask {
           inputWidth(_impl->inputWidth()),
           numPipes(_impl->numPipes()),
           maxRows(_impl->maxRows()),
+          numControllers(_impl->numControllers()),
           impl(_impl) { }
 
         virtual std::string getLibraryName() {
@@ -187,6 +191,7 @@ namespace cask {
           ss << "inputwidth" << inputWidth << "_";
           ss << "numpipes" << numPipes << "_";
           ss << "maxrows" << maxRows;
+          ss << "numControllers" << numControllers << "_";
           ss << ".so";
           return ss.str();
         }
@@ -244,6 +249,7 @@ namespace cask {
           s << " " << cacheSize;
           s << " " << inputWidth;
           s << " " << numPipes;
+          s << " " << numControllers;
           s << " " << getEstimatedClockCycles();
           s << " " << getEstimatedGFlops();
           return s.str();
@@ -299,6 +305,7 @@ namespace cask {
       cask::utils::Range cacheSizeR{1024, 4096, 512};
       cask::utils::Range inputWidthR{8, 100, 8};
       cask::utils::Range numPipesR{1, 6, 1};
+      cask::utils::Range numControllersR{1, 6, 1};
       int maxRows;
 
       bool last = false;
@@ -309,11 +316,13 @@ namespace cask {
           cask::utils::Range numPipesRange,
           cask::utils::Range inputWidthRange,
           cask::utils::Range cacheSizeRange,
+          cask::utils::Range numControllersRange,
           int _maxRows) {
         cacheSizeR = cacheSizeRange;
         inputWidthR = inputWidthRange;
         numPipesR = numPipesRange;
         maxRows = _maxRows;
+        numControllersR = numControllersRange;
       }
 
       SimpleSpmvArchitectureSpace() {
@@ -324,6 +333,7 @@ namespace cask {
         cacheSizeR.restart();
         inputWidthR.restart();
         numPipesR.restart();
+        numControllersR.restart();
         last = false;
       }
 
@@ -331,15 +341,18 @@ namespace cask {
         if (last)
           return nullptr;
 
-        T* result = new T(cacheSizeR.crt, inputWidthR.crt, numPipesR.crt, maxRows);
+        T* result = new T(cacheSizeR.crt, inputWidthR.crt, numPipesR.crt, maxRows, numControllersR.crt);
 
-        ++cacheSizeR;
-        if (cacheSizeR.at_start()) {
-          ++inputWidthR;
-          if (inputWidthR.at_start()) {
-            ++numPipesR;
-            if (numPipesR.at_start())
-              last = true;
+        ++numControllersR;
+        if (numControllersR.at_start()) {
+          ++cacheSizeR;
+          if (cacheSizeR.at_start()) {
+            ++inputWidthR;
+            if (inputWidthR.at_start()) {
+              ++numPipesR;
+              if (numPipesR.at_start())
+                last = true;
+            }
           }
         }
 
@@ -392,8 +405,8 @@ namespace cask {
         }
 
       public:
-      SkipEmptyRowsSpmv(int _cacheSize, int  _inputWidth, int _numPipes, int _maxRows) :
-        BasicSpmv(_cacheSize, _inputWidth, _numPipes, maxRows) {}
+      SkipEmptyRowsSpmv(int _cacheSize, int  _inputWidth, int _numPipes, int _maxRows, int _numControllers) :
+        BasicSpmv(_cacheSize, _inputWidth, _numPipes, maxRows, _numControllers) {}
 
       virtual std::string get_name() override {
         return std::string("SkipEmpty");

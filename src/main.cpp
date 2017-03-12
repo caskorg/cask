@@ -34,6 +34,12 @@ cask::dse::DseParameters loadParams(const boost::filesystem::path& parf) {
       tree.get<int>("dse_params.input_width.stop"),
       tree.get<int>("dse_params.input_width.step"),
     };
+  dsep.numControllersRange =
+    cask::utils::Range {
+      tree.get<int>("dse_params.num_controllers.start"),
+      tree.get<int>("dse_params.num_controllers.stop"),
+      tree.get<int>("dse_params.num_controllers.step"),
+    };
   return dsep;
 }
 

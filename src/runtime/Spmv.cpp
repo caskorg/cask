@@ -8,9 +8,6 @@
 #include "GeneratedImplSupport.hpp"
 #include "Utils.hpp"
 
-// XXX num controllers is hardcoded
-const int numControllers = 2;
-
 using namespace cask::spmv;
 using ssarch = cask::spmv::BasicSpmv;
 namespace cutils = cask::utils;
@@ -122,7 +119,8 @@ PartitionWriteResult writeDataForPartition(
     int offset,
     const Partition& br,
     const std::vector<double>& v,
-                                           int controllerNum) {
+    int numControllers,
+    int controllerNum) {
   // for each partition write this down
   PartitionWriteResult pwr;
   pwr.indptrValuesStartAddress = cutils::align(offset, 384);
@@ -209,6 +207,7 @@ cask::Vector ssarch::spmv(const cask::Vector& x)
     }
   }
 
+  std::cout << "Num controllers" << this->impl->numControllers() << std::endl;
   int cacheSize = this->cacheSize;
 
   vector<double> v = x.data;
@@ -230,7 +229,7 @@ cask::Vector ssarch::spmv(const cask::Vector& x)
     colptrUnpaddedSizes.push_back(p.m_colptr_unpaddedLength);
     indptrValuesUnpaddedLengths.push_back(p.m_indptr_values_unpaddedLength);
 
-    PartitionWriteResult pr = writeDataForPartition(this->impl, offset, p, v, i);
+    PartitionWriteResult pr = writeDataForPartition(this->impl, offset, p, v, this->impl->numControllers(), i);
     outputStartAddresses.push_back(pr.outStartAddr);
     outputResultSizes.push_back(pr.outSize);
     colptrStartAddresses.push_back(pr.colptrStartAddress);
@@ -292,8 +291,8 @@ cask::Vector ssarch::spmv(const cask::Vector& x)
   std::cout << "Start addresses" << outputStartAddresses.size() << std::endl;
   for (size_t i = 0; i < outputStartAddresses.size(); i++) {
     std::vector<double> tmp(outputResultSizes[i] / sizeof(double), 0);
-    auto sizes = msinglearray(numControllers, i, cutils::size_bytes(tmp));
-    auto addrs = msinglearray(numControllers, i, outputStartAddresses[i]);
+    auto sizes = msinglearray(this->numControllers, i, cutils::size_bytes(tmp));
+    auto addrs = msinglearray(this->numControllers, i, outputStartAddresses[i]);
     std::string routing = "frommem" + std::to_string(i) + " -> join";
     this->impl->read(
         sizes[i],

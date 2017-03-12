@@ -14,6 +14,7 @@ public class SpmvManager extends CustomManager{
     private final int inputWidth;
     private final int maxRows;
     public final int numPipes;
+    public final int numControllers;
 
     // parameters of CSR format used: float64 values, int32 index.
     private static final int mantissaWidth = 53;
@@ -34,7 +35,11 @@ public class SpmvManager extends CustomManager{
         inputWidth = ep.getInputWidth();
         cacheSize = ep.getVectorCacheSize();
         maxRows = ep.getMaxRows();
-        numPipes = ep.getNumPipes();
+        // numPipes = ep.getNumPipes();
+
+        // TODO we assume one pipe per controller for now; the number of pipes is ignored
+        numPipes = ep.getNumControllers();
+        numControllers = ep.getNumControllers();
 
         if (384 % inputWidth != 0) {
           throw new RuntimeException("Error! 384 is not a multiple of INPUT WIDTH: " +
@@ -45,6 +50,7 @@ public class SpmvManager extends CustomManager{
         addMaxFileConstant("cacheSize", cacheSize);
         addMaxFileConstant("maxRows", maxRows);
         addMaxFileConstant("numPipes", numPipes);
+        addMaxFileConstant("numControllers", numControllers);
         addMaxFileConstant("dramReductionEnabled", dramReductionEnabled ? 1 : 0);
 
         ManagerUtils.setDRAMFreq(this, ep, 400);
@@ -363,7 +369,6 @@ public class SpmvManager extends CustomManager{
         for (int i = 0; i < m.numPipes; i++ ) {
             ei.setLMemLinear("ctrl" + i, "cpu2lmem" + i, start.get(i), size.get(i));
         }
-
         ignoreKernels(m, ei);
         for (int i = 0; i < m.numPipes; i++) {
           ei.ignoreLMem("lmem2cpu" + i);

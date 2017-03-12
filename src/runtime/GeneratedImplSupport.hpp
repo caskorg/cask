@@ -39,7 +39,7 @@ namespace cask {
       const SpmvDramWriteFunctionPtr dramWrite;
       const SpmvDramReadFunctionPtr dramRead;
 
-      const int max_rows, num_pipes, cache_size, input_width, dram_reduction_enabled;
+      const int max_rows, num_pipes, cache_size, input_width, dram_reduction_enabled, num_controllers;
 
       public:
 
@@ -52,7 +52,8 @@ namespace cask {
           int _num_pipes,
           int _cache_size,
           int _input_width,
-          int _dram_reduction_enabled
+          int _dram_reduction_enabled,
+          int _num_controllers
           ) :
         id(_id),
         runSpmv(_fptr),
@@ -62,7 +63,8 @@ namespace cask {
         num_pipes(_num_pipes),
         cache_size(_cache_size),
         input_width(_input_width),
-        dram_reduction_enabled(_dram_reduction_enabled)
+        dram_reduction_enabled(_dram_reduction_enabled),
+        num_controllers(_num_controllers)
       {}
 
       virtual ~GeneratedSpmvImplementation() {
@@ -78,6 +80,10 @@ namespace cask {
 
       int cacheSize() {
         return cache_size;
+      }
+
+      int numControllers() {
+        return num_controllers;
       }
 
       int inputWidth() {
@@ -159,12 +165,13 @@ namespace cask {
           int _num_pipes,
           int _cache_size,
           int _input_width,
-          int _dram_reduction_enabled
+          int _dram_reduction_enabled,
+          int _numControllers
           ) :
         GeneratedSpmvImplementation(
             -1, nullptr, nullptr, nullptr,
             _max_rows, _num_pipes, _cache_size,
-            _input_width, _dram_reduction_enabled) {}
+            _input_width, _dram_reduction_enabled, _numControllers) {}
 
       virtual ~GeneratedSpmvImplementationMock() {
       }
@@ -183,6 +190,10 @@ namespace cask {
 
       int inputWidth() {
         return input_width;
+      }
+
+      int numControllers() {
+        return num_controllers;
       }
 
       bool getDramReductionEnabled() {

@@ -115,7 +115,8 @@ def runDse(benchFile, paramsFile, target, skipExecution=False):
           [ os.path.basename(matrix).replace('.mtx', ''),
             prj_id,
             int(ps['cache_size']), int(ps['input_width']),
-            int(ps['num_pipes']), int(ps['max_rows']),
+            int(ps['num_pipes']), int(ps['num_controllers']),
+            int(ps['max_rows']),
             # The model uses BRAM36, the McTools use BRAM18
             int(est_impl_ps['BRAMs']) * 2,
             int(est_impl_ps['LUTs']),
@@ -273,7 +274,7 @@ class Spark:
                 p.getParam('input_width')))
         else:
           f.write(
-              'new GeneratedSpmvImplementation({0}, {1}, {2}, {3}, {4}, {5}, {6}, {7}, {8}));'.format(
+              'new GeneratedSpmvImplementation({0}, {1}, {2}, {3}, {4}, {5}, {6}, {7}, {8}, {9}));'.format(
                 p.prj_id,
                 p.name,
                 p.name + '_dramWrite',
@@ -282,7 +283,8 @@ class Spark:
                 p.getParam('num_pipes'),
                 p.getParam('cache_size'),
                 p.getParam('input_width'),
-                p.name + '_dramReductionEnabled'))
+                p.name + '_dramReductionEnabled',
+                p.getParam('num_controllers')))
 
       f.write('\n}')
 
@@ -492,7 +494,7 @@ def main():
     params = [maxbuild.PrjConfig(ps, args.target, PRJ, prj_id, '../spmv/build/')]
 
   arch_df = pd.DataFrame(log_archs,
-          columns = ['Matrix', 'Id', 'Cx', 'k', 'Np', 'Cb', 'BRAMs', 'LUTs', 'FFs', 'DSPs', 'BWidth', 'GFLOPs'])
+          columns = ['Matrix', 'Id', 'Cx', 'k', 'Np', 'Nc', 'Cb', 'BRAMs', 'LUTs', 'FFs', 'DSPs', 'BWidth', 'GFLOPs'])
   merged_df = logDseResults(benchmark_df, arch_df)
   print merged_df
 
