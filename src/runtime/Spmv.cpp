@@ -318,12 +318,14 @@ cask::Vector ssarch::spmv(const cask::Vector& x)
     std::vector<double> tmp(outputResultSizes[i] / sizeof(double), 0);
     auto sizes = msinglearray(numControllers, i, cutils::size_bytes(tmp));
     auto addrs = msinglearray(numControllers, i, outputStartAddresses[i]);
+    std::string routing = "frommem" + std::to_string(i) + " -> join";
     this->impl->read(
-        &sizes[0],
+        sizes[i],
         &sizes[0],
         &addrs[0],
         (uint8_t*)&tmp[0],
-        (uint8_t*)&tmp[0]);
+        routing.c_str()
+        );
     std::copy(tmp.begin(), tmp.begin() + nrows[i], std::back_inserter(total));
   }
 

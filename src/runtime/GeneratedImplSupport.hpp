@@ -27,11 +27,11 @@ namespace cask {
         const char* routing);
 
       using SpmvDramReadFunctionPtr = void (*)(
-          const int64_t *param_size_bytes_cpu,
+          const int64_t param_size_bytes_cpu,
           const int64_t *param_size_bytes_memory_ctl,
           const int64_t *param_start_bytes_memory_ctl,
-          uint8_t *outstream_tocpu0,
-          uint8_t *outstream_tocpu1);
+          uint8_t *outstream_tocpu,
+          const char* routing);
 
       protected:
       const int id;
@@ -134,17 +134,18 @@ namespace cask {
       }
 
       virtual void read(
-          const int64_t *param_size_bytes_cpu,
+          const int64_t param_size_bytes_cpu,
           const int64_t *param_size_bytes_memory_ctl,
           const int64_t *param_start_bytes_memory_ctl,
-          uint8_t *outstream_tocpu0,
-          uint8_t *outstream_tocpu1) {
+          uint8_t *outstream_tocpu,
+          const char* routing
+          ) {
         (*dramRead)(
           param_size_bytes_cpu,
           param_size_bytes_memory_ctl,
           param_start_bytes_memory_ctl,
-          outstream_tocpu0,
-          outstream_tocpu1);
+          outstream_tocpu,
+          routing);
       }
 
     };

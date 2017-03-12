@@ -50,20 +50,30 @@ public class SpmvManager extends CustomManager{
         ManagerUtils.setDRAMFreq(this, ep, 400);
         config.setAllowNonMultipleTransitions(true);
 
-
-        // CPU --> LMEM IO
+        // CPU --> Demux
         DFELink fromCpu = addStreamFromCPU("fromcpu");
         Demux split = demux("split");
         split.getInput() <== fromCpu;
+
+        // LMEM --> CPU IO
+        DFELink toCpu = addStreamToCPU("tocpu");
+        Mux join = mux("join");
+        toCpu <== join.getOutput();
 
         // TODO support multiple pipes per controller
         for (int i = 0; i < numPipes; i++) {
             LMemInterface iface = addLMemInterface("ctrl" + i, 1);
             addComputePipe(i, inputWidth, iface);
+
+            // Demux --> LMem
             DFELink cpu2lmem = iface.addStreamToLMem("cpu2lmem" + i,
                 LMemCommandGroup.MemoryAccessPattern.LINEAR_1D);
-            DFELink splitOut = split.addOutput("tomem" + i);
-            cpu2lmem <== splitOut;
+            cpu2lmem <== split.addOutput("tomem" + i);
+
+            // LMem --> Mux
+            DFELink lmem2cpu = iface.addStreamFromLMem("lmem2cpu" + i,
+                LMemCommandGroup.MemoryAccessPattern.LINEAR_1D);
+            join.addInput("frommem" + i) <== lmem2cpu;
         }
     }
 
@@ -105,11 +115,6 @@ public class SpmvManager extends CustomManager{
         addPaddingKernel("reductionOut" + id, iface) <== r.getOutput("reductionOut");
         r.getInput("reductionIn") <== k.getOutput("output");
         r.getInput("skipCount") <== k.getOutput("skipCount");
-
-        // LMEM --> CPU
-        DFELink toCpu = addStreamToCPU("tocpu" + id);
-        DFELink lmem2cpu = iface.addStreamFromLMem("lmem2cpu" + id, LMemCommandGroup.MemoryAccessPattern.LINEAR_1D);
-        toCpu <== lmem2cpu;
     }
 
     DFELink addPaddingKernel(String stream, LMemInterface iface) {
@@ -348,10 +353,6 @@ public class SpmvManager extends CustomManager{
       return ei;
     }
 
-    // LMemInterface getMemInterface() {
-    //     return defaultInterface;
-    // }
-
     public static EngineInterface dramWrite(SpmvManager m) {
         EngineInterface ei = new EngineInterface("dramWrite");
         CPUTypes TYPE = CPUTypes.INT;
@@ -362,7 +363,22 @@ public class SpmvManager extends CustomManager{
         for (int i = 0; i < m.numPipes; i++ ) {
             ei.setLMemLinear("ctrl" + i, "cpu2lmem" + i, start.get(i), size.get(i));
         }
-        // ei.ignoreAll(Direction.IN);
+
+        ignoreKernels(m, ei);
+        for (int i = 0; i < m.numPipes; i++) {
+          ei.ignoreLMem("lmem2cpu" + i);
+        }
+        ei.ignoreStream("tocpu");
+        ei.ignoreRoute("join");
+        return ei;
+    }
+
+    /** Ignore all compute kernels and associated streams. Necessary because
+     * ignoreAll() also ignores routes and it is not possible to unignore a
+     * route afterwards. Use in CPU read / write interfaces, where compute
+     * kernels don't need to be active.
+     */
+    private static void ignoreKernels(SpmvManager m, EngineInterface ei) {
         for (int i = 0; i < m.numPipes; i++) {
           ei.ignoreKernel(m.getReductionKernel(i));
           ei.ignoreKernel(m.getComputeKernel(i));
@@ -374,25 +390,26 @@ public class SpmvManager extends CustomManager{
           ei.ignoreLMem("colptr" + i);
           ei.ignoreLMem("indptr_values" + i);
           ei.ignoreLMem("reductionOut" + i);
-          ei.ignoreLMem("lmem2cpu" + i);
           ei.ignoreLMem("vromLoad" + i);
-          ei.ignoreStream("tocpu" + i);
-          // ei.ignoreKernel(getReadControl(i));
         }
-        return ei;
     }
 
-    public static EngineInterface dramRead(SpmvManager m) {
+    private static EngineInterface dramRead(SpmvManager m) {
         EngineInterface ei = new EngineInterface("dramRead");
         CPUTypes TYPE = CPUTypes.INT;
         InterfaceParamArray size = ei.addParamArray("size_bytes_memory_ctl", TYPE);
         InterfaceParamArray start = ei.addParamArray("start_bytes_memory_ctl", TYPE);
-        InterfaceParamArray sizeCPU = ei.addParamArray("size_bytes_cpu", TYPE);
+        InterfaceParam sizeCPU = ei.addParam("size_bytes_cpu", TYPE);
+        ei.setStream("tocpu", CPUTypes.UINT8, sizeCPU);
         for (int i = 0; i < m.numPipes; i++ ) {
-            ei.setStream("tocpu" + i, CPUTypes.UINT8, sizeCPU.get(i));
             ei.setLMemLinear("ctrl" + i, "lmem2cpu" + i, start.get(i), size.get(i));
         }
-        ei.ignoreAll(Direction.IN_OUT);
+        ignoreKernels(m, ei);
+        for (int i = 0; i < m.numPipes; i++) {
+          ei.ignoreLMem("cpu2lmem" + i);
+        }
+        ei.ignoreStream("fromcpu");
+        ei.ignoreRoute("split");
         return ei;
     }
 
