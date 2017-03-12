@@ -20,11 +20,11 @@ namespace cask {
           const int32_t*, const int32_t*, const int64_t*);
 
       using SpmvDramWriteFunctionPtr = void (*)(
-        const int64_t *param_size_bytes_cpu,
+        const int64_t param_size_bytes_cpu,
         const int64_t *param_size_bytes_memory_ctl,
         const int64_t *param_start_bytes_memory_ctl,
-        const uint8_t *instream_fromcpu0,
-        const uint8_t *instream_fromcpu1);
+        const uint8_t *instream_fromcpu,
+        const char* routing);
 
       using SpmvDramReadFunctionPtr = void (*)(
           const int64_t *param_size_bytes_cpu,
@@ -121,16 +121,16 @@ namespace cask {
       }
 
       virtual void write(
-        const int64_t *param_size_bytes_cpu,
+        const int64_t param_size_bytes_cpu,
         const int64_t *param_size_bytes_memory_ctl,
         const int64_t *param_start_bytes_memory_ctl,
-        const uint8_t *instream_fromcpu0,
-        const uint8_t *instream_fromcpu1) {
+        const uint8_t *instream_fromcpu,
+        const char* routing) {
         (*dramWrite)(param_size_bytes_cpu,
                      param_size_bytes_memory_ctl,
                      param_start_bytes_memory_ctl,
-                     instream_fromcpu0,
-                     instream_fromcpu1);
+                     instream_fromcpu,
+                     routing);
       }
 
       virtual void read(

@@ -50,10 +50,20 @@ public class SpmvManager extends CustomManager{
         ManagerUtils.setDRAMFreq(this, ep, 400);
         config.setAllowNonMultipleTransitions(true);
 
+
+        // CPU --> LMEM IO
+        DFELink fromCpu = addStreamFromCPU("fromcpu");
+        Demux split = demux("split");
+        split.getInput() <== fromCpu;
+
         // TODO support multiple pipes per controller
         for (int i = 0; i < numPipes; i++) {
             LMemInterface iface = addLMemInterface("ctrl" + i, 1);
             addComputePipe(i, inputWidth, iface);
+            DFELink cpu2lmem = iface.addStreamToLMem("cpu2lmem" + i,
+                LMemCommandGroup.MemoryAccessPattern.LINEAR_1D);
+            DFELink splitOut = split.addOutput("tomem" + i);
+            cpu2lmem <== splitOut;
         }
     }
 
@@ -95,11 +105,6 @@ public class SpmvManager extends CustomManager{
         addPaddingKernel("reductionOut" + id, iface) <== r.getOutput("reductionOut");
         r.getInput("reductionIn") <== k.getOutput("output");
         r.getInput("skipCount") <== k.getOutput("skipCount");
-
-        // CPU --> LMEM IO
-        DFELink fromCpu = addStreamFromCPU("fromcpu" + id);
-        DFELink cpu2lmem = iface.addStreamToLMem("cpu2lmem" + id, LMemCommandGroup.MemoryAccessPattern.LINEAR_1D);
-        cpu2lmem <== fromCpu;
 
         // LMEM --> CPU
         DFELink toCpu = addStreamToCPU("tocpu" + id);
@@ -352,14 +357,28 @@ public class SpmvManager extends CustomManager{
         CPUTypes TYPE = CPUTypes.INT;
         InterfaceParamArray size = ei.addParamArray("size_bytes_memory_ctl", TYPE);
         InterfaceParamArray start = ei.addParamArray("start_bytes_memory_ctl", TYPE);
-        InterfaceParamArray sizeCPU = ei.addParamArray("size_bytes_cpu", TYPE);
-        // Demux split = m.demux("split");
-        // split.getInput() <== fromCpu;
+        InterfaceParam sizeCPU = ei.addParam("size_bytes_cpu", TYPE);
+        ei.setStream("fromcpu", CPUTypes.UINT8, sizeCPU);
         for (int i = 0; i < m.numPipes; i++ ) {
-            ei.setStream("fromcpu" + i, CPUTypes.UINT8, sizeCPU.get(i));
             ei.setLMemLinear("ctrl" + i, "cpu2lmem" + i, start.get(i), size.get(i));
         }
-        ei.ignoreAll(Direction.IN_OUT);
+        // ei.ignoreAll(Direction.IN);
+        for (int i = 0; i < m.numPipes; i++) {
+          ei.ignoreKernel(m.getReductionKernel(i));
+          ei.ignoreKernel(m.getComputeKernel(i));
+          ei.ignoreKernel(m.getPaddingKernel("reductionOut" + i));
+          ei.ignoreKernel(m.getUnpaddingKernel("colptr" + i));
+          ei.ignoreKernel(m.getUnpaddingKernel("vromLoad" + i));
+          ei.ignoreKernel(m.getUnpaddingKernel("indptr_values" + i));
+          ei.ignoreKernel(m.getReadControl(i));
+          ei.ignoreLMem("colptr" + i);
+          ei.ignoreLMem("indptr_values" + i);
+          ei.ignoreLMem("reductionOut" + i);
+          ei.ignoreLMem("lmem2cpu" + i);
+          ei.ignoreLMem("vromLoad" + i);
+          ei.ignoreStream("tocpu" + i);
+          // ei.ignoreKernel(getReadControl(i));
+        }
         return ei;
     }
 

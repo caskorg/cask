@@ -164,11 +164,13 @@ PartitionWriteResult writeDataForPartition(
   //for (auto t : br.m_indptr_values) {
     //std::cout << t.indptr <<"," << t.value << " ";
   //}
-  impl->write(&sizes[0],
+
+  std::string routingString = "split -> tomem" + std::to_string(controllerNum);
+  impl->write(sizes[controllerNum],
               &sizes[0],
               &addrs[0],
               (uint8_t*)&br.m_indptr_values[0],
-              (uint8_t*)&br.m_indptr_values[0]);
+              routingString.c_str());
               // (uint8_t*)&data[0]);
 
   pwr.vStartAddress = pwr.indptrValuesStartAddress + pwr.indptrValuesSize;
@@ -178,11 +180,11 @@ PartitionWriteResult writeDataForPartition(
   // cutils::print(sizes, "sizes=");
   // cutils::print(addrs, "addrs=");
   // data  = msinglearray(numControllers, controllerNum, &v[0]);
-  impl->write(&sizes[0],
+  impl->write(sizes[controllerNum],
               &sizes[0],
               &addrs[0],
               (uint8_t*)&v[0],
-              (uint8_t*)&v[0]);
+              routingString.c_str());
 
   // std::cout << "Write 3 " << std::endl;
   // data = msinglearray(numControllers, controllerNum, &br.m_colptr[0]);
@@ -193,11 +195,11 @@ PartitionWriteResult writeDataForPartition(
   // cutils::print(sizes, "sizes=");
   // cutils::print(addrs, "addrs=");
   // cutils::print(br.m_colptr, "colptr=");
-  impl->write(&sizes[0],
+  impl->write(sizes[controllerNum],
               &sizes[0],
               &addrs[0],
               (uint8_t*)&br.m_colptr[0],
-              (uint8_t*)&br.m_colptr[0]);
+              routingString.c_str());
 
   pwr.outStartAddr = pwr.colptrStartAddress + pwr.colptrSize;
   pwr.outSize = br.outSize;
