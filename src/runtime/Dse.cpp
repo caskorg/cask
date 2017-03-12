@@ -47,8 +47,8 @@ std::shared_ptr<Spmv> dse_run(
     auto start = std::chrono::high_resolution_clock::now();
     a->preprocess(mat); // do spmv?
     //dfesnippets::timing::print_clock_diff("Took: ", start);
-    if (!(a->getImplementationParameters() < maxParams))
-      continue;
+    //if (!(a->getImplementationParameters() < maxParams))
+      //continue;
 
     std::cout << basename << " " << a->to_string() << " " << a->getImplementationParameters().to_string() << std::endl;
     bestArchitecture = better(bestArchitecture, a);
@@ -119,7 +119,8 @@ std::vector<DseResult> cask::dse::SparkDse::run (
 
     std::vector<SpmvArchitectureSpace*> factories{
       new SimpleSpmvArchitectureSpace<BasicSpmv>(
-          params.numPipesRange, params.inputWidthRange, params.cacheSizeRange, maxRows),
+          params.numPipesRange, params.inputWidthRange,
+          params.cacheSizeRange, params.numControllersRange, maxRows),
           //new SimpleSpmvArchitectureSpace<FstSpmv>(
               //params.numPipesRange, params.inputWidthRange, params.cacheSizeRange),
           //new SimpleSpmvArchitectureSpace<SkipEmptyRowsSpmv>(
