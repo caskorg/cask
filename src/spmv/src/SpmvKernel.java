@@ -36,7 +36,7 @@ class SpmvKernel extends Kernel {
       boolean dbg) {
     super(parameters);
 
-    // optimization.pushPipeliningFactor(0.5);
+    optimization.pushPipeliningFactor(0.5);
     optimization.pushDSPFactor(1);
 
     DFEVar controlS = io.input("control", dfeUInt(3 + 3 * 32 + inputWidth));

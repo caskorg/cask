@@ -62,7 +62,7 @@ public class SpmvManager extends CustomManager{
 
         ManagerUtils.setDRAMFreq(this, ep, 400);
         config.setAllowNonMultipleTransitions(true);
-        config.setDefaultStreamClockFrequency(200);
+        config.setDefaultStreamClockFrequency(150);
 
         // CPU --> Demux
         DFELink fromCpu = addStreamFromCPU("fromcpu");
