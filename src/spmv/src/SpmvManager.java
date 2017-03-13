@@ -15,6 +15,7 @@ public class SpmvManager extends CustomManager{
     private final int maxRows;
     public final int numPipes;
     public final int numControllers;
+    private final int pipesPerController;
 
     // parameters of CSR format used: float64 values, int32 index.
     private static final int mantissaWidth = 53;
@@ -27,23 +28,24 @@ public class SpmvManager extends CustomManager{
     private static final boolean DBG_REDUCTION_KERNEL = false;
     private static final boolean dramReductionEnabled = false;
 
-    // private final LMemInterface defaultInterface;
-
     SpmvManager(SpmvEngineParams ep) {
         super(ep);
 
         inputWidth = ep.getInputWidth();
         cacheSize = ep.getVectorCacheSize();
         maxRows = ep.getMaxRows();
-        // numPipes = ep.getNumPipes();
-
-        // TODO we assume one pipe per controller for now; the number of pipes is ignored
-        numPipes = ep.getNumControllers();
+        numPipes = ep.getNumPipes();
         numControllers = ep.getNumControllers();
+        pipesPerController = numPipes / numControllers;
 
         if (384 % inputWidth != 0) {
           throw new RuntimeException("Error! 384 is not a multiple of INPUT WIDTH: " +
               "This may lead to stalls due to padding / unpadding ");
+        }
+
+        if (numPipes % numControllers != 0) {
+          throw new RuntimeException("Error! numPipes must be a multiple of numControllers." +
+              " Pipes will be distributed equally among controllers");
         }
 
         addMaxFileConstant("inputWidth", inputWidth);
@@ -67,20 +69,25 @@ public class SpmvManager extends CustomManager{
         Mux join = mux("join");
         toCpu <== join.getOutput();
 
-        // TODO support multiple pipes per controller
+        int ctrlId = -1;
+        LMemInterface iface = null;
         for (int i = 0; i < numPipes; i++) {
-            LMemInterface iface = addLMemInterface("ctrl" + i, 1);
+            if (i % pipesPerController == 0) {
+              ctrlId++;
+              iface = addLMemInterface("ctrl" + ctrlId, 1);
+
+              // Demux --> LMem
+              DFELink cpu2lmem = iface.addStreamToLMem("cpu2lmem" + ctrlId,
+                  LMemCommandGroup.MemoryAccessPattern.LINEAR_1D);
+              cpu2lmem <== split.addOutput("tomem" + ctrlId);
+
+              // LMem --> Mux
+              DFELink lmem2cpu = iface.addStreamFromLMem("lmem2cpu" + ctrlId,
+                  LMemCommandGroup.MemoryAccessPattern.LINEAR_1D);
+              join.addInput("frommem" + ctrlId) <== lmem2cpu;
+            }
+
             addComputePipe(i, inputWidth, iface);
-
-            // Demux --> LMem
-            DFELink cpu2lmem = iface.addStreamToLMem("cpu2lmem" + i,
-                LMemCommandGroup.MemoryAccessPattern.LINEAR_1D);
-            cpu2lmem <== split.addOutput("tomem" + i);
-
-            // LMem --> Mux
-            DFELink lmem2cpu = iface.addStreamFromLMem("lmem2cpu" + i,
-                LMemCommandGroup.MemoryAccessPattern.LINEAR_1D);
-            join.addInput("frommem" + i) <== lmem2cpu;
         }
     }
 
@@ -196,7 +203,9 @@ public class SpmvManager extends CustomManager{
       ei.setScalar(reductionKernel, "nRows", n);
       ei.setScalar(reductionKernel, "totalCycles", reductionCycles);
 
-      String memoryController = "ctrl" + id;
+      String memoryController = "ctrl" + (id / pipesPerController);
+
+      System.out.println("Setting up pipe " + id + " with controller " + memoryController);
 
       String stream = "vromLoad" + id;
       setupUnpaddingKernel(
@@ -367,19 +376,18 @@ public class SpmvManager extends CustomManager{
         InterfaceParamArray start = ei.addParamArray("start_bytes_memory_ctl", TYPE);
         InterfaceParam sizeCPU = ei.addParam("size_bytes_cpu", TYPE);
         ei.setStream("fromcpu", CPUTypes.UINT8, sizeCPU);
-        for (int i = 0; i < m.numPipes; i++ ) {
+        for (int i = 0; i < m.numControllers; i++ ) {
             ei.setLMemLinear("ctrl" + i, "cpu2lmem" + i, start.get(i), size.get(i));
+            ei.ignoreLMem("lmem2cpu" + i);
         }
         ignoreKernels(m, ei);
-        for (int i = 0; i < m.numPipes; i++) {
-          ei.ignoreLMem("lmem2cpu" + i);
-        }
         ei.ignoreStream("tocpu");
         ei.ignoreRoute("join");
         return ei;
     }
 
-    /** Ignore all compute kernels and associated streams. Necessary because
+    /**
+     * Ignore all compute kernels and associated streams. Necessary because
      * ignoreAll() also ignores routes and it is not possible to unignore a
      * route afterwards. Use in CPU read / write interfaces, where compute
      * kernels don't need to be active.
@@ -407,13 +415,11 @@ public class SpmvManager extends CustomManager{
         InterfaceParamArray start = ei.addParamArray("start_bytes_memory_ctl", TYPE);
         InterfaceParam sizeCPU = ei.addParam("size_bytes_cpu", TYPE);
         ei.setStream("tocpu", CPUTypes.UINT8, sizeCPU);
-        for (int i = 0; i < m.numPipes; i++ ) {
+        for (int i = 0; i < m.numControllers; i++ ) {
             ei.setLMemLinear("ctrl" + i, "lmem2cpu" + i, start.get(i), size.get(i));
+            ei.ignoreLMem("cpu2lmem" + i);
         }
         ignoreKernels(m, ei);
-        for (int i = 0; i < m.numPipes; i++) {
-          ei.ignoreLMem("cpu2lmem" + i);
-        }
         ei.ignoreStream("fromcpu");
         ei.ignoreRoute("split");
         return ei;

@@ -4,6 +4,7 @@
 #include <tuple>
 #include <dfesnippets/VectorUtils.hpp>
 #include <dfesnippets/Timing.hpp>
+#include <cassert>
 
 #include "GeneratedImplSupport.hpp"
 #include "Utils.hpp"
@@ -207,7 +208,6 @@ cask::Vector ssarch::spmv(const cask::Vector& x)
     }
   }
 
-  std::cout << "Num controllers" << this->impl->numControllers() << std::endl;
   int cacheSize = this->cacheSize;
 
   vector<double> v = x.data;
@@ -221,6 +221,8 @@ cask::Vector ssarch::spmv(const cask::Vector& x)
 
   int offset = 0;
   int i = 0;
+
+  assert(this->partitions.size() == this->numPipes && "numPipes should equal numPartitions");
   for (auto& p : this->partitions) {
     nrows.push_back(p.n);
     paddingCycles.push_back(p.paddingCycles);
@@ -229,7 +231,14 @@ cask::Vector ssarch::spmv(const cask::Vector& x)
     colptrUnpaddedSizes.push_back(p.m_colptr_unpaddedLength);
     indptrValuesUnpaddedLengths.push_back(p.m_indptr_values_unpaddedLength);
 
-    PartitionWriteResult pr = writeDataForPartition(this->impl, offset, p, v, this->impl->numControllers(), i);
+    int nc = this->impl->numControllers();
+    int pipesPerController = this->numPipes / nc;
+    int ctrlId = i / pipesPerController;
+    // moving to a new controller, reset offset in memory
+    if (i % pipesPerController == 0) {
+      offset = 0;
+    }
+    PartitionWriteResult pr = writeDataForPartition(this->impl, offset, p, v, nc, ctrlId);
     outputStartAddresses.push_back(pr.outStartAddr);
     outputResultSizes.push_back(pr.outSize);
     colptrStartAddresses.push_back(pr.colptrStartAddress);
@@ -238,7 +247,7 @@ cask::Vector ssarch::spmv(const cask::Vector& x)
     indptrValuesSizes.push_back(pr.indptrValuesSize);
     indptrValuesStartAddresses.push_back(pr.indptrValuesStartAddress);
 
-    // offset = pr.outStartAddr + p.outSize;
+    offset = pr.outStartAddr + p.outSize;
     i++;
   }
 
@@ -291,11 +300,12 @@ cask::Vector ssarch::spmv(const cask::Vector& x)
   std::cout << "Start addresses" << outputStartAddresses.size() << std::endl;
   for (size_t i = 0; i < outputStartAddresses.size(); i++) {
     std::vector<double> tmp(outputResultSizes[i] / sizeof(double), 0);
-    auto sizes = msinglearray(this->numControllers, i, cutils::size_bytes(tmp));
-    auto addrs = msinglearray(this->numControllers, i, outputStartAddresses[i]);
-    std::string routing = "frommem" + std::to_string(i) + " -> join";
+    int ctrlId = i / (this->numPipes / this->impl->numControllers());
+    auto sizes = msinglearray(this->numControllers, ctrlId, cutils::size_bytes(tmp));
+    auto addrs = msinglearray(this->numControllers, ctrlId, outputStartAddresses[i]);
+    std::string routing = "frommem" + std::to_string(ctrlId) + " -> join";
     this->impl->read(
-        sizes[i],
+        sizes[ctrlId],
         &sizes[0],
         &addrs[0],
         (uint8_t*)&tmp[0],
