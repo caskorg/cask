@@ -55,6 +55,7 @@ public class SpmvManager extends CustomManager{
 
         ManagerUtils.setDRAMFreq(this, ep, 400);
         config.setAllowNonMultipleTransitions(true);
+        config.setDefaultStreamClockFrequency(200);
 
         // CPU --> Demux
         DFELink fromCpu = addStreamFromCPU("fromcpu");
@@ -425,7 +426,7 @@ public class SpmvManager extends CustomManager{
       manager.createSLiCinterface(dramWrite(manager));
       manager.createSLiCinterface(dramRead(manager));
       manager.createSLiCinterface(manager.interfaceDefault());
-      ManagerUtils.setFullBuild(manager, BuildConfig.Effort.HIGH, 6, 2);
+      ManagerUtils.setFullBuild(manager, BuildConfig.Effort.HIGH, 6, 6);
       manager.build();
     }
 }
