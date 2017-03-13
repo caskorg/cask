@@ -267,11 +267,12 @@ class Spark:
         f.write('this->impls.push_back(')
         if self.target == TARGET_DFE_MOCK:
           f.write(
-              'new GeneratedSpmvImplementationMock({0}, {1}, {2}, {3}, false));'.format(
+              'new GeneratedSpmvImplementationMock({0}, {1}, {2}, {3}, false, {4}));'.format(
                 p.getParam('max_rows'),
                 p.getParam('num_pipes'),
                 p.getParam('cache_size'),
-                p.getParam('input_width')))
+                p.getParam('input_width'),
+                p.getParam('num_controllers')))
         else:
           f.write(
               'new GeneratedSpmvImplementation({0}, {1}, {2}, {3}, {4}, {5}, {6}, {7}, {8}, {9}));'.format(
