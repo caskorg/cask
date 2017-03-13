@@ -7,3 +7,6 @@
 [submodule "lib/styleguide"]
 	path = lib/styleguide
 	url = https://github.com/google/styleguide.git
+[submodule "lib/maxpower"]
+	path = lib/maxpower
+	url = https://github.com/maxeler/maxpower.git
