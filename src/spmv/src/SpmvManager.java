@@ -33,10 +33,15 @@ public class SpmvManager extends CustomManager{
 
         inputWidth = ep.getInputWidth();
         cacheSize = ep.getVectorCacheSize();
-        maxRows = ep.getMaxRows();
         numPipes = ep.getNumPipes();
         numControllers = ep.getNumControllers();
         pipesPerController = numPipes / numControllers;
+
+        if (ep.getMaxRows() % numPipes != 0) {
+          maxRows = ep.getMaxRows() / numPipes + 1;
+        } else {
+          maxRows = ep.getMaxRows() / numPipes;
+        }
 
         if (384 % inputWidth != 0) {
           throw new RuntimeException("Error! 384 is not a multiple of INPUT WIDTH: " +
