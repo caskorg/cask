@@ -10,7 +10,7 @@ PRJ=Spmv
 KERNEL=$(PRJ)Kernel
 MANAGER=$(PRJ)Manager
 
-ENGINEFILES=../src/*.maxj ../src/*.java
+ENGINEFILES=../src/*.maxj ../src/*.java $(WHEREISROOT)/lib/maxpower/src
 CPUFILES=../src/*.cpp
 
 # Using known hardware settings
