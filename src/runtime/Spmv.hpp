@@ -116,12 +116,9 @@ namespace cask {
       // architecture specific properties
       protected:
 
-      // design parameters
-      const int cacheSize, inputWidth, numPipes, maxRows, numControllers;
-
       cask::CsrMatrix mat;
       std::vector<Partition> partitions;
-      cask::runtime::GeneratedSpmvImplementation* impl;
+      cask::runtime::GeneratedSpmvImplementation impl;
 
       virtual int countComputeCycles(int32_t* v, int size, int inputWidth);
 
@@ -134,11 +131,11 @@ namespace cask {
 
         bool operator==(const BasicSpmv& other) const {
           return
-            cacheSize == other.cacheSize &&
-            inputWidth == other.inputWidth &&
-            numPipes == other.numPipes &&
-            numControllers == other.numControllers &&
-            maxRows == other.maxRows;
+            impl.params.cache_size == other.impl.params.cache_size &&
+            impl.params.input_width == other.impl.params.input_width &&
+            impl.params.num_pipes == other.impl.params.num_pipes &&
+            impl.params.num_controllers == other.impl.params.num_controllers &&
+            impl.params.max_rows == other.impl.params.max_rows;
         }
 
         virtual boost::property_tree::ptree write_est_impl_params(const cask::model::DeviceModel &dm) override {
@@ -154,32 +151,31 @@ namespace cask {
 
         virtual boost::property_tree::ptree write_params() override {
           boost::property_tree::ptree tree;
-          tree.put("num_pipes", numPipes);
-          tree.put("cache_size", cacheSize);
-          tree.put("input_width", inputWidth);
-          tree.put("max_rows", maxRows);
-          tree.put("num_controllers", numControllers);
+          tree.put("num_pipes", impl.params.num_pipes);
+          tree.put("cache_size", impl.params.cache_size);
+          tree.put("input_width", impl.params.input_width);
+          tree.put("max_rows", impl.params.max_rows);
+          tree.put("num_controllers", impl.params.num_controllers);
           return tree;
         }
 
-        BasicSpmv(int _cacheSize, int  _inputWidth, int _numPipes, int _maxRows, int _numControllers) :
-          cacheSize(_cacheSize),
-          inputWidth(_inputWidth),
-          numPipes(_numPipes),
-          maxRows(_maxRows),
-          numControllers(_numControllers) {}
+        BasicSpmv(int _cacheSize, int  _inputWidth, int _numPipes, int _maxRows, int _numControllers)
+          : impl(cask::runtime::ImplementationParameters(
+                -1,
+                _maxRows,
+                _numPipes,
+                _cacheSize,
+                _inputWidth,
+                false, // dram_reduction_enabled
+                _numControllers),
+              cask::runtime::stubDeviceInterface)
+          {}
 
         /**
          * For execution we build the architecture and give it a pointer to the
          * device implementation.
          */
-        BasicSpmv(cask::runtime::GeneratedSpmvImplementation* _impl):
-          cacheSize(_impl->cacheSize()),
-          inputWidth(_impl->inputWidth()),
-          numPipes(_impl->numPipes()),
-          maxRows(_impl->maxRows()),
-          numControllers(_impl->numControllers()),
-          impl(_impl) { }
+        BasicSpmv(cask::runtime::GeneratedSpmvImplementation _impl): impl(_impl) { }
 
         virtual std::string getLibraryName() {
           std::stringstream ss;
@@ -187,11 +183,11 @@ namespace cask {
           // XXX detect target from environment configuration?
           const std::string target = "sim";
           ss << target << "_";
-          ss << "cachesize" << cacheSize << "_";
-          ss << "inputwidth" << inputWidth << "_";
-          ss << "numpipes" << numPipes << "_";
-          ss << "maxrows" << maxRows;
-          ss << "numControllers" << numControllers << "_";
+          ss << "cachesize" << impl.params.cache_size << "_";
+          ss << "inputwidth" << impl.params.input_width << "_";
+          ss << "numpipes" << impl.params.num_pipes << "_";
+          ss << "maxrows" << impl.params.max_rows;
+          ss << "numControllers" << impl.params.num_controllers << "_";
           ss << ".so";
           return ss.str();
         }
@@ -223,33 +219,36 @@ namespace cask {
             // TODO this should be architecture parameter
             const int vectorDataWidthInBits = 64;
             const int entriesPerBram = deviceModel.entriesPerBram(vectorDataWidthInBits);
-            const int maxRows = cask::utils::ceilDivide(this->mat.n, numPipes);
+            const int maxRows = cask::utils::ceilDivide(this->mat.n, impl.params.num_pipes);
 
             LogicResourceUsage bramReductionKernel{10069, 12965,  cask::utils::ceilDivide(maxRows, entriesPerBram), 0};
             LogicResourceUsage paddingKernel{363, 543, 0, 0};
             LogicResourceUsage unpaddingKernel{364, 474, 0, 0};
-            LogicResourceUsage spmvKernelPerInput{1458, 2031, cacheSize / entriesPerBram + 14, 4};
+            LogicResourceUsage spmvKernelPerInput{1458, 2031, impl.params.cache_size / entriesPerBram + 14, 4};
             LogicResourceUsage sm{1235, 643, 0, 0};
 
             LogicResourceUsage spmvPerPipe =
               bramReductionKernel +
               paddingKernel +
               unpaddingKernel * 3 +
-              spmvKernelPerInput * inputWidth +
+              spmvKernelPerInput * impl.params.input_width +
               sm;
 
-            std::cout << "Spmv Per pipe usage " << spmvPerPipe.to_string() << std::endl;
-            std::cout << "Spmv per kernel usage " << spmvKernelPerInput.to_string() << std::endl;
-            std::cout << "Spmv reduction per pipe" << bramReductionKernel.to_string() << std::endl;
-
+            //std::cout << "Spmv Per pipe usage " << spmvPerPipe.to_string() << std::endl;
+            //std::cout << "Spmv per kernel usage " << spmvKernelPerInput.to_string() << std::endl;
+            //std::cout << "Spmv reduction per pipe" << bramReductionKernel.to_string() << std::endl;
 
             // NB these assume an 800Mhz memory bandwidth build
             LogicResourceUsage memoryPerPipe{5325, 12184, 108, 0};
             LogicResourceUsage memory{15330, 17606, 56, 0};
 
-            LogicResourceUsage designUsage = (spmvPerPipe + memoryPerPipe) * numPipes + memory;
+            // There are also a number of FIFOs per pipe, their depth and
+            // number is generally independent from design parameters
+            LogicResourceUsage fifosPerPipe{500, 800, 81, 0};
 
-            double memoryBandwidth =(double)inputWidth * numPipes * getFrequency() * 12.0 / 1E9;
+            LogicResourceUsage designUsage = (spmvPerPipe + memoryPerPipe + fifosPerPipe) * impl.params.num_pipes + memory;
+
+            double memoryBandwidth =(double)impl.params.input_width * impl.params.num_pipes * getFrequency() * 12.0 / 1E9;
             ImplementationParameters ip{designUsage, memoryBandwidth};
             //ip.clockFrequency = getFrequency() / 1E6; // MHz
             return ip;
@@ -262,10 +261,10 @@ namespace cask {
         virtual std::string to_string() {
           std::stringstream s;
           s << get_name();
-          s << " " << cacheSize;
-          s << " " << inputWidth;
-          s << " " << numPipes;
-          s << " " << numControllers;
+          s << " " << impl.params.cache_size;
+          s << " " << impl.params.input_width;
+          s << " " << impl.params.num_pipes;
+          s << " " << impl.params.num_controllers;
           s << " " << getEstimatedClockCycles();
           s << " " << getEstimatedGFlops();
           return s.str();
@@ -422,7 +421,7 @@ namespace cask {
 
       public:
       SkipEmptyRowsSpmv(int _cacheSize, int  _inputWidth, int _numPipes, int _maxRows, int _numControllers) :
-        BasicSpmv(_cacheSize, _inputWidth, _numPipes, maxRows, _numControllers) {}
+        BasicSpmv(_cacheSize, _inputWidth, _numPipes, _maxRows, _numControllers) {}
 
       virtual std::string get_name() override {
         return std::string("SkipEmpty");

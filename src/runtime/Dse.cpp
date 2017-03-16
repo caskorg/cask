@@ -37,10 +37,6 @@ std::shared_ptr<Spmv> dse_run(
   int it = 0;
 
   // for virtex 6
-  double alpha = 0.9; // aim to fit about alpha% of the chip
-  const LogicResourceUsage maxResources(LogicResourceUsage{297600, 297600, 1064, 2016} * alpha);
-
-  const ImplementationParameters maxParams{maxResources, 39};
 
   std::shared_ptr<Spmv> bestArchitecture, a;
 
@@ -48,8 +44,8 @@ std::shared_ptr<Spmv> dse_run(
     auto start = std::chrono::high_resolution_clock::now();
     a->preprocess(mat); // do spmv?
     //dfesnippets::timing::print_clock_diff("Took: ", start);
-    //if (!(a->getImplementationParameters() < maxParams))
-      //continue;
+    if (!(a->getImplementationParameters(deviceModel) < deviceModel.maxParams()))
+      continue;
 
     std::cout << basename << " " << a->to_string() << " " << a->getImplementationParameters(deviceModel).to_string() << std::endl;
     bestArchitecture = better(bestArchitecture, a, deviceModel);
@@ -111,11 +107,11 @@ std::vector<DseResult> cask::dse::SparkDse::run (
     cask::io::MmReader<double> m(path);
     auto start = std::chrono::high_resolution_clock::now();
     // auto eigenMatrix = cask::converters::tripletToEigen(m.mmreadMatrix(path));
-    CsrMatrix eigenMatrix = cask::io::readMatrix(path);
+    CsrMatrix matrix = cask::io::readMatrix(path);
     dfesnippets::timing::print_clock_diff("Reading took: ", start);
 
     // XXX this assumes a virtex device with 512 entries per BRAM
-    int maxRows = eigenMatrix.n;
+    int maxRows = matrix.n;
     if (maxRows % 512 != 0)
       maxRows = (maxRows / 512 + 1) * 512;
 
@@ -135,7 +131,7 @@ std::vector<DseResult> cask::dse::SparkDse::run (
     for (auto sas : factories) {
       bestOverall = better(
           bestOverall,
-          dse_run(basename, sas, eigenMatrix, params, deviceModel),
+          dse_run(basename, sas, matrix, params, deviceModel),
           deviceModel);
     }
 
@@ -154,6 +150,12 @@ std::vector<DseResult> cask::dse::SparkDse::run (
       std::cout << " "  << bestOverall->getImplementationParameters(deviceModel).to_string();
     }
     std::cout << " BestOverall " << std::endl;
+    std::cout << bestOverall->to_string() << " "  << bestOverall->getImplementationParameters(deviceModel).to_string() << std::endl;
+
+    // do SpmvFor this architecture, to check the results for profiling
+    cask::Vector lhs(matrix.n);
+    bestOverall->preprocess(matrix);
+    auto result = bestOverall->spmv(lhs);
 
 
     //auto a = all_architectures.find(bestOverall);

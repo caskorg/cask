@@ -116,7 +116,7 @@ std::vector<T> msinglearray(int size, int pos, T value) {
 
 // write the data for a partition, starting at the given offset
 PartitionWriteResult writeDataForPartition(
-    cask::runtime::GeneratedSpmvImplementation *impl,
+    const cask::runtime::GeneratedSpmvImplementation& impl,
     int offset,
     const Partition& br,
     const std::vector<double>& v,
@@ -141,12 +141,12 @@ PartitionWriteResult writeDataForPartition(
   //}
 
   std::string routingString = "split -> tomem" + std::to_string(controllerNum);
-  impl->write(sizes[controllerNum],
-              &sizes[0],
-              &addrs[0],
-              (uint8_t*)&br.m_indptr_values[0],
-              routingString.c_str());
-              // (uint8_t*)&data[0]);
+  impl.deviceInterface.write(
+      sizes[controllerNum],
+      &sizes[0],
+      &addrs[0],
+      (uint8_t*)&br.m_indptr_values[0],
+      routingString.c_str());
 
   pwr.vStartAddress = pwr.indptrValuesStartAddress + pwr.indptrValuesSize;
   sizes = msinglearray(numControllers, controllerNum, cutils::size_bytes(v));
@@ -155,11 +155,12 @@ PartitionWriteResult writeDataForPartition(
   // cutils::print(sizes, "sizes=");
   // cutils::print(addrs, "addrs=");
   // data  = msinglearray(numControllers, controllerNum, &v[0]);
-  impl->write(sizes[controllerNum],
-              &sizes[0],
-              &addrs[0],
-              (uint8_t*)&v[0],
-              routingString.c_str());
+  impl.deviceInterface.write(
+      sizes[controllerNum],
+      &sizes[0],
+      &addrs[0],
+      (uint8_t*)&v[0],
+      routingString.c_str());
 
   // std::cout << "Write 3 " << std::endl;
   // data = msinglearray(numControllers, controllerNum, &br.m_colptr[0]);
@@ -170,11 +171,12 @@ PartitionWriteResult writeDataForPartition(
   // cutils::print(sizes, "sizes=");
   // cutils::print(addrs, "addrs=");
   // cutils::print(br.m_colptr, "colptr=");
-  impl->write(sizes[controllerNum],
-              &sizes[0],
-              &addrs[0],
-              (uint8_t*)&br.m_colptr[0],
-              routingString.c_str());
+  impl.deviceInterface.write(
+      sizes[controllerNum],
+      &sizes[0],
+      &addrs[0],
+      (uint8_t*)&br.m_colptr[0],
+      routingString.c_str());
 
   pwr.outStartAddr = pwr.colptrStartAddress + pwr.colptrSize;
   pwr.outSize = br.outSize;
@@ -186,7 +188,10 @@ cask::Vector ssarch::spmv(const cask::Vector& x)
 {
   using namespace std;
 
-  if (this->impl->getDramReductionEnabled()) {
+
+  //std::cout << this->impl << std::endl;
+
+  if (this->impl.params.dram_reduction_enabled) {
     // because of DRAM read/write latency we can only hope to get correct
     // answers for large matrices
     // XXX figure out where to place this constant;
@@ -198,17 +203,15 @@ cask::Vector ssarch::spmv(const cask::Vector& x)
       ss << " actual rows: " << mat.n;
       throw invalid_argument(ss.str());
     }
-  } else {
-    if (maxRows < mat.n) {
+  } else if (impl.params.max_rows < mat.n) {
       stringstream ss;
       ss << "Matrix is too large! Maximum supported rows: ";
-      ss << maxRows;
+      ss << impl.params.max_rows;
       ss << " actual rows: " << mat.n;
       throw invalid_argument(ss.str());
-    }
   }
 
-  int cacheSize = this->cacheSize;
+  int cacheSize = impl.params.cache_size;
 
   vector<double> v = x.data;
   cutils::align(v, sizeof(double) * cacheSize);
@@ -222,8 +225,8 @@ cask::Vector ssarch::spmv(const cask::Vector& x)
   int offset = 0;
   int i = 0;
 
-  assert(this->partitions.size() == this->numPipes && "numPipes should equal numPartitions");
-  for (auto& p : this->partitions) {
+  assert(partitions.size() == impl.params.num_pipes && "numPipes should equal numPartitions");
+  for (auto& p : partitions) {
     nrows.push_back(p.n);
     paddingCycles.push_back(p.paddingCycles);
     totalCycles.push_back(p.totalCycles);
@@ -231,8 +234,8 @@ cask::Vector ssarch::spmv(const cask::Vector& x)
     colptrUnpaddedSizes.push_back(p.m_colptr_unpaddedLength);
     indptrValuesUnpaddedLengths.push_back(p.m_indptr_values_unpaddedLength);
 
-    int nc = this->impl->numControllers();
-    int pipesPerController = this->numPipes / nc;
+    int nc = impl.params.num_controllers;
+    int pipesPerController = impl.params.num_pipes / nc;
     int ctrlId = i / pipesPerController;
     // moving to a new controller, reset offset in memory
     if (i % pipesPerController == 0) {
@@ -262,7 +265,7 @@ cask::Vector ssarch::spmv(const cask::Vector& x)
   logResult("Reduction cycles", reductionCycles);
 
   auto start = std::chrono::high_resolution_clock::now();
-  this->impl->Spmv(
+  impl.deviceInterface.run(
       nIterations,
       nBlocks,
       vector_load_cycles,
@@ -277,17 +280,14 @@ cask::Vector ssarch::spmv(const cask::Vector& x)
       &vStartAddresses[0]
       );
   double took = dfesnippets::timing::clock_diff(start) / nIterations;
-  // TODO need a consistent, single point way to handle params
-  // must ensure that params match with build parameters
-  double frequency = 100 * 1e6;
-  double est =(double) totalCycles[0] / frequency;
+  double est =(double) totalCycles[0] / getFrequency();
   double gflopsEst = (2.0 * (double)this->mat.nnzs / est) / 1E9;
   double gflopsActual = (2.0 * (double)this->mat.nnzs / took) / 1E9;
 
-  double bwidthEst = this->numPipes * this->inputWidth * frequency / (1024.0  *
+  double bwidthEst = impl.params.num_pipes * impl.params.input_width * getFrequency() / (1024.0  *
       1024 * 1024) * (8 + 4);
-  logResult("Input width ", this->inputWidth);
-  logResult("Pipes ", this->numPipes);
+  logResult("Input width ", impl.params.input_width);
+  logResult("Pipes ", impl.params.num_pipes);
 
   logResult("Iterations", nIterations);
   logResult("Took (ms)", took);
@@ -297,14 +297,13 @@ cask::Vector ssarch::spmv(const cask::Vector& x)
   logResult("BWidth (est)", bwidthEst);
 
   std::vector<double> total;
-  std::cout << "Start addresses" << outputStartAddresses.size() << std::endl;
   for (size_t i = 0; i < outputStartAddresses.size(); i++) {
     std::vector<double> tmp(outputResultSizes[i] / sizeof(double), 0);
-    int ctrlId = i / (this->numPipes / this->impl->numControllers());
-    auto sizes = msinglearray(this->numControllers, ctrlId, cutils::size_bytes(tmp));
-    auto addrs = msinglearray(this->numControllers, ctrlId, outputStartAddresses[i]);
+    int ctrlId = i / (impl.params.num_pipes / impl.params.num_controllers);
+    auto sizes = msinglearray(impl.params.num_controllers, ctrlId, cutils::size_bytes(tmp));
+    auto addrs = msinglearray(impl.params.num_controllers, ctrlId, outputStartAddresses[i]);
     std::string routing = "frommem" + std::to_string(ctrlId) + " -> join";
-    this->impl->read(
+    impl.deviceInterface.read(
         sizes[ctrlId],
         &sizes[0],
         &addrs[0],
@@ -322,19 +321,20 @@ void ssarch::preprocess(
     const cask::CsrMatrix& mat) {
   this->mat = mat;
 
-  int rowsPerPartition = mat.n / numPipes;
+  partitions.clear();
+  int rowsPerPartition = mat.n / impl.params.num_pipes;
   int start = 0;
-  for (int i = 0; i < numPipes - 1; i++) {
+  for (int i = 0; i < impl.params.num_pipes - 1; i++) {
     this->partitions.push_back(
         do_blocking(
           mat.sliceRows(start, rowsPerPartition),
-          this->cacheSize, this->inputWidth));
+          impl.params.cache_size, impl.params.input_width));
     start += rowsPerPartition;
   }
 
   // put all rows left in the last partition
   this->partitions.push_back(
       do_blocking(mat.sliceRows(start, mat.n - start),
-        this->cacheSize, this->inputWidth));
+        impl.params.cache_size, impl.params.input_width));
 
 }
