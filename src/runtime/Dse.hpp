@@ -81,7 +81,8 @@ namespace cask {
         // returns the best architecture
         std::vector<DseResult> run (
             const Benchmark& benchmark,
-            const DseParameters& dseParams);
+            const DseParameters& dseParams,
+            const cask::model::DeviceModel& deviceModel);
     };
   }
 }

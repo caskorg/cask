@@ -28,12 +28,12 @@ namespace cask {
         virtual double getEstimatedClockCycles() = 0;
         virtual double getGFlopsCount() = 0;
         virtual std::string to_string() = 0;
-        virtual cask::model::ImplementationParameters getImplementationParameters() = 0;
+        virtual cask::model::ImplementationParameters getImplementationParameters(const cask::model::DeviceModel&) = 0;
         virtual void preprocess(const cask::CsrMatrix& mat) = 0;
         virtual cask::Vector spmv(const cask::Vector& x) = 0;
         virtual std::string get_name() = 0;
         virtual boost::property_tree::ptree write_params() = 0;
-        virtual boost::property_tree::ptree write_est_impl_params() = 0;
+        virtual boost::property_tree::ptree write_est_impl_params(const cask::model::DeviceModel&) = 0;
         virtual std::string getLibraryName() = 0;
         bool operator==(const Spmv& other) {
           return equals(other);
@@ -141,8 +141,8 @@ namespace cask {
             maxRows == other.maxRows;
         }
 
-        virtual boost::property_tree::ptree write_est_impl_params() override {
-          auto params = getImplementationParameters();
+        virtual boost::property_tree::ptree write_est_impl_params(const cask::model::DeviceModel &dm) override {
+          auto params = getImplementationParameters(dm);
           boost::property_tree::ptree tree;
           tree.put("memory_bandwidth", params.memoryBandwidth);
           tree.put("BRAMs", params.ru.brams);
@@ -211,36 +211,52 @@ namespace cask {
         // NOTE: only call this after a call to preprocessMatrix
         // XXX this should be renamed to estimated
         // XXX This can't really be done at compile time
-        virtual cask::model::ImplementationParameters getImplementationParameters() {
+        /* Returns the expected values for implementing this design on the given deviceModel. */
+        virtual cask::model::ImplementationParameters getImplementationParameters(const cask::model::DeviceModel& deviceModel) override {
           // XXX bram usage for altera in double precision only (512 deep, 40 bits wide, so need 2 BRAMs)
           //int brams = (double)cacheSize * (double)inputWidth / 512.0 * 2.0;
           using namespace cask::model;
 
-          // XXX these should be architecture params
-          int maxRows = (this->mat.n / 512) * 512;
-          const int virtex6EntriesPerBram = 512;
+          // It's hard to do this polymorphically; this hack should be fine for
+          // small device numbers
+          if (deviceModel.getId() == "Max4") {
+            // TODO this should be architecture parameter
+            const int vectorDataWidthInBits = 64;
+            const int entriesPerBram = deviceModel.entriesPerBram(vectorDataWidthInBits);
+            const int maxRows = cask::utils::ceilDivide(this->mat.n, numPipes);
 
-          LogicResourceUsage interPartitionReductionKernel(2768,1505, maxRows / virtex6EntriesPerBram, 0);
-          LogicResourceUsage paddingKernel{400, 500, 0, 0};
-          LogicResourceUsage spmvKernelPerInput{1466, 2060, cacheSize / virtex6EntriesPerBram, 10}; // includes cache
-          LogicResourceUsage sm{800, 500, 0, 0};
+            LogicResourceUsage bramReductionKernel{10069, 12965,  cask::utils::ceilDivide(maxRows, entriesPerBram), 0};
+            LogicResourceUsage paddingKernel{363, 543, 0, 0};
+            LogicResourceUsage unpaddingKernel{364, 474, 0, 0};
+            LogicResourceUsage spmvKernelPerInput{1458, 2031, cacheSize / entriesPerBram + 14, 4};
+            LogicResourceUsage sm{1235, 643, 0, 0};
 
-          LogicResourceUsage spmvPerPipe =
-            interPartitionReductionKernel +
-            paddingKernel +
-            spmvKernelPerInput * inputWidth +
-            sm;
+            LogicResourceUsage spmvPerPipe =
+              bramReductionKernel +
+              paddingKernel +
+              unpaddingKernel * 3 +
+              spmvKernelPerInput * inputWidth +
+              sm;
 
-          LogicResourceUsage memoryPerPipe{3922, 8393, 160, 0};
-          LogicResourceUsage memory{24000, 32000, 0, 0};
+            std::cout << "Spmv Per pipe usage " << spmvPerPipe.to_string() << std::endl;
+            std::cout << "Spmv per kernel usage " << spmvKernelPerInput.to_string() << std::endl;
+            std::cout << "Spmv reduction per pipe" << bramReductionKernel.to_string() << std::endl;
 
-          //LogicResourceUsage designOther{};
-          LogicResourceUsage designUsage = (spmvPerPipe + memoryPerPipe) * numPipes + memory;
 
-          double memoryBandwidth =(double)inputWidth * numPipes * getFrequency() * 12.0 / 1E9;
-          ImplementationParameters ip{designUsage, memoryBandwidth};
-          //ip.clockFrequency = getFrequency() / 1E6; // MHz
-          return ip;
+            // NB these assume an 800Mhz memory bandwidth build
+            LogicResourceUsage memoryPerPipe{5325, 12184, 108, 0};
+            LogicResourceUsage memory{15330, 17606, 56, 0};
+
+            LogicResourceUsage designUsage = (spmvPerPipe + memoryPerPipe) * numPipes + memory;
+
+            double memoryBandwidth =(double)inputWidth * numPipes * getFrequency() * 12.0 / 1E9;
+            ImplementationParameters ip{designUsage, memoryBandwidth};
+            //ip.clockFrequency = getFrequency() / 1E6; // MHz
+            return ip;
+
+          }
+
+          throw std::invalid_argument("Unsupported device model " + deviceModel.getId());
         }
 
         virtual std::string to_string() {

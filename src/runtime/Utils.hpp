@@ -129,6 +129,12 @@ long size_bytes(const std::vector<T>& v) {
   return sizeof(T) * v.size();
 }
 
+inline int ceilDivide(int a, int b) {
+  if (a < 0 || b < 0)
+    throw std::invalid_argument("ceilDivide: arguments must be positive");
+  return a / b + (a % b != 0);
+}
+
 }
 }
 

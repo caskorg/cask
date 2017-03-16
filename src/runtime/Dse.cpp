@@ -8,11 +8,11 @@ using namespace cask::utils;
 using namespace cask::model;
 using namespace cask::dse;
 
-
 std::shared_ptr<Spmv>
 better(
     std::shared_ptr<Spmv> a1,
-    std::shared_ptr<Spmv> a2) {
+    std::shared_ptr<Spmv> a2,
+    const cask::model::DeviceModel& deviceModel) {
 
   if (a1 == nullptr)
     return a2;
@@ -20,7 +20,7 @@ better(
   bool a1Better =
     a1->getEstimatedGFlops() > a2->getEstimatedGFlops() ||
     (a1->getEstimatedGFlops() == a2->getEstimatedGFlops() &&
-     a1->getImplementationParameters().ru < a2->getImplementationParameters().ru);
+     a1->getImplementationParameters(deviceModel).ru < a2->getImplementationParameters(deviceModel).ru);
 
   if (a1Better)
     return a1;
@@ -31,7 +31,8 @@ std::shared_ptr<Spmv> dse_run(
     std::string basename,
     SpmvArchitectureSpace* af,
     const cask::CsrMatrix& mat,
-    const DseParameters& params)
+    const DseParameters& params,
+    const cask::model::DeviceModel& deviceModel)
 {
   int it = 0;
 
@@ -50,8 +51,8 @@ std::shared_ptr<Spmv> dse_run(
     //if (!(a->getImplementationParameters() < maxParams))
       //continue;
 
-    std::cout << basename << " " << a->to_string() << " " << a->getImplementationParameters().to_string() << std::endl;
-    bestArchitecture = better(bestArchitecture, a);
+    std::cout << basename << " " << a->to_string() << " " << a->getImplementationParameters(deviceModel).to_string() << std::endl;
+    bestArchitecture = better(bestArchitecture, a, deviceModel);
   }
 
   if (!bestArchitecture)
@@ -63,7 +64,7 @@ std::shared_ptr<Spmv> dse_run(
     std::cout << bestArchitecture->getEstimatedClockCycles();
   } else {
     std::cout << bestArchitecture->to_string();
-    std::cout << " " << bestArchitecture->getImplementationParameters().to_string();
+    std::cout << " " << bestArchitecture->getImplementationParameters(deviceModel).to_string();
   }
   std::cout << " Best " << std::endl;
   return bestArchitecture;
@@ -86,7 +87,8 @@ struct SpmvEqual {
 
 std::vector<DseResult> cask::dse::SparkDse::run (
     const Benchmark& benchmark,
-    const cask::dse::DseParameters& params)
+    const cask::dse::DseParameters& params,
+    const cask::model::DeviceModel& deviceModel)
 {
 
   std::vector<DseResult> bestArchitectures;
@@ -133,7 +135,8 @@ std::vector<DseResult> cask::dse::SparkDse::run (
     for (auto sas : factories) {
       bestOverall = better(
           bestOverall,
-          dse_run(basename, sas, eigenMatrix, params));
+          dse_run(basename, sas, eigenMatrix, params, deviceModel),
+          deviceModel);
     }
 
     if (!bestOverall)
@@ -148,7 +151,7 @@ std::vector<DseResult> cask::dse::SparkDse::run (
       std::cout << bestOverall->getEstimatedClockCycles();
     } else {
       std::cout << bestOverall->to_string();
-      std::cout << " "  << bestOverall->getImplementationParameters().to_string();
+      std::cout << " "  << bestOverall->getImplementationParameters(deviceModel).to_string();
     }
     std::cout << " BestOverall " << std::endl;
 

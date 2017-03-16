@@ -55,7 +55,8 @@ cask::dse::Benchmark loadBenchmark(const boost::filesystem::path& p) {
 
 void write_dse_results(
     const std::vector<cask::dse::DseResult>& results,
-    double took
+    double took,
+    const cask::model::DeviceModel& deviceModel
     ) {
   pt::ptree tree, children;
   stringstream ss;
@@ -73,7 +74,7 @@ void write_dse_results(
     archJson.put("estimated_clock_cycles", arch->getEstimatedClockCycles());
 
     archJson.add_child("architecture_params", arch->write_params());
-    archJson.add_child("estimated_impl_params", arch->write_est_impl_params());
+    archJson.add_child("estimated_impl_params", arch->write_est_impl_params(deviceModel));
 
     pt::ptree matrices;
     for (int i = 0; i < dseResult.matrices.size(); i++) {
@@ -155,11 +156,14 @@ int main(int argc, char** argv) {
   cask::dse::SparkDse dseTool;
 
   auto start = std::chrono::high_resolution_clock::now();
+  cask::model::Max4Model deviceModel;
+  std::cout << "Device Model " << deviceModel << std::endl;
   auto results = dseTool.run(
       benchmark,
-      params);
+      params,
+      deviceModel);
   auto diff = dfesnippets::timing::clock_diff(start);
-  write_dse_results(results, diff);
+  write_dse_results(results, diff, deviceModel);
 
   // Executables exes = buildTool.buildExecutables(Hardware Designs)
   // PerfResults results = perfTool.runDesigns(exes)
