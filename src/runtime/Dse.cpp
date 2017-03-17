@@ -116,14 +116,11 @@ std::vector<DseResult> cask::dse::SparkDse::run (
       maxRows = (maxRows / 512 + 1) * 512;
 
     std::vector<SpmvArchitectureSpace*> factories{
-      new SimpleSpmvArchitectureSpace<BasicSpmv>(
+      new SimpleSpmvArchitectureSpace<Spmv>(
           params.numPipesRange, params.inputWidthRange,
           params.cacheSizeRange, params.numControllersRange, maxRows),
-          //new SimpleSpmvArchitectureSpace<FstSpmv>(
-              //params.numPipesRange, params.inputWidthRange, params.cacheSizeRange),
           //new SimpleSpmvArchitectureSpace<SkipEmptyRowsSpmv>(
               //params.numPipesRange, params.inputWidthRange, params.cacheSizeRange),
-          //new SimpleSpmvArchitectureSpace<PrefetchingArchitecture>(numPipesRange, inputWidthRange, cacheSizeRange)
     };
 
     std::cout << "File Architecture CacheSize InputWidth NumPipes EstClockCycles EstGflops LUTS FFs DSPs BRAMs MemBandwidth Observation" << std::endl;
@@ -154,7 +151,9 @@ std::vector<DseResult> cask::dse::SparkDse::run (
 
     // do SpmvFor this architecture, to check the results for profiling
     cask::Vector lhs(matrix.n);
+    std::cout << "Preprocessing" << std::endl;
     bestOverall->preprocess(matrix);
+    std::cout << "Doing spmv, lhs size = " << lhs.size() << std::endl;
     auto result = bestOverall->spmv(lhs);
 
 

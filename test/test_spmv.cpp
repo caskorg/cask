@@ -35,7 +35,7 @@ int test(string path, int implId) {
     implLoader.architectureWithParams(maxRows) :
     implLoader.architectureWithId(implId);
 
-  cask::spmv::BasicSpmv a(deviceImpl);
+  cask::spmv::Spmv a(deviceImpl);
   auto csrMatrix = cask::io::readMatrix(path);
   a.preprocess(csrMatrix);
   // TODO need a consistent way to handle params

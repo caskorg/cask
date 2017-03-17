@@ -10,97 +10,8 @@
 #include "Utils.hpp"
 
 using namespace cask::spmv;
-using ssarch = cask::spmv::BasicSpmv;
+using ssarch = cask::spmv::Spmv;
 namespace cutils = cask::utils;
-
-// how many cycles does it take to resolve the accesses
-int ssarch::countComputeCycles(int32_t* v, int size, int inputWidth)
-{
-  int cycles = 0;
-  int crtPos = 0;
-  for (int i = 0; i < size; i++) {
-    int toread = v[i] - (i > 0 ? v[i - 1] : 0);
-    do {
-      int canread = std::min(inputWidth - crtPos, toread);
-      crtPos += canread;
-      crtPos %= inputWidth;
-      cycles++;
-      toread -= canread;
-    } while (toread > 0);
-  }
-  return cycles;
-}
-
-// transform a given matrix with n rows in blocks of size n X blockSize
-cask::spmv::Partition ssarch::do_blocking(
-    const cask::CsrMatrix& m,
-    int blockSize,
-    int inputWidth)
-{
-  int rows = m.n;
-  int cols = m.m;
-  int n = rows;
-  //std::cout << "Mat rows " << n << std::endl;
-  //std::cout << "Npartitions: " << nPartitions << std::endl;
-
-  std::vector<cask::CsrMatrix> partitions = m.sliceColumns(blockSize); // (nBlocks);
-  int nBlocks = partitions.size();
-
-  //if (n > Spmv_maxRows)
-    //throw std::invalid_argument(
-        //"Matrix has too many rows - maximum supported: "
-        //+ std::to_string(Spmv_maxRows));
-
-  std::vector<double> v(cols, 0);
-  std::vector<int> m_colptr;
-  std::vector<indptr_value> m_indptr_value;
-
-  // now we coalesce partitions
-  int cycles = 0;
-  int partition = 0;
-  int reductionCycles = rows * partitions.size();
-  int emptyCycles = 0;
-  for (auto& p : partitions) {
-    auto pp = preprocessBlock(p, partition++, partitions.size());
-    auto& p_colptr = pp.row_ptr;
-    auto& p_indptr = pp.col_ind;
-    auto& p_values = pp.values;
-
-    int diff = p.row_ptr.size() - p_colptr.size();
-    emptyCycles += diff;
-    reductionCycles -= diff;
-    cycles += this->countComputeCycles(&p.row_ptr[0], n, inputWidth) - diff;
-
-    cutils::align(p_indptr, sizeof(int) * inputWidth);
-    cutils::align(p_values, sizeof(double) * inputWidth);
-    std::copy(p_colptr.begin(), p_colptr.end(), back_inserter(m_colptr));
-    for (size_t i = 0; i < p_values.size(); i++)
-      m_indptr_value.push_back(indptr_value( p_values[i], p_indptr[i]));
-  }
-
-  Partition br;
-  br.m_colptr_unpaddedLength = m_colptr.size();
-  br.m_indptr_values_unpaddedLength = m_indptr_value.size();
-  //std::cout << "m_colptr unaligned size" << m_colptr.size() << std::endl;
-  cutils::align(m_colptr, 384);
-  cutils::align(m_indptr_value, 384);
-  std::vector<double> out(n, 0);
-  cutils::align(out, 384);
-  cutils::align(v, sizeof(double) * blockSize);
-
-  br.nBlocks = nBlocks;
-  br.n = n;
-  br.paddingCycles = out.size() - n; // number of cycles required to align to the burst size
-  br.totalCycles = cycles + v.size();
-  br.vector_load_cycles = v.size() / nBlocks; // per partition
-  br.m_indptr_values = m_indptr_value;
-  br.m_colptr = m_colptr;
-  br.outSize = out.size() * sizeof(double);
-  br.emptyCycles = emptyCycles;
-  br.reductionCycles = reductionCycles;
-
-  return br;
-}
 
 struct PartitionWriteResult {
   int64_t outStartAddr, outSize, colptrStartAddress, colptrSize;
@@ -118,7 +29,7 @@ std::vector<T> msinglearray(int size, int pos, T value) {
 PartitionWriteResult writeDataForPartition(
     const cask::runtime::GeneratedSpmvImplementation& impl,
     int offset,
-    const Partition& br,
+    const cask::spmv::Partition& br,
     const std::vector<double>& v,
     int numControllers,
     int controllerNum) {
@@ -183,13 +94,97 @@ PartitionWriteResult writeDataForPartition(
   return pwr;
 }
 
+// how many cycles does it take to resolve the accesses
+int ssarch::countComputeCycles(int32_t* v, int size, int inputWidth)
+{
+  int cycles = 0;
+  int crtPos = 0;
+  for (int i = 0; i < size; i++) {
+    int toread = v[i] - (i > 0 ? v[i - 1] : 0);
+    do {
+      int canread = std::min(inputWidth - crtPos, toread);
+      crtPos += canread;
+      crtPos %= inputWidth;
+      cycles++;
+      toread -= canread;
+    } while (toread > 0);
+  }
+  return cycles;
+}
+// transform a given matrix with n rows in blocks of size n X blockSize
+Partition ssarch::do_blocking(
+    const CsrMatrix& m,
+    int blockSize,
+    int inputWidth)
+{
+  int rows = m.n;
+  int cols = m.m;
+  int n = rows;
+  //std::cout << "Mat rows " << n << std::endl;
+  //std::cout << "Npartitions: " << nPartitions << std::endl;
+
+  std::vector<CsrMatrix> partitions = m.sliceColumns(blockSize); // (nBlocks);
+  int nBlocks = partitions.size();
+
+  //if (n > Spmv_maxRows)
+    //throw std::invalid_argument(
+        //"Matrix has too many rows - maximum supported: "
+        //+ std::to_string(Spmv_maxRows));
+
+  std::vector<double> v(cols, 0);
+  std::vector<int> m_colptr;
+  std::vector<indptr_value> m_indptr_value;
+
+  // now we coalesce partitions
+  int cycles = 0;
+  int partition = 0;
+  int reductionCycles = rows * partitions.size();
+  int emptyCycles = 0;
+  for (auto& p : partitions) {
+    auto pp = preprocessBlock(p, partition++, partitions.size());
+    auto& p_colptr = pp.row_ptr;
+    auto& p_indptr = pp.col_ind;
+    auto& p_values = pp.values;
+
+    int diff = p.row_ptr.size() - p_colptr.size();
+    emptyCycles += diff;
+    reductionCycles -= diff;
+    cycles += this->countComputeCycles(&p.row_ptr[0], n, inputWidth) - diff;
+
+    utils::align(p_indptr, sizeof(int) * inputWidth);
+    utils::align(p_values, sizeof(double) * inputWidth);
+    copy(p_colptr.begin(), p_colptr.end(), back_inserter(m_colptr));
+    for (size_t i = 0; i < p_values.size(); i++)
+      m_indptr_value.push_back(indptr_value( p_values[i], p_indptr[i]));
+  }
+
+  Partition br;
+  br.m_colptr_unpaddedLength = m_colptr.size();
+  br.m_indptr_values_unpaddedLength = m_indptr_value.size();
+  //std::cout << "m_colptr unaligned size" << m_colptr.size() << std::endl;
+  utils::align(m_colptr, 384);
+  utils::align(m_indptr_value, 384);
+  std::vector<double> out(n, 0);
+  utils::align(out, 384);
+  utils::align(v, sizeof(double) * blockSize);
+
+  br.nBlocks = nBlocks;
+  br.n = n;
+  br.paddingCycles = out.size() - n; // number of cycles required to align to the burst size
+  br.totalCycles = cycles + v.size();
+  br.vector_load_cycles = v.size() / nBlocks; // per partition
+  br.m_indptr_values = m_indptr_value;
+  br.m_colptr = m_colptr;
+  br.outSize = out.size() * sizeof(double);
+  br.emptyCycles = emptyCycles;
+  br.reductionCycles = reductionCycles;
+
+  return br;
+}
 
 cask::Vector ssarch::spmv(const cask::Vector& x)
 {
   using namespace std;
-
-
-  //std::cout << this->impl << std::endl;
 
   if (this->impl.params.dram_reduction_enabled) {
     // because of DRAM read/write latency we can only hope to get correct
@@ -214,18 +209,19 @@ cask::Vector ssarch::spmv(const cask::Vector& x)
   int cacheSize = impl.params.cache_size;
 
   vector<double> v = x.data;
-  cutils::align(v, sizeof(double) * cacheSize);
-  cutils::align(v, 384);
+  utils::align(v, sizeof(double) * cacheSize);
+  utils::align(v, 384);
 
-  std::vector<int> nrows, totalCycles, reductionCycles, paddingCycles, colptrSizes, indptrValuesSizes, outputResultSizes;
-  std::vector<int> colptrUnpaddedSizes, indptrValuesUnpaddedLengths;
-  std::vector<long> outputStartAddresses, colptrStartAddresses;
-  std::vector<long> vStartAddresses, indptrValuesStartAddresses;
+  vector<int> nrows, totalCycles, reductionCycles, paddingCycles, colptrSizes, indptrValuesSizes, outputResultSizes;
+  vector<int> colptrUnpaddedSizes, indptrValuesUnpaddedLengths;
+  vector<long> outputStartAddresses, colptrStartAddresses;
+  vector<long> vStartAddresses, indptrValuesStartAddresses;
 
   int offset = 0;
   int i = 0;
 
   assert(partitions.size() == impl.params.num_pipes && "numPipes should equal numPartitions");
+  assert(impl.params.num_controllers <= impl.params.num_pipes && "numPipes should be larger than numControllers");
   for (auto& p : partitions) {
     nrows.push_back(p.n);
     paddingCycles.push_back(p.paddingCycles);
@@ -257,14 +253,14 @@ cask::Vector ssarch::spmv(const cask::Vector& x)
   // npartitions and vector load cycles should be the same for all partitions
   int nBlocks = this->partitions[0].nBlocks;
   int vector_load_cycles = this->partitions[0].vector_load_cycles;
-  std::cout << "Running on DFE" << std::endl;
+  cout << "Running on DFE" << endl;
 
   int nIterations = 1;
   logResult("Total cycles", totalCycles);
   logResult("Padding cycles", paddingCycles);
   logResult("Reduction cycles", reductionCycles);
 
-  auto start = std::chrono::high_resolution_clock::now();
+  auto start = chrono::_V2::system_clock::now();
   impl.deviceInterface.run(
       nIterations,
       nBlocks,
@@ -296,13 +292,13 @@ cask::Vector ssarch::spmv(const cask::Vector& x)
   logResult("Gflops (actual)", gflopsActual);
   logResult("BWidth (est)", bwidthEst);
 
-  std::vector<double> total;
+  vector<double> total;
   for (size_t i = 0; i < outputStartAddresses.size(); i++) {
-    std::vector<double> tmp(outputResultSizes[i] / sizeof(double), 0);
+    vector<double> tmp(outputResultSizes[i] / sizeof(double), 0);
     int ctrlId = i / (impl.params.num_pipes / impl.params.num_controllers);
-    auto sizes = msinglearray(impl.params.num_controllers, ctrlId, cutils::size_bytes(tmp));
+    auto sizes = msinglearray(impl.params.num_controllers, ctrlId, utils::size_bytes(tmp));
     auto addrs = msinglearray(impl.params.num_controllers, ctrlId, outputStartAddresses[i]);
-    std::string routing = "frommem" + std::to_string(ctrlId) + " -> join";
+    string routing = "frommem" + std::to_string(ctrlId) + " -> join";
     impl.deviceInterface.read(
         sizes[ctrlId],
         &sizes[0],
@@ -310,15 +306,14 @@ cask::Vector ssarch::spmv(const cask::Vector& x)
         (uint8_t*)&tmp[0],
         routing.c_str()
         );
-    std::copy(tmp.begin(), tmp.begin() + nrows[i], std::back_inserter(total));
+    copy(tmp.begin(), tmp.begin() + nrows[i], back_inserter(total));
   }
 
   // remove the elements which were only for padding
-  return cask::Vector{total};
+  return Vector{total};
 }
-
 void ssarch::preprocess(
-    const cask::CsrMatrix& mat) {
+    const CsrMatrix& mat) {
   this->mat = mat;
 
   partitions.clear();

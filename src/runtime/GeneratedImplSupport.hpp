@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <iostream>
 #include <climits>
+#include <functional>
 
 /**
  * This module captures device implementation aspects:
