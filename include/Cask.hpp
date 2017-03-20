@@ -20,12 +20,12 @@ class CaskContext {
   void preprocess(const SymCsrMatrix& matrix) {
   }
 
-  cask::spmv::BasicSpmv getSpmv(SymCsrMatrix& matrix) {
+  cask::spmv::Spmv getSpmv(SymCsrMatrix& matrix) {
     // TODO should choose between the various implementtation types
     return spmv::Spmv(spmvManager.architectureWithParams(matrix.n));
   }
 
-  cask::spmv::BasicSpmv getSpmv(CsrMatrix& matrix) {
+  cask::spmv::Spmv getSpmv(CsrMatrix& matrix) {
     // TODO should choose between the various implementtation types
     return spmv::Spmv(spmvManager.architectureWithParams(matrix.n));
   }

@@ -221,6 +221,7 @@ cask::Vector ssarch::spmv(const cask::Vector& x)
   int i = 0;
 
   assert(partitions.size() == impl.params.num_pipes && "numPipes should equal numPartitions");
+  assert(impl.params.num_pipes % impl.params.num_controllers == 0 && "numPipes should be a multiple of numControllers");
   assert(impl.params.num_controllers <= impl.params.num_pipes && "numPipes should be larger than numControllers");
   for (auto& p : partitions) {
     nrows.push_back(p.n);
@@ -256,9 +257,9 @@ cask::Vector ssarch::spmv(const cask::Vector& x)
   cout << "Running on DFE" << endl;
 
   int nIterations = 1;
-  logResult("Total cycles", totalCycles);
-  logResult("Padding cycles", paddingCycles);
-  logResult("Reduction cycles", reductionCycles);
+  utils::logResult("Total cycles", totalCycles);
+  utils::logResult("Padding cycles", paddingCycles);
+  utils::logResult("Reduction cycles", reductionCycles);
 
   auto start = chrono::_V2::system_clock::now();
   impl.deviceInterface.run(
@@ -282,15 +283,15 @@ cask::Vector ssarch::spmv(const cask::Vector& x)
 
   double bwidthEst = impl.params.num_pipes * impl.params.input_width * getFrequency() / (1024.0  *
       1024 * 1024) * (8 + 4);
-  logResult("Input width ", impl.params.input_width);
-  logResult("Pipes ", impl.params.num_pipes);
+  utils::logResult("Input width ", impl.params.input_width);
+  utils::logResult("Pipes ", impl.params.num_pipes);
 
-  logResult("Iterations", nIterations);
-  logResult("Took (ms)", took);
-  logResult("Est (ms)", est);
-  logResult("Gflops (est)", gflopsEst);
-  logResult("Gflops (actual)", gflopsActual);
-  logResult("BWidth (est)", bwidthEst);
+  utils::logResult("Iterations", nIterations);
+  utils::logResult("Took (ms)", took);
+  utils::logResult("Est (ms)", est);
+  utils::logResult("Gflops (est)", gflopsEst);
+  utils::logResult("Gflops (actual)", gflopsActual);
+  utils::logResult("BWidth (est)", bwidthEst);
 
   vector<double> total;
   for (size_t i = 0; i < outputStartAddresses.size(); i++) {

@@ -51,6 +51,15 @@ namespace cask {
         input_width(_input_width),
         dram_reduction_enabled(_dram_reduction_enabled),
         num_controllers(_num_controllers) {}
+
+      bool operator==(const ImplementationParameters& other) const {
+        return max_rows == other.max_rows &&
+            num_pipes == other.num_pipes &&
+            cache_size == other.cache_size &&
+            input_width == other.input_width &&
+            dram_reduction_enabled == other.dram_reduction_enabled &&
+            num_controllers == other.num_controllers;
+      }
     };
 
     // stub interfaces for Spmv run / write /read calls; generated bitstream
@@ -109,6 +118,9 @@ namespace cask {
           const ImplementationParameters& _params,
           const SpmvDeviceInterfaceT& _deviceInterface)
         : params(_params), deviceInterface(_deviceInterface) {}
+      bool operator==(const GeneratedSpmvImplementation& other) const {
+        return params == other.params;
+      }
     };
 
     // provide interface for SpmvImplementation loader

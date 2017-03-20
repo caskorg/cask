@@ -1,20 +1,20 @@
 {
   "dse_params": {
     "num_pipes": {
-      "start":1,
-      "stop":3,
-      "step":1,
+      "start":6,
+      "stop":12,
+      "step":6,
       "default":2
     },
     "num_controllers": {
-      "start":1,
-      "stop":3,
+      "start":6,
+      "stop":6,
       "step":1,
       "default":2
     },
     "cache_size": {
       "start":1024,
-      "stop":4096,
+      "stop":16384,
       "step":1024,
       "default": 1024
     },
