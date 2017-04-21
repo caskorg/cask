@@ -16,6 +16,7 @@ public class SpmvManager extends CustomManager{
     public final int numPipes;
     public final int numControllers;
     private final int pipesPerController;
+    private final int burstSizeBytes = 384;
 
     // parameters of CSR format used: float64 values, int32 index.
     private static final int mantissaWidth = 53;
@@ -26,6 +27,7 @@ public class SpmvManager extends CustomManager{
     private static final boolean DBG_PAR_CSR_CTL = false;
     private static final boolean DBG_SPMV_KERNEL = false;
     private static final boolean DBG_REDUCTION_KERNEL = false;
+    private static final boolean DBG_UNPADDING_KERNEL = false;
     private static final boolean dramReductionEnabled = false;
 
     SpmvManager(SpmvEngineParams ep) {
@@ -43,8 +45,8 @@ public class SpmvManager extends CustomManager{
           maxRows = ep.getMaxRows() / numPipes;
         }
 
-        if (384 % inputWidth != 0) {
-          throw new RuntimeException("Error! 384 is not a multiple of INPUT WIDTH: " +
+        if (burstSizeBytes % inputWidth != 0) {
+          throw new RuntimeException("Error! " + burstSizeBytes + " is not a multiple of INPUT WIDTH: " +
               "This may lead to stalls due to padding / unpadding ");
         }
 
@@ -151,7 +153,7 @@ public class SpmvManager extends CustomManager{
         LMemInterface iface)
    {
      KernelBlock k = addKernel(new
-         UnpaddingKernel(makeKernelParameters(getUnpaddingKernel(stream)), bitwidth, id));
+         UnpaddingKernel(makeKernelParameters(getUnpaddingKernel(stream)), bitwidth, DBG_UNPADDING_KERNEL));
      k.getInput("paddingIn") <== iface.addStreamFromLMem(stream, LMemCommandGroup.MemoryAccessPattern.LINEAR_1D);
      return k.getOutput("pout");
    }
@@ -327,7 +329,6 @@ public class SpmvManager extends CustomManager{
         InterfaceParam outSizeBytes,
         InterfaceParam outWidthBytes)
     {
-      final int burstSizeBytes = 384;
       InterfaceParam writeSize = smallestMultipleLargerThan(outSizeBytes, burstSizeBytes);
       return (writeSize - outSizeBytes) / outWidthBytes;
     }

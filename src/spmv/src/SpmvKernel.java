@@ -328,7 +328,7 @@ class PaddingKernel extends Kernel {
 
 // extracts trailing zeros from input stream, after nInputs have been processed
 class UnpaddingKernel extends Kernel {
-  protected UnpaddingKernel(KernelParameters parameters, int bitWidth, int id) {
+  protected UnpaddingKernel(KernelParameters parameters, int bitWidth, boolean dbg) {
     super(parameters);
     DFEVar nInputs = io.scalarInput("nInputs", dfeUInt(32));
     DFEVar totalCycles = io.scalarInput("totalCycles", dfeUInt(32));
@@ -338,10 +338,9 @@ class UnpaddingKernel extends Kernel {
 
     DFEVar input = io.input("paddingIn", dfeRawBits(bitWidth));
     io.output("pout", input, dfeRawBits(bitWidth), ~unpaddingCycles);
-    //if (id == 2) {
-      //debug.simPrintf("id: %d cycles %d nInputs %d totalCycles %d unpadding %d\n",
-          //id, cycles, nInputs, totalCycles, unpaddingCycles);
-      //debug.simPrintf("input %d\n", input);
-    //}
+    if (dbg) {
+      debug.simPrintf("Kernel " + getName() + " cycles %d nInputs %d totalCycles %d input %d\n",
+          cycles, nInputs, totalCycles, input);
+    }
   }
 }

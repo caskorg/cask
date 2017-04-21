@@ -13,6 +13,8 @@ using namespace cask::spmv;
 using ssarch = cask::spmv::BasicSpmv;
 namespace cutils = cask::utils;
 
+const int burst_size_bytes = 384;
+
 // how many cycles does it take to resolve the accesses
 int ssarch::countComputeCycles(int32_t* v, int size, int inputWidth)
 {
@@ -82,10 +84,10 @@ cask::spmv::Partition ssarch::do_blocking(
   br.m_colptr_unpaddedLength = m_colptr.size();
   br.m_indptr_values_unpaddedLength = m_indptr_value.size();
   //std::cout << "m_colptr unaligned size" << m_colptr.size() << std::endl;
-  cutils::align(m_colptr, 384);
-  cutils::align(m_indptr_value, 384);
+  // cutils::align(m_colptr, burst_size_bytes);
+  // cutils::align(m_indptr_value, burst_size_bytes);
   std::vector<double> out(n, 0);
-  cutils::align(out, 384);
+  cutils::align(out, burst_size_bytes);
   cutils::align(v, sizeof(double) * blockSize);
 
   br.nBlocks = nBlocks;
@@ -124,7 +126,7 @@ PartitionWriteResult writeDataForPartition(
     int controllerNum) {
   // for each partition write this down
   PartitionWriteResult pwr;
-  pwr.indptrValuesStartAddress = cutils::align(offset, 384);
+  pwr.indptrValuesStartAddress = cutils::align(offset, burst_size_bytes);
   pwr.indptrValuesSize = cutils::size_bytes(br.m_indptr_values);
   // std::vector<int64_t> sizes = {pwr.indptrValuesSize};
   // std::vector<int64_t> addrs = {pwr.indptrValuesStartAddress};
@@ -163,8 +165,10 @@ PartitionWriteResult writeDataForPartition(
 
   // std::cout << "Write 3 " << std::endl;
   // data = msinglearray(numControllers, controllerNum, &br.m_colptr[0]);
+  auto newcolptr = br.m_colptr;
+  cask::utils::align(newcolptr, burst_size_bytes);
   pwr.colptrStartAddress = pwr.vStartAddress + cutils::size_bytes(v);
-  pwr.colptrSize = cutils::size_bytes(br.m_colptr);
+  pwr.colptrSize = cutils::size_bytes(newcolptr);
   sizes = msinglearray(numControllers, controllerNum, pwr.colptrSize);
   addrs = msinglearray(numControllers, controllerNum, pwr.colptrStartAddress);
   // cutils::print(sizes, "sizes=");
@@ -173,7 +177,7 @@ PartitionWriteResult writeDataForPartition(
   impl->write(sizes[controllerNum],
               &sizes[0],
               &addrs[0],
-              (uint8_t*)&br.m_colptr[0],
+              (uint8_t*)&newcolptr[0],
               routingString.c_str());
 
   pwr.outStartAddr = pwr.colptrStartAddress + pwr.colptrSize;
@@ -212,7 +216,7 @@ cask::Vector ssarch::spmv(const cask::Vector& x)
 
   vector<double> v = x.data;
   cutils::align(v, sizeof(double) * cacheSize);
-  cutils::align(v, 384);
+  cutils::align(v, burst_size_bytes);
 
   std::vector<int> nrows, totalCycles, reductionCycles, paddingCycles, colptrSizes, indptrValuesSizes, outputResultSizes;
   std::vector<int> colptrUnpaddedSizes, indptrValuesUnpaddedLengths;
@@ -242,7 +246,7 @@ cask::Vector ssarch::spmv(const cask::Vector& x)
     outputStartAddresses.push_back(pr.outStartAddr);
     outputResultSizes.push_back(pr.outSize);
     colptrStartAddresses.push_back(pr.colptrStartAddress);
-    colptrSizes.push_back(pr.colptrSize);
+    colptrSizes.push_back(cutils::size_bytes(p.m_colptr));
     vStartAddresses.push_back(pr.vStartAddress);
     indptrValuesSizes.push_back(pr.indptrValuesSize);
     indptrValuesStartAddresses.push_back(pr.indptrValuesStartAddress);
@@ -256,7 +260,7 @@ cask::Vector ssarch::spmv(const cask::Vector& x)
   int vector_load_cycles = this->partitions[0].vector_load_cycles;
   std::cout << "Running on DFE" << std::endl;
 
-  int nIterations = 1;
+  int nIterations = 2;
   logResult("Total cycles", totalCycles);
   logResult("Padding cycles", paddingCycles);
   logResult("Reduction cycles", reductionCycles);
