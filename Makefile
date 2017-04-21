@@ -93,7 +93,7 @@ doc:
 	doxygen docs/doxygen.conf
 
 clean-all-dist:
-	rm -rf src/spmv/build/Spmv* src/spmv/build/*.class
+	rm -rf src/spmv/build/{Spmv*,*.class,com,maxpower}
 
 upd-doc: doc
 	rm -rf ${TMP_PATH}
