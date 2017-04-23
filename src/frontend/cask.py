@@ -259,28 +259,27 @@ class Spark:
       for i in range(len(prjs)):
         p = prjs[i]
         f.write('this->impls.push_back(')
+        runFunction = p.name
+        writeFunction = p.name + '_dramWrite'
+        readFunction = p.name + '_dramRead'
+        dramReductionEnabled = p.name + '_dramReductionEnabled'
         if self.target == TARGET_DFE_MOCK:
-          f.write(
-              'new GeneratedSpmvImplementationMock({0}, {1}, {2}, {3}, false, {4}));'.format(
-                p.getParam('max_rows'),
-                p.getParam('num_pipes'),
-                p.getParam('cache_size'),
-                p.getParam('input_width'),
-                p.getParam('num_controllers')))
-        else:
-          f.write(
+            runFunction = 'cask::runtime::spmvRunMock'
+            writeFunction = 'cask::runtime::spmvWriteMock'
+            readFunction = 'cask::runtime::spmvReadMock'
+            dramReductionEnabled = 'false'
+        f.write(
               'new GeneratedSpmvImplementation({0}, {1}, {2}, {3}, {4}, {5}, {6}, {7}, {8}, {9}));'.format(
                 p.prj_id,
-                p.name,
-                p.name + '_dramWrite',
-                p.name + '_dramRead',
+                runFunction,
+                writeFunction,
+                readFunction,
                 p.getParam('max_rows'),
                 p.getParam('num_pipes'),
                 p.getParam('cache_size'),
                 p.getParam('input_width'),
-                p.name + '_dramReductionEnabled',
+                dramReductionEnabled,
                 p.getParam('num_controllers')))
-
       f.write('\n}')
 
   def runBuilds(self):
