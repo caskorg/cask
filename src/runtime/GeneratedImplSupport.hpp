@@ -49,16 +49,13 @@ namespace cask {
         const char* routing) {}
 
     class GeneratedSpmvImplementation {
-
       //[> type of function pointers for Spmv_run/dramWrite/dramRead function <]
       using SpmvFunctionT = decltype(spmvRunMock);
       using SpmvDramWriteFunctionT = decltype(spmvWriteMock);
       using SpmvDramReadFunctionT = decltype(spmvReadMock);
 
-      protected:
-      const int id, max_rows, num_pipes, cache_size, input_width, dram_reduction_enabled, num_controllers;
-
       public:
+      const int id, max_rows, num_pipes, cache_size, input_width, dram_reduction_enabled, num_controllers;
       std::function<SpmvFunctionT> Spmv;
       std::function<SpmvDramWriteFunctionT> write;
       std::function<SpmvDramReadFunctionT> read;
@@ -86,30 +83,17 @@ namespace cask {
         num_controllers(_num_controllers)
       {}
 
-      int maxRows() {
-        return max_rows;
-      }
-
-      int numPipes() {
-        return num_pipes;
-      }
-
-      int cacheSize() {
-        return cache_size;
-      }
-
-      int numControllers() {
-        return num_controllers;
-      }
-
-      int inputWidth() {
-        return input_width;
-      }
-
-      bool getDramReductionEnabled() {
-        return dram_reduction_enabled == 1;
+      bool operator==(const GeneratedSpmvImplementation& other) const {
+        return
+          max_rows == other.max_rows &&
+          num_pipes == other.num_pipes &&
+          cache_size == other.cache_size &&
+          input_width == other.input_width &&
+          dram_reduction_enabled == other.dram_reduction_enabled &&
+          num_controllers == other.num_controllers;
       }
     };
+
 
     // provide interface for SpmvImplementation loader
     class SpmvImplementationLoader {
@@ -126,8 +110,7 @@ namespace cask {
       GeneratedSpmvImplementation* architectureWithParams(int maxRows) {
         GeneratedSpmvImplementation* bestArch = nullptr;
         for (const auto& a : this->impls) {
-          if (a->maxRows() >= maxRows &&
-              (!bestArch || a->maxRows() < bestArch->maxRows())) {
+          if (a->max_rows >= maxRows && (!bestArch || a->max_rows < bestArch->max_rows)) {
             bestArch = a;
           }
         }

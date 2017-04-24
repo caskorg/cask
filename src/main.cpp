@@ -2,6 +2,7 @@
 #include <boost/filesystem.hpp>
 #include <boost/program_options.hpp>
 #include <boost/property_tree/json_parser.hpp>
+#include <Model.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <iostream>
 #include <string>
@@ -16,29 +17,33 @@ cask::dse::DseParameters loadParams(const boost::filesystem::path& parf) {
   pt::ptree tree;
   pt::read_json(parf.string(), tree);
   cask::dse::DseParameters dsep;
-  dsep.numPipesRange =
-    cask::utils::Range{
-      tree.get<int>("dse_params.num_pipes.start"),
-      tree.get<int>("dse_params.num_pipes.stop"),
-      tree.get<int>("dse_params.num_pipes.step"),
+  dsep.numPipes =
+    cask::utils::Parameter<int>{
+        "numPipes",
+        tree.get<int>("dse_params.num_pipes.start"),
+        tree.get<int>("dse_params.num_pipes.stop"),
+        tree.get<int>("dse_params.num_pipes.step"),
     };
-  dsep.cacheSizeRange =
-    cask::utils::Range {
-      tree.get<int>("dse_params.cache_size.start"),
-      tree.get<int>("dse_params.cache_size.stop"),
-      tree.get<int>("dse_params.cache_size.step"),
+  dsep.cacheSize =
+    cask::utils::Parameter<int> {
+        "cacheSize",
+        tree.get<int>("dse_params.cache_size.start"),
+        tree.get<int>("dse_params.cache_size.stop"),
+        tree.get<int>("dse_params.cache_size.step"),
     };
-  dsep.inputWidthRange =
-    cask::utils::Range {
-      tree.get<int>("dse_params.input_width.start"),
-      tree.get<int>("dse_params.input_width.stop"),
-      tree.get<int>("dse_params.input_width.step"),
+  dsep.inputWidth =
+    cask::utils::Parameter<int> {
+        "inputWidth",
+        tree.get<int>("dse_params.input_width.start"),
+        tree.get<int>("dse_params.input_width.stop"),
+        tree.get<int>("dse_params.input_width.step"),
     };
-  dsep.numControllersRange =
-    cask::utils::Range {
-      tree.get<int>("dse_params.num_controllers.start"),
-      tree.get<int>("dse_params.num_controllers.stop"),
-      tree.get<int>("dse_params.num_controllers.step"),
+  dsep.numControllers =
+    cask::utils::Parameter<int> {
+        "numControllers",
+        tree.get<int>("dse_params.num_controllers.start"),
+        tree.get<int>("dse_params.num_controllers.stop"),
+        tree.get<int>("dse_params.num_controllers.step"),
     };
   return dsep;
 }
@@ -51,6 +56,26 @@ cask::dse::Benchmark loadBenchmark(const boost::filesystem::path& p) {
     benchmark.add_matrix_path(it->path().string());
   }
   return benchmark;
+}
+
+boost::property_tree::ptree write_est_impl_params(const cask::model::HardwareModel& params) {
+  boost::property_tree::ptree tree;
+  tree.put("memory_bandwidth", params.memoryBandwidth);
+  tree.put("BRAMs", params.ru.brams);
+  tree.put("LUTs", params.ru.luts);
+  tree.put("FFs", params.ru.ffs);
+  tree.put("DSPs", params.ru.dsps);
+  return tree;
+}
+
+boost::property_tree::ptree write_params(const cask::runtime::GeneratedSpmvImplementation& impl) {
+  boost::property_tree::ptree tree;
+  tree.put("num_pipes", impl.num_pipes);
+  tree.put("cache_size", impl.cache_size);
+  tree.put("input_width", impl.input_width);
+  tree.put("max_rows", impl.max_rows);
+  tree.put("num_controllers", impl.num_controllers);
+  return tree;
 }
 
 void write_dse_results(
@@ -73,8 +98,8 @@ void write_dse_results(
     archJson.put("estimated_gflops", arch->getEstimatedGFlops());
     archJson.put("estimated_clock_cycles", arch->getEstimatedClockCycles());
 
-    archJson.add_child("architecture_params", arch->write_params());
-    archJson.add_child("estimated_impl_params", arch->write_est_impl_params(deviceModel));
+    archJson.add_child("architecture_params", write_params(arch->impl));
+    archJson.add_child("estimated_impl_params", write_est_impl_params(arch->getEstimatedHardwareModel(deviceModel)));
 
     pt::ptree matrices;
     for (int i = 0; i < dseResult.matrices.size(); i++) {
@@ -134,13 +159,20 @@ int main(int argc, char** argv) {
     return 0;
   }
 
-  // validate command line args
   namespace bfs = boost::filesystem;
   bfs::path dirp{benchPath};
-  if (!bfs::is_directory(dirp)) {
-    std::cout << "Error: '" << benchPath << "' not a directory" << std::endl;
+
+  // --- setup benchmark
+  cask::dse::Benchmark benchmark;
+  if (bfs::is_directory(dirp)) {
+    benchmark = loadBenchmark(dirp);
+  } else if (bfs::is_regular_file(dirp)) {
+    benchmark.add_matrix_path(dirp.string());
+  } else {
+    std::cout << "Error: '" << benchPath << "' not a directory or valid file" << std::endl;
     return 1;
   }
+  std::cout << benchmark << std::endl;
 
   bfs::path parf{dseparams};
   if (!bfs::is_regular_file(parf)) {
@@ -148,13 +180,13 @@ int main(int argc, char** argv) {
     return 1;
   }
 
+  // -- setup parameters
   cask::dse::DseParameters params = loadParams(parf);
   params.gflopsOnly = true;
   std::cout << params << std::endl;
-  cask::dse::Benchmark benchmark = loadBenchmark(dirp);
-  std::cout << benchmark << std::endl;
   cask::dse::SparkDse dseTool;
 
+  // -- setup device model
   auto start = std::chrono::high_resolution_clock::now();
   cask::model::Max4Model deviceModel;
   std::cout << "Device Model " << deviceModel << std::endl;

@@ -45,18 +45,18 @@ namespace cask {
     class DseParameters {
       public:
         bool gflopsOnly;
-        cask::utils::Range numPipesRange{1, 4, 1};
-        cask::utils::Range inputWidthRange{1, 3, 1};
-        cask::utils::Range cacheSizeRange{1024, 2048, 1024};
-        cask::utils::Range numControllersRange{1, 6, 1};
+        cask::utils::Parameter<> numPipes{"numPipes", 1, 4, 1};
+        cask::utils::Parameter<> inputWidth{"inputWidth", 1, 3, 1};
+        cask::utils::Parameter<> cacheSize{"cacheSize", 1024, 2048, 1024};
+        cask::utils::Parameter<> numControllers{"numControllers", 1, 6, 1};
     };
 
     inline std::ostream& operator<<(std::ostream& s, DseParameters& d) {
       s << "DseParams(" << std::endl;
-      s << "  numPipes   = " << d.numPipesRange << std::endl;
-      s << "  inputWidth = " << d.inputWidthRange << std::endl;
-      s << "  cacheSize  = " << d.cacheSizeRange << std::endl;
-      s << "  numControllers  = " << d.numControllersRange << std::endl;
+      s << "  numPipes   = " << d.numPipes << std::endl;
+      s << "  inputWidth = " << d.inputWidth << std::endl;
+      s << "  cacheSize  = " << d.cacheSize << std::endl;
+      s << "  numControllers  = " << d.numControllers << std::endl;
       s << ")" << std::endl;
       return s;
     }

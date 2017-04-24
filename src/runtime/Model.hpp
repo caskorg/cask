@@ -50,21 +50,20 @@ namespace cask {
         }
     };
 
-    // models the implementation parameters which are constrained (e.g. by
-    // physical properties, such as lut usage, or by the compiler, such as the
-    // number of streams)
-    class ImplementationParameters {
+    // models parameters that are associated with the hardware design such as frequency,
+    // memory bandwdith, maximum number of streams etc.
+    class HardwareModel {
       public:
 
-        LogicResourceUsage ru;
+      LogicResourceUsage ru;
+      double memoryBandwidth;
 
         //  params belows not being used currently
-        double memoryBandwidth; // <-- would be nice to have this
         //int streams;
         //int clockFrequency;
         //int memoryClockFrequency;
 
-        ImplementationParameters(const LogicResourceUsage& _ru, double _memoryBandwidth) : ru(_ru), memoryBandwidth(_memoryBandwidth) {}
+        HardwareModel(const LogicResourceUsage& _ru, double _memoryBandwidth) : ru(_ru), memoryBandwidth(_memoryBandwidth) {}
 
         std::string to_string() {
           std::stringstream s;
@@ -72,7 +71,7 @@ namespace cask {
           return s.str();
         }
 
-        bool operator<(const ImplementationParameters& other) const {
+        bool operator<(const HardwareModel& other) const {
           return
             ru < other.ru &&
             memoryBandwidth < other.memoryBandwidth;
@@ -87,7 +86,7 @@ namespace cask {
       public:
         virtual int entriesPerBram(int bitwidth) const = 0;
         virtual std::string getId() const = 0;
-        virtual ImplementationParameters maxParams() const = 0;
+        virtual cask::model::HardwareModel maxParams() const = 0;
     };
 
     /** Abstract representation of a Max4 board */
@@ -104,8 +103,8 @@ namespace cask {
         std::string getId() const override {
           return "Max4";
         }
-        ImplementationParameters maxParams() const override {
-          return ImplementationParameters{LogicResourceUsage{524800, 1049600, 2567, 1963}, 65};
+        cask::model::HardwareModel maxParams() const override {
+          return HardwareModel{LogicResourceUsage{524800, 1049600, 2567, 1963}, 65};
         }
     };
 
@@ -133,8 +132,8 @@ namespace cask {
         std::string getId() const override {
           return "Max3";
         }
-        ImplementationParameters maxParams() const override {
-          return ImplementationParameters{LogicResourceUsage{297600, 297600, 1064, 2016}, 39};
+        cask::model::HardwareModel maxParams() const override {
+          return HardwareModel{LogicResourceUsage{297600, 297600, 1064, 2016}, 39};
         }
 
        // NOTE obsolete resource usage numbers for the basic SpMV architecture, tread carefully!
@@ -151,7 +150,7 @@ namespace cask {
        //  LogicResourceUsage memory{24000, 32000, 0, 0};
        //  LogicResourceUsage designUsage = (spmvPerPipe + memoryPerPipe) * numPipes + memory;
        //  double memoryBandwidth =(double)inputWidth * numPipes * getFrequency() * 12.0 / 1E9;
-       //  ImplementationParameters ip{designUsage, memoryBandwidth};
+       //  HardwareModel ip{designUsage, memoryBandwidth};
     };
 
 

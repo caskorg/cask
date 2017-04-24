@@ -2,6 +2,7 @@
 #include "Dse.hpp"
 #include <unordered_map>
 #include "Converters.hpp"
+#include <Utils.hpp>
 
 using namespace cask::spmv;
 using namespace cask::utils;
@@ -20,7 +21,7 @@ better(
   bool a1Better =
     a1->getEstimatedGFlops() > a2->getEstimatedGFlops() ||
     (a1->getEstimatedGFlops() == a2->getEstimatedGFlops() &&
-     a1->getImplementationParameters(deviceModel).ru < a2->getImplementationParameters(deviceModel).ru);
+     a1->getEstimatedHardwareModel(deviceModel).ru < a2->getEstimatedHardwareModel(deviceModel).ru);
 
   if (a1Better)
     return a1;
@@ -29,24 +30,27 @@ better(
 
 std::shared_ptr<Spmv> dse_run(
     std::string basename,
-    SpmvArchitectureSpace* af,
+    ChainedParameterRange<int>& af,
     const cask::CsrMatrix& mat,
     const DseParameters& params,
     const cask::model::DeviceModel& deviceModel)
 {
-  int it = 0;
-
   std::shared_ptr<Spmv> bestArchitecture, a;
+  while (af.hasNext()) {
+    a = std::make_shared<cask::spmv::Spmv>(af.getParam("cacheSize").value,
+                                           af.getParam("inputWidth").value,
+                                           af.getParam("numPipes").value,
+                                           af.getParam("maxRows").value,
+                                           af.getParam("numControllers").value);
 
-  while (a = af->next()) {
+    af.next();
     auto start = std::chrono::high_resolution_clock::now();
     a->preprocess(mat); // do spmv?
     //dfesnippets::timing::print_clock_diff("Took: ", start);
-    if (!(a->getImplementationParameters(deviceModel) < deviceModel.maxParams())) {
+    if (!(a->getEstimatedHardwareModel(deviceModel) < deviceModel.maxParams()))
       continue;
-    }
 
-    std::cout << basename << " " << a->to_string() << " " << a->getImplementationParameters(deviceModel).to_string() << std::endl;
+    std::cout << basename << " " << a->to_string() << " " << a->getEstimatedHardwareModel(deviceModel).to_string() << std::endl;
     bestArchitecture = better(bestArchitecture, a, deviceModel);
   }
 
@@ -59,26 +63,11 @@ std::shared_ptr<Spmv> dse_run(
     std::cout << bestArchitecture->getEstimatedClockCycles();
   } else {
     std::cout << bestArchitecture->to_string();
-    std::cout << " " << bestArchitecture->getImplementationParameters(deviceModel).to_string();
+    std::cout << " " << bestArchitecture->getEstimatedHardwareModel(deviceModel).to_string();
   }
   std::cout << " Best " << std::endl;
   return bestArchitecture;
 }
-
-struct SpmvHash {
-  std::size_t operator()(const std::shared_ptr<Spmv>& a) const {
-    return 1;
-  }
-};
-
-struct SpmvEqual {
-  bool operator()(
-      const std::shared_ptr<Spmv>& a,
-      const std::shared_ptr<Spmv>& b) const
-  {
-    return *a == *b;
-  }
-};
 
 std::vector<DseResult> cask::dse::SparkDse::run (
     const Benchmark& benchmark,
@@ -87,13 +76,6 @@ std::vector<DseResult> cask::dse::SparkDse::run (
 {
 
   std::vector<DseResult> bestArchitectures;
-
-  std::unordered_map<
-    std::shared_ptr<Spmv>,
-    std::vector<std::string>,
-    SpmvHash,
-    SpmvEqual
-    > all_architectures;
 
   for (int i = 0; i < benchmark.get_benchmark_size(); i++) {
 
@@ -106,39 +88,27 @@ std::vector<DseResult> cask::dse::SparkDse::run (
     cask::io::MmReader<double> m(path);
     auto start = std::chrono::high_resolution_clock::now();
     // auto eigenMatrix = cask::converters::tripletToEigen(m.mmreadMatrix(path));
-    CsrMatrix eigenMatrix = cask::io::readMatrix(path);
+    CsrMatrix matrix = cask::io::readMatrix(path);
     dfesnippets::timing::print_clock_diff("Reading took: ", start);
 
     // XXX this assumes a virtex device with 512 entries per BRAM
-    int maxRows = eigenMatrix.n;
+    int maxRows = matrix.n;
     if (maxRows % 512 != 0)
       maxRows = (maxRows / 512 + 1) * 512;
 
-    std::vector<SpmvArchitectureSpace*> factories{
-      new SimpleSpmvArchitectureSpace<BasicSpmv>(
-          params.numPipesRange, params.inputWidthRange,
-          params.cacheSizeRange, params.numControllersRange, maxRows),
-          //new SimpleSpmvArchitectureSpace<FstSpmv>(
-              //params.numPipesRange, params.inputWidthRange, params.cacheSizeRange),
-          //new SimpleSpmvArchitectureSpace<SkipEmptyRowsSpmv>(
-              //params.numPipesRange, params.inputWidthRange, params.cacheSizeRange),
-          //new SimpleSpmvArchitectureSpace<PrefetchingArchitecture>(numPipesRange, inputWidthRange, cacheSizeRange)
+    ChainedParameterRange<int> cpr{
+        params.numPipes,
+        params.inputWidth,
+        params.cacheSize,
+        params.numControllers,
+        Parameter<int>{"maxRows", maxRows, maxRows, 1}
     };
 
     std::cout << "File Architecture CacheSize InputWidth NumPipes EstClockCycles EstGflops LUTS FFs DSPs BRAMs MemBandwidth Observation" << std::endl;
-    std::shared_ptr<Spmv> bestOverall;
-    for (auto sas : factories) {
-      bestOverall = better(
-          bestOverall,
-          dse_run(basename, sas, eigenMatrix, params, deviceModel),
-          deviceModel);
-    }
+    std::shared_ptr<Spmv> bestOverall = dse_run(basename, cpr, matrix, params, deviceModel);
 
     if (!bestOverall)
       continue;
-
-    for (int i = 0; i < factories.size(); i++)
-      delete(factories[i]);
 
     std::cout  << basename << " ";
     if (params.gflopsOnly) {
@@ -146,27 +116,17 @@ std::vector<DseResult> cask::dse::SparkDse::run (
       std::cout << bestOverall->getEstimatedClockCycles();
     } else {
       std::cout << bestOverall->to_string();
-      std::cout << " "  << bestOverall->getImplementationParameters(deviceModel).to_string();
+      std::cout << " "  << bestOverall->getEstimatedHardwareModel(deviceModel).to_string();
     }
     std::cout << " BestOverall " << std::endl;
+    std::cout << bestOverall->to_string() << " "  << bestOverall->getEstimatedHardwareModel(deviceModel).to_string() << std::endl;
 
-
-    //auto a = all_architectures.find(bestOverall);
-    //if ( a != all_architectures.end()) {
-      //a->second.push_back(path);
-    //} else {
-      //all_architectures.insert(
-          //std::make_pair(bestOverall, std::vector<std::string>{path}));
-    //}
-
+    // do SpmvFor this architecture, to check the results for profiling
+    cask::Vector lhs(matrix.n);
+    bestOverall->preprocess(matrix);
+    auto result = bestOverall->spmv(lhs);
     bestArchitectures.push_back(DseResult{path, bestOverall});
   }
-
-  //for (const auto& a : all_architectures) {
-    //DseResult result{a.first};
-    //result.matrices = a.second;
-    //bestArchitectures.push_back(result);
-  //}
 
   return bestArchitectures;
 }

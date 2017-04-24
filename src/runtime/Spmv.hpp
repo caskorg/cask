@@ -5,50 +5,178 @@
 #include "Model.hpp"
 #include "GeneratedImplSupport.hpp"
 #include "Utils.hpp"
-#include <boost/property_tree/ptree.hpp>
-#include <Eigen/Sparse>
 
 namespace cask {
   namespace spmv {
 
-  /**
-   * Interface for all SpMV implementations. Provides both runtime and design time functions.
-   */
+  // pack values and colptr to reduce number of streams
+#pragma pack(1)
+struct indptr_value {
+  double value;
+  int indptr;
+  indptr_value(double _value, int _indptr) : value(_value), indptr(_indptr) {}
+  indptr_value() : value(0), indptr(0) {}
+} __attribute__((packed));
+#pragma pack()
+
+/* A partition is a horizontal stripe of an input matrix. Each
+ partition can be further divided into vertical stripes, which
+ we call blocks. */
+struct Partition {
+  int nBlocks, n, paddingCycles, totalCycles, vector_load_cycles, outSize;
+  int reductionCycles, emptyCycles;
+  int m_colptr_unpaddedLength;
+  int m_indptr_values_unpaddedLength;
+  std::vector<int> m_colptr;
+  std::vector<indptr_value> m_indptr_values;
+
+  std::string to_string() {
+    std::stringstream s;
+    s << "Vector load cycles " << vector_load_cycles << std::endl;
+    s << "Padding cycles = " << paddingCycles << std::endl;
+    s << "Total cycles = " << totalCycles << std::endl;
+    s << "Nrows = " << n << std::endl;
+    s << "Partitions = " << nBlocks << std::endl;
+    s << "Reduction cycles = " << reductionCycles << std::endl;
+    std::cout << "Empty cycles = " << emptyCycles << std::endl;
+    return s.str();
+  }
+};
+
+    /**
+     * Interface for all SpMV implementations. Provides both runtime and design time functions.
+     */
     class Spmv {
+      CsrMatrix mat;
+      std::vector<Partition> partitions;
 
-      public:
-        double getEstimatedGFlops() {
-          return  getGFlopsCount() * getFrequency() / getEstimatedClockCycles();
+     public:
+      runtime::GeneratedSpmvImplementation impl;
+      /** Constructor interface for mock Spmv Implementation to be used during design space exploration */
+      Spmv(int _cacheSize, int  _inputWidth, int _numPipes, int _maxRows, int _numControllers)
+          : impl(-1,
+              cask::runtime::spmvRunMock,
+              cask::runtime::spmvWriteMock,
+              cask::runtime::spmvReadMock,
+              _maxRows,
+              _numPipes,
+              _cacheSize,
+              _inputWidth,
+              false, // dram_reduction_enabled
+              _numControllers) {}
+      /**
+       * For execution we build the architecture and give it a pointer to the
+       * device implementation.
+       */
+      Spmv(runtime::GeneratedSpmvImplementation _impl): impl(_impl) { }
+
+     public:
+
+      Partition do_blocking(
+          const CsrMatrix& mat,
+          int blockSize,
+          int inputWidth);
+
+      double getEstimatedGFlops() {
+        return  getGFlopsCount() * getFrequency() / getEstimatedClockCycles();
+      }
+
+      double getFrequency() {
+        return 100 * 1E6;
+      }
+
+      virtual std::string get_name() {
+        return std::string("Simple");
+      }
+
+      bool operator==(const Spmv& other) const {
+        return impl == other.impl;
+      }
+
+      virtual double getEstimatedClockCycles() {
+        auto res = max_element(partitions.begin(), partitions.end(),
+            [](const Partition& a, const Partition& b) {
+              return a.totalCycles < b.totalCycles;
+            });
+        return res->totalCycles;
+      }
+
+      virtual double getGFlopsCount() {
+        return 2 * this->mat.nnzs / 1E9;
+      }
+
+      /* Returns the expected values for implementing this design on the given deviceModel. */
+      model::HardwareModel getEstimatedHardwareModel(const model::DeviceModel& deviceModel) {
+        // XXX bram usage for altera in double precision only (512 deep, 40 bits wide, so need 2 BRAMs)
+        //int brams = (double)cacheSize * (double)inputWidth / 512.0 * 2.0;
+        using namespace model;
+
+        // It's hard to do this polymorphically; this hack should be fine for
+        // small device numbers
+        if (deviceModel.getId() != "Max4") {
+          throw std::invalid_argument("Unsupported device model " + deviceModel.getId());
         }
 
-        double getFrequency() {
-          return 100 * 1E6;
-        }
+        // TODO this should be architecture parameter
+        const int vectorDataWidthInBits = 64;
+        const int entriesPerBram = deviceModel.entriesPerBram(vectorDataWidthInBits);
+        const int maxRows = utils::ceilDivide(this->mat.n, impl.num_pipes);
 
-        virtual double getEstimatedClockCycles() = 0;
-        virtual double getGFlopsCount() = 0;
-        virtual std::string to_string() = 0;
-        virtual cask::model::ImplementationParameters getImplementationParameters(const cask::model::DeviceModel&) = 0;
-        virtual void preprocess(const cask::CsrMatrix& mat) = 0;
-        virtual cask::Vector spmv(const cask::Vector& x) = 0;
-        virtual std::string get_name() = 0;
-        virtual boost::property_tree::ptree write_params() = 0;
-        virtual boost::property_tree::ptree write_est_impl_params(const cask::model::DeviceModel&) = 0;
-        virtual std::string getLibraryName() = 0;
-        bool operator==(const Spmv& other) {
-          return equals(other);
-        }
+        LogicResourceUsage bramReductionKernel{10069, 12965, utils::ceilDivide(maxRows, entriesPerBram), 0};
+        LogicResourceUsage paddingKernel{363, 543, 0, 0};
+        LogicResourceUsage unpaddingKernel{364, 474, 0, 0};
+        LogicResourceUsage spmvKernelPerInput{1458, 2031, impl.cache_size / entriesPerBram + 14, 4};
+        LogicResourceUsage sm{1235, 643, 0, 0};
 
-        virtual ~Spmv() {}
+        LogicResourceUsage spmvPerPipe =
+            bramReductionKernel +
+                paddingKernel +
+                unpaddingKernel * 3 +
+                spmvKernelPerInput * impl.input_width +
+                sm;
 
-      protected:
-        virtual cask::CsrMatrix preprocessBlock(
-            const cask::CsrMatrix& in,
-            int blockNumber,
-            int nBlocks) {
-          return in;
-        }
-        virtual bool equals(const Spmv& a) const = 0;
+        // NB these assume an 800Mhz memory bandwidth build
+        LogicResourceUsage memoryPerPipe{5325, 12184, 108, 0};
+        LogicResourceUsage memory{15330, 17606, 56, 0};
+
+        // There are also a number of FIFOs per pipe, their depth and
+        // number is generally independent from design parameters
+        LogicResourceUsage fifosPerPipe{500, 800, 81, 0};
+
+        LogicResourceUsage designUsage = (spmvPerPipe + memoryPerPipe + fifosPerPipe) * impl.num_pipes + memory;
+
+        double memoryBandwidth =(double)impl.input_width * impl.num_pipes * getFrequency() * 12.0 / 1E9;
+        HardwareModel ip{designUsage, memoryBandwidth};
+        //ip.clockFrequency = getFrequency() / 1E6; // MHz
+        return ip;
+      }
+
+      std::string to_string() {
+        std::stringstream s;
+        s << get_name();
+        s << " " << impl.cache_size;
+        s << " " << impl.input_width;
+        s << " " << impl.num_pipes;
+        s << " " << impl.num_controllers;
+        s << " " << getEstimatedClockCycles();
+        s << " " << getEstimatedGFlops();
+        return s.str();
+      }
+
+      Vector spmv(const Vector& v);
+
+      void preprocess(const CsrMatrix& mat);
+
+     protected:
+      virtual int countComputeCycles(int32_t* v, int size, int inputWidth);
+
+      virtual CsrMatrix preprocessBlock(
+          const CsrMatrix& in,
+          int blockNumber,
+          int nBlocks) {
+        return in;
+      }
+
     };
 
     inline std::ostream& operator<<(std::ostream& s, Spmv& a) {
@@ -56,331 +184,10 @@ namespace cask {
       return s;
     }
 
-    // An ArchitectureSpace provides a simple way to iterate over the design space
-    // of an architecture, abstracting the details of the architecture's parameters
-    // XXX actually implemnt the STL iterator (if it makes sense?)
-    class SpmvArchitectureSpace {
-      public:
-        std::shared_ptr<Spmv> next() {
-          return std::shared_ptr<Spmv>(doNext());
-        }
-
-        // restart the exploration process
-        virtual void restart() = 0;
-
-      protected:
-        // returns nullptr if at end
-        virtual Spmv* doNext() = 0;
-    };
-
-    // pack values and colptr to reduce number of streams
-#pragma pack(1)
-    struct indptr_value {
-      double value;
-      int indptr;
-      indptr_value(double _value, int _indptr) : value(_value), indptr(_indptr) {}
-      indptr_value() : value(0), indptr(0) {}
-    } __attribute__((packed));
-#pragma pack()
-
-    /* A partition is a horizontal stripe of an input matrix. Each
-     partition can be further divided into vertical stripes, which
-     we call blocks. */
-    struct Partition {
-      int nBlocks, n, paddingCycles, totalCycles, vector_load_cycles, outSize;
-      int reductionCycles, emptyCycles;
-      int m_colptr_unpaddedLength;
-      int m_indptr_values_unpaddedLength;
-      std::vector<int> m_colptr;
-      std::vector<indptr_value> m_indptr_values;
-
-      std::string to_string() {
-        std::stringstream s;
-        s << "Vector load cycles " << vector_load_cycles << std::endl;
-        s << "Padding cycles = " << paddingCycles << std::endl;
-        s << "Total cycles = " << totalCycles << std::endl;
-        s << "Nrows = " << n << std::endl;
-        s << "Partitions = " << nBlocks << std::endl;
-        s << "Reduction cycles = " << reductionCycles << std::endl;
-        std::cout << "Empty cycles = " << emptyCycles << std::endl;
-        return s.str();
-      }
-    };
-
-    // A parameterised, generic architecture for SpMV. Supported parameters are:
-    // - input width
-    // - number of pipes
-    // - cache size per pipe
-    // - TODO data type
-    class BasicSpmv : public Spmv {
-      // architecture specific properties
-      protected:
-
-      // design parameters
-      const int cacheSize, inputWidth, numPipes, maxRows, numControllers;
-
-      cask::CsrMatrix mat;
-      std::vector<Partition> partitions;
-      cask::runtime::GeneratedSpmvImplementation* impl;
-
-      virtual int countComputeCycles(int32_t* v, int size, int inputWidth);
-
-      virtual bool equals(const Spmv& a) const override {
-        const BasicSpmv* other = dynamic_cast<const BasicSpmv*>(&a);
-        return other != nullptr && *other == *this;
-      }
-
-      public:
-
-        bool operator==(const BasicSpmv& other) const {
-          return
-            cacheSize == other.cacheSize &&
-            inputWidth == other.inputWidth &&
-            numPipes == other.numPipes &&
-            numControllers == other.numControllers &&
-            maxRows == other.maxRows;
-        }
-
-        virtual boost::property_tree::ptree write_est_impl_params(const cask::model::DeviceModel &dm) override {
-          auto params = getImplementationParameters(dm);
-          boost::property_tree::ptree tree;
-          tree.put("memory_bandwidth", params.memoryBandwidth);
-          tree.put("BRAMs", params.ru.brams);
-          tree.put("LUTs", params.ru.luts);
-          tree.put("FFs", params.ru.ffs);
-          tree.put("DSPs", params.ru.dsps);
-          return tree;
-        }
-
-        virtual boost::property_tree::ptree write_params() override {
-          boost::property_tree::ptree tree;
-          tree.put("num_pipes", numPipes);
-          tree.put("cache_size", cacheSize);
-          tree.put("input_width", inputWidth);
-          tree.put("max_rows", maxRows);
-          tree.put("num_controllers", numControllers);
-          return tree;
-        }
-
-        BasicSpmv(int _cacheSize, int  _inputWidth, int _numPipes, int _maxRows, int _numControllers) :
-          cacheSize(_cacheSize),
-          inputWidth(_inputWidth),
-          numPipes(_numPipes),
-          maxRows(_maxRows),
-          numControllers(_numControllers) {}
-
-        /**
-         * For execution we build the architecture and give it a pointer to the
-         * device implementation.
-         */
-        BasicSpmv(cask::runtime::GeneratedSpmvImplementation* _impl):
-          cacheSize(_impl->cacheSize()),
-          inputWidth(_impl->inputWidth()),
-          numPipes(_impl->numPipes()),
-          maxRows(_impl->maxRows()),
-          numControllers(_impl->numControllers()),
-          impl(_impl) { }
-
-        virtual std::string getLibraryName() {
-          std::stringstream ss;
-          ss << "libSpmv_";
-          // XXX detect target from environment configuration?
-          const std::string target = "sim";
-          ss << target << "_";
-          ss << "cachesize" << cacheSize << "_";
-          ss << "inputwidth" << inputWidth << "_";
-          ss << "numpipes" << numPipes << "_";
-          ss << "maxrows" << maxRows;
-          ss << "numControllers" << numControllers << "_";
-          ss << ".so";
-          return ss.str();
-        }
-
-        virtual double getEstimatedClockCycles() {
-          auto res = std::max_element(partitions.begin(), partitions.end(),
-              [](const Partition& a, const Partition& b) {
-                return a.totalCycles < b.totalCycles;
-              });
-          return res->totalCycles;
-        }
-
-        virtual double getGFlopsCount() {
-          return 2 * this->mat.nnzs / 1E9;
-        }
-
-        // NOTE: only call this after a call to preprocessMatrix
-        // XXX this should be renamed to estimated
-        // XXX This can't really be done at compile time
-        /* Returns the expected values for implementing this design on the given deviceModel. */
-        virtual cask::model::ImplementationParameters getImplementationParameters(const cask::model::DeviceModel& deviceModel) override {
-          // XXX bram usage for altera in double precision only (512 deep, 40 bits wide, so need 2 BRAMs)
-          //int brams = (double)cacheSize * (double)inputWidth / 512.0 * 2.0;
-          using namespace cask::model;
-
-          // It's hard to do this polymorphically; this hack should be fine for
-          // small device numbers
-          if (deviceModel.getId() == "Max4") {
-            // TODO this should be architecture parameter
-            const int vectorDataWidthInBits = 64;
-            const int entriesPerBram = deviceModel.entriesPerBram(vectorDataWidthInBits);
-            const int maxRows = cask::utils::ceilDivide(this->mat.n, numPipes);
-
-            LogicResourceUsage bramReductionKernel{10069, 12965,  cask::utils::ceilDivide(maxRows, entriesPerBram), 0};
-            LogicResourceUsage paddingKernel{363, 543, 0, 0};
-            LogicResourceUsage unpaddingKernel{364, 474, 0, 0};
-            LogicResourceUsage spmvKernelPerInput{1458, 2031, cacheSize / entriesPerBram + 14, 4};
-            LogicResourceUsage sm{1235, 643, 0, 0};
-
-            LogicResourceUsage spmvPerPipe =
-              bramReductionKernel +
-              paddingKernel +
-              unpaddingKernel * 3 +
-              spmvKernelPerInput * inputWidth +
-              sm;
-
-            std::cout << "Spmv Per pipe usage " << spmvPerPipe.to_string() << std::endl;
-            std::cout << "Spmv per kernel usage " << spmvKernelPerInput.to_string() << std::endl;
-            std::cout << "Spmv reduction per pipe" << bramReductionKernel.to_string() << std::endl;
-
-
-            // NB these assume an 800Mhz memory bandwidth build
-            LogicResourceUsage memoryPerPipe{5325, 12184, 108, 0};
-            LogicResourceUsage memory{15330, 17606, 56, 0};
-
-            LogicResourceUsage designUsage = (spmvPerPipe + memoryPerPipe) * numPipes + memory;
-
-            double memoryBandwidth =(double)inputWidth * numPipes * getFrequency() * 12.0 / 1E9;
-            ImplementationParameters ip{designUsage, memoryBandwidth};
-            //ip.clockFrequency = getFrequency() / 1E6; // MHz
-            return ip;
-
-          }
-
-          throw std::invalid_argument("Unsupported device model " + deviceModel.getId());
-        }
-
-        virtual std::string to_string() {
-          std::stringstream s;
-          s << get_name();
-          s << " " << cacheSize;
-          s << " " << inputWidth;
-          s << " " << numPipes;
-          s << " " << numControllers;
-          s << " " << getEstimatedClockCycles();
-          s << " " << getEstimatedGFlops();
-          return s.str();
-        }
-
-        virtual void preprocess(const cask::CsrMatrix& mat) override;
-
-        virtual cask::Vector spmv(const cask::Vector& v) override;
-
-        virtual std::string get_name() override {
-          return std::string("Simple");
-        }
-
-      private:
-        Partition do_blocking(
-            const cask::CsrMatrix& mat,
-            int blockSize,
-            int inputWidth);
-
-        template<typename U>
-        void logResult(std::string s, std::vector<U> vals) {
-          logResultR(s);
-          for (const auto& v : vals)
-            std::cout << v << ",";
-          std::cout << std::endl;
-        }
-
-        template<typename Arg, typename... Args>
-        void logResult(std::string s, Arg a, Args... as) {
-          logResultR(s, as...);
-          std::cout << a << ",";
-          std::cout << std::endl;
-        }
-
-        template<typename Arg, typename... Args>
-        void logResultR(std::string s, Arg a, Args... as) {
-          logResultR(s, as...);
-          std::cout << a << ",";
-        }
-
-        void logResultR(std::string s) {
-          std::cout << "Result " << get_name() << " ";
-          std::cout << s << "=";
-        }
-
-
-    };
-
-    template<typename T>
-    class SimpleSpmvArchitectureSpace : public SpmvArchitectureSpace {
-      // NOTE any raw pointers returned through the API of this class
-      // are assumed to be wrapped in smart pointers by the base class
-      cask::utils::Range cacheSizeR{1024, 4096, 512};
-      cask::utils::Range inputWidthR{8, 100, 8};
-      cask::utils::Range numPipesR{1, 6, 1};
-      cask::utils::Range numControllersR{1, 6, 1};
-      int maxRows;
-
-      bool last = false;
-
-      public:
-
-      SimpleSpmvArchitectureSpace(
-          cask::utils::Range numPipesRange,
-          cask::utils::Range inputWidthRange,
-          cask::utils::Range cacheSizeRange,
-          cask::utils::Range numControllersRange,
-          int _maxRows) {
-        cacheSizeR = cacheSizeRange;
-        inputWidthR = inputWidthRange;
-        numPipesR = numPipesRange;
-        maxRows = _maxRows;
-        numControllersR = numControllersRange;
-      }
-
-      SimpleSpmvArchitectureSpace() {
-      }
-
-      protected:
-      void restart() override {
-        cacheSizeR.restart();
-        inputWidthR.restart();
-        numPipesR.restart();
-        numControllersR.restart();
-        last = false;
-      }
-
-      T* doNext(){
-        if (last)
-          return nullptr;
-
-        T* result = new T(cacheSizeR.crt, inputWidthR.crt, numPipesR.crt, maxRows, numControllersR.crt);
-
-        ++numControllersR;
-        if (numControllersR.at_start()) {
-          ++cacheSizeR;
-          if (cacheSizeR.at_start()) {
-            ++inputWidthR;
-            if (inputWidthR.at_start()) {
-              ++numPipesR;
-              if (numPipesR.at_start())
-                last = true;
-            }
-          }
-        }
-
-        return result;
-      }
-    };
-
 
     // Model for an architecture which can skip sequences of empty rows
-    class SkipEmptyRowsSpmv : public BasicSpmv {
+    class SkipEmptyRowsSpmv : public Spmv {
       protected:
-
         std::vector<int32_t> encodeEmptyRows(std::vector<int32_t> pin, bool encode) {
           std::vector<int32_t> encoded;
           if (!encode) {
@@ -422,7 +229,7 @@ namespace cask {
 
       public:
       SkipEmptyRowsSpmv(int _cacheSize, int  _inputWidth, int _numPipes, int _maxRows, int _numControllers) :
-        BasicSpmv(_cacheSize, _inputWidth, _numPipes, maxRows, _numControllers) {}
+        Spmv(_cacheSize, _inputWidth, _numPipes, _maxRows, _numControllers) {}
 
       virtual std::string get_name() override {
         return std::string("SkipEmpty");

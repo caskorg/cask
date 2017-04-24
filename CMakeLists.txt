@@ -83,8 +83,6 @@ set(SparkCpu_src
 add_library(SparkCpuLib ${SparkCpu_src})
 add_executable(main src/main.cpp )
 target_link_libraries(main -lboost_program_options -lboost_filesystem -lboost_system SparkCpuLib)
-add_executable(test_architecture test/test_architecture.cpp)
-target_link_libraries(test_architecture -lboost_program_options SparkCpuLib)
 
 # --- Software only design builds, using mocks
 AddCaskGeneratedLibrary(dfe_mock DfeSpmvMockLib)
@@ -152,4 +150,5 @@ if (LibMKL_INCLUDE_DIRS)
   AddGtestSuite(Io)
   AddGtestSuite(MklLayer)
   AddGtestSuite(CgTest)
+  AddGtestSuite(TestUtils)
 endif()

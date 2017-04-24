@@ -12,56 +12,6 @@
 namespace cask {
 namespace utils {
 
-struct Range {
-  int start, end, step, crt;
-  Range(int _s, int _e, int _stp) : start(_s), end(_e), step(_stp), crt(_s) {}
-  Range(std::string range) {
-    std::vector<std::string> strs;
-    if (range.find(",") != std::string::npos) {
-      // assume a (start, end, step) range format
-      boost::split(strs, range, boost::is_any_of(","));
-      start = std::stoi(strs[0]);
-      end = std::stoi(strs[1]);
-      step = std::stoi(strs[2]);
-    } else {
-      // assume a single element range (start, start + 1, 1)
-      start = std::stoi(range);
-      end = start + 1;
-      step = 1;
-    }
-
-    crt = start;
-  }
-
-  std::string to_string() {
-    std::stringstream ss;
-    ss << start << ", " << end << ", " << step;
-    return ss.str();
-  }
-
-  void restart() {
-    crt = start;
-  }
-
-  bool at_start() {
-    return crt == start;
-  }
-
-  int operator++() {
-    crt = crt + step;
-    if (crt == end) {
-      crt = start;
-    }
-    return crt;
-  }
-};
-
-inline std::ostream& operator<<(std::ostream& s, const Range& r) {
-  std::cout << "Range{";
-  std::cout << r.start << "," << r.end << "," << r.step << "}";
-  return s;
-}
-
 class Timer {
 
   using clock_t = std::chrono::high_resolution_clock;
@@ -134,6 +84,122 @@ inline int ceilDivide(int a, int b) {
     throw std::invalid_argument("ceilDivide: arguments must be positive");
   return a / b + (a % b != 0);
 }
+
+template<typename Arg, typename... Args>
+void logResultR(std::string s, Arg a, Args... as) {
+  logResultR(s, as...);
+  std::cout << a << ",";
+}
+
+inline void logResultR(std::string s) {
+  std::cout << "Result " << " ";
+  std::cout << s << "=";
+}
+
+template<typename U>
+void logResult(std::string s, std::vector<U> vals) {
+  logResultR(s);
+  for (const auto& v : vals)
+    std::cout << v << ",";
+  std::cout << std::endl;
+}
+
+template<typename Arg, typename... Args>
+void logResult(std::string s, Arg a, Args... as) {
+  logResultR(s, as...);
+  std::cout << a << ",";
+  std::cout << std::endl;
+}
+
+// A ranged design parameter; it is defined with a fixed value OR a range
+template<typename T=int>
+class Parameter {
+  Parameter(std::string _name, T _start, T _end, T _step, T _value) :
+      name(_name), start(_start), end(_end), step(_step), value(_value) {}
+
+ public:
+  T start, end, step;
+  T value;
+  std::string name;
+  Parameter(std::string _name, T _start, T _end, T _step) :
+    Parameter(_name, _start, _end, _step, _start) {}
+
+  // Construct a parameter with a single element range
+  Parameter(std::string _name, T _start) :
+      Parameter(_name, _start, _start, 1, _start) {}
+
+  Parameter first() {
+    return Parameter(name, start, end, step, start);
+  }
+
+  Parameter next() {
+    if (value + step > end)
+      throw std::invalid_argument("Invalid call to next() - no more elements");
+    return Parameter(name, start, end, step, value + step);
+  }
+
+  Parameter last() {
+    return Parameter(name, start, end, step, end);
+  }
+
+  bool hasNext() {
+    return value != last().value;
+  }
+
+};
+
+template<typename T>
+inline std::ostream& operator<<(std::ostream& s, const Parameter<T>& p) {
+  std::cout << "Parameter{";
+  std::cout << p.start << "," << p.end << "," << p.step << "}";
+  return s;
+}
+
+template<typename T=int>
+class ChainedParameterRange {
+
+  std::vector<Parameter<T>> range;
+
+ public:
+  ChainedParameterRange(std::vector<Parameter<T>> _range) : range(_range) {}
+  ChainedParameterRange(std::initializer_list<Parameter<T>> _range) : range(_range) {}
+
+  void start() {
+    for (int i = 0; i < range.size(); i++) {
+      range[i] = range[i].first();
+    }
+  }
+
+  bool hasNext() {
+    for (auto&& p : range) {
+      if (p.hasNext())
+        return true;
+    }
+    return false;
+  }
+
+  void next() {
+    int i = 0;
+    for (; i < range.size(); i++) {
+      if (range[i].hasNext())
+        break;
+      range[i] = range[i].first();
+    }
+    if (i == range.size()) {
+      throw std::invalid_argument("No next element available");
+    }
+    range[i] = range[i].next();
+  }
+
+  Parameter<T> getParam(std::string name) {
+    for (auto& p : range) {
+      if (p.name == name)
+        return p;
+    }
+    throw std::invalid_argument("Param not found " + name);
+  }
+
+};
 
 }
 }
