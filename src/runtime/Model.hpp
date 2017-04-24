@@ -7,71 +7,6 @@
 namespace cask {
   namespace model {
 
-    /** Abstract representation of the device we are implementing for. */
-    class DeviceModel {
-      public:
-        virtual int entriesPerBram(int bitwidth) const = 0;
-        virtual std::string getId() const = 0;
-    };
-
-    /** Abstract representation of a Max4 board */
-    class Max4Model : public DeviceModel {
-      public:
-        int entriesPerBram(int bitwidth) const override {
-          if (bitwidth == 64) {
-            // On SV we need two BRAMs to store 512 entries of 64 bits wide, so
-            // on average we store 256 values per BRAM
-            return 256;
-          }
-          throw std::invalid_argument("Only bitwidth == 64 supported for now");
-        }
-        std::string getId() const override {
-          return "Max4";
-        }
-    };
-
-    inline std::ostream& operator<<(std::ostream& out, const DeviceModel& dm) {
-      out << dm.getId();
-      return out;
-    }
-
-    /* Note, that this device model is no longer supported  as it is rather
-     * old. Most importantly, Maxeler don't support multiple memory channels
-     * on this device, so it makes maintaining the architecture painful. Some
-     * indicative numbers from past implementations are provided below, but
-     * should be taken as a very rough guesstimate, since the architecture
-     * would have changed since then.
-     */
-    class Max3Model : public DeviceModel {
-      public:
-        virtual int entriesPerBram(int bitwidth) const override {
-          if (bitwidth == 64) {
-            return 512;
-          }
-          throw std::invalid_argument("Only bitwidth == 64 supported for now");
-        }
-
-        std::string getId() const override {
-          return "Max3";
-        }
-
-       // NOTE obsolete resource usage numbers for the basic SpMV architecture, tread carefully!
-       //  LogicResourceUsage interPartitionReductionKernel(2768,1505, maxRows / virtex6EntriesPerBram, 0);
-       //  LogicResourceUsage paddingKernel{400, 500, 0, 0};
-       //  LogicResourceUsage spmvKernelPerInput{1466, 2060, cacheSize / virtex6EntriesPerBram, 10}; // includes cache
-       //  LogicResourceUsage sm{800, 500, 0, 0};
-       //  LogicResourceUsage spmvPerPipe =
-       //    interPartitionReductionKernel +
-       //    paddingKernel +
-       //    spmvKernelPerInput * inputWidth +
-       //    sm;
-       //  LogicResourceUsage memoryPerPipe{3922, 8393, 160, 0};
-       //  LogicResourceUsage memory{24000, 32000, 0, 0};
-       //  LogicResourceUsage designUsage = (spmvPerPipe + memoryPerPipe) * numPipes + memory;
-       //  double memoryBandwidth =(double)inputWidth * numPipes * getFrequency() * 12.0 / 1E9;
-       //  ImplementationParameters ip{designUsage, memoryBandwidth};
-    };
-
     class LogicResourceUsage {
       public:
         int luts, ffs, brams, dsps;
@@ -145,6 +80,78 @@ namespace cask {
           //clockFrequency < other.clockFrequency &&
           //memoryClockFrequency < other.memoryClockFrequency;
         }
+    };
+
+    /** Abstract representation of the device we are implementing for. */
+    class DeviceModel {
+      public:
+        virtual int entriesPerBram(int bitwidth) const = 0;
+        virtual std::string getId() const = 0;
+        virtual ImplementationParameters maxParams() const = 0;
+    };
+
+    /** Abstract representation of a Max4 board */
+    class Max4Model : public DeviceModel {
+      public:
+        int entriesPerBram(int bitwidth) const override {
+          if (bitwidth == 64) {
+            // On SV we need two BRAMs to store 512 entries of 64 bits wide, so
+            // on average we store 256 values per BRAM
+            return 256;
+          }
+          throw std::invalid_argument("Only bitwidth == 64 supported for now");
+        }
+        std::string getId() const override {
+          return "Max4";
+        }
+        ImplementationParameters maxParams() const override {
+          return ImplementationParameters{LogicResourceUsage{524800, 1049600, 2567, 1963}, 65};
+        }
+    };
+
+    inline std::ostream& operator<<(std::ostream& out, const DeviceModel& dm) {
+      out << dm.getId();
+      return out;
+    }
+
+    /* Note, that this device model is no longer supported  as it is rather
+     * old. Most importantly, Maxeler don't support multiple memory channels
+     * on this device, so it makes maintaining the architecture painful. Some
+     * indicative numbers from past implementations are provided below, but
+     * should be taken as a very rough guesstimate, since the architecture
+     * would have changed since then.
+     */
+    class Max3Model : public DeviceModel {
+      public:
+        virtual int entriesPerBram(int bitwidth) const override {
+          if (bitwidth == 64) {
+            return 512;
+          }
+          throw std::invalid_argument("Only bitwidth == 64 supported for now");
+        }
+
+        std::string getId() const override {
+          return "Max3";
+        }
+        ImplementationParameters maxParams() const override {
+          return ImplementationParameters{LogicResourceUsage{297600, 297600, 1064, 2016}, 39};
+        }
+
+       // NOTE obsolete resource usage numbers for the basic SpMV architecture, tread carefully!
+       //  LogicResourceUsage interPartitionReductionKernel(2768,1505, maxRows / virtex6EntriesPerBram, 0);
+       //  LogicResourceUsage paddingKernel{400, 500, 0, 0};
+       //  LogicResourceUsage spmvKernelPerInput{1466, 2060, cacheSize / virtex6EntriesPerBram, 10}; // includes cache
+       //  LogicResourceUsage sm{800, 500, 0, 0};
+       //  LogicResourceUsage spmvPerPipe =
+       //    interPartitionReductionKernel +
+       //    paddingKernel +
+       //    spmvKernelPerInput * inputWidth +
+       //    sm;
+       //  LogicResourceUsage memoryPerPipe{3922, 8393, 160, 0};
+       //  LogicResourceUsage memory{24000, 32000, 0, 0};
+       //  LogicResourceUsage designUsage = (spmvPerPipe + memoryPerPipe) * numPipes + memory;
+       //  double memoryBandwidth =(double)inputWidth * numPipes * getFrequency() * 12.0 / 1E9;
+       //  ImplementationParameters ip{designUsage, memoryBandwidth};
     };
 
 

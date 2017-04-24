@@ -36,20 +36,15 @@ std::shared_ptr<Spmv> dse_run(
 {
   int it = 0;
 
-  // for virtex 6
-  double alpha = 0.9; // aim to fit about alpha% of the chip
-  const LogicResourceUsage maxResources(LogicResourceUsage{297600, 297600, 1064, 2016} * alpha);
-
-  const ImplementationParameters maxParams{maxResources, 39};
-
   std::shared_ptr<Spmv> bestArchitecture, a;
 
   while (a = af->next()) {
     auto start = std::chrono::high_resolution_clock::now();
     a->preprocess(mat); // do spmv?
     //dfesnippets::timing::print_clock_diff("Took: ", start);
-    //if (!(a->getImplementationParameters() < maxParams))
-      //continue;
+    if (!(a->getImplementationParameters(deviceModel) < deviceModel.maxParams())) {
+      continue;
+    }
 
     std::cout << basename << " " << a->to_string() << " " << a->getImplementationParameters(deviceModel).to_string() << std::endl;
     bestArchitecture = better(bestArchitecture, a, deviceModel);
