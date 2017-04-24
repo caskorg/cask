@@ -2,6 +2,7 @@
 import os
 import multiprocessing
 import subprocess
+import re
 from multiprocessing import Pool
 from termcolor import colored
 from os.path import isfile, join
@@ -76,15 +77,18 @@ class PrjConfig:
     return os.path.join(self.buildDir(), '_build.log')
 
   def logFile(self):
-    return self.buildName() + '.log'
+    return os.path.join(DIR_PATH_LOG, self.buildName() + '.log')
 
   def getBuildResourceUsage(self):
     usage = {}
     with open(self.buildLog()) as f:
+      print self.buildLog()
       while True:
         l = f.readline()
         if l.find('FINAL RESOURCE USAGE') != -1:
-          for i in range(7):
+          # build output depends on device type, for Altera Stratix use 6
+          # lines, for Xilinx use 7 lines
+          for i in range(6):
             m = re.match(r'.*PROGRESS:(.*):\s*(\d*)\s/\s(\d*).*', f.readline())
             usage[m.group(1).strip()] = (int(m.group(2)), int(m.group(3)))
           break
@@ -92,27 +96,32 @@ class PrjConfig:
 
 
 class MaxBuildRunner:
-  def __init__(self):
-    pass
+  def __init__(self, poolSize=6):
+    self.poolSize = poolSize
 
   def runBuilds(self, prjs):
     # run MC builds in parallel
-    pool = Pool(6)
+    pool = Pool(self.poolSize)
+    for prj in prjs:
+      print '  --> Building MaxFile: ', prj.buildName()
+      print '               logfile: ', prj.logFile()
     pool.map(runMaxCompilerBuild, prjs)
     pool.close()
     pool.join()
 
 def runMaxCompilerBuild(prj):
-  print prj, prj.buildTarget(), prj.buildName(), # prj.name
   buildParams = "target={0} buildName={1} maxFileName={2} ".format(
       prj.buildTarget(), prj.buildName(), prj.name)
-  print '  --> Building MaxFile ', prj.buildName(), '\n',
 
-  prjLogFile = os.path.join(DIR_PATH_LOG, prj.buildName() + '.log')
+  # We ignore the return code, because if the timing score is negative,
+  # the build process fails, but we don't want to stop the compilation
   utils.execute(
       ['make', 'MAX_BUILDPARAMS="' + prj.maxBuildParams() + buildParams + '"',
-      "-C", prj.buildRoot, prj.maxFileTarget()],
-      prjLogFile)
+        "-C", prj.buildRoot, prj.maxFileTarget()],
+      prj.logFile())
 
   utils.execute(['sed', '-i', '-e', r's/PARAM(TIMING_SCORE,.*)/PARAM(TIMING_SCORE, 0)/',
-    prj.maxFileLocation()])
+    prj.maxFileLocation()],
+    prj.logFile())
+
+  print '  --> Build finished', prj.buildName()

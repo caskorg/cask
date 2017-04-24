@@ -11,39 +11,39 @@ def warn(message):
 def error(message):
     cprint('Error: ' + message, 'red', attrs=['bold'])
 
-def print_from_iterator(lines_iterator, logfile=None):
-  output = ''
-  if logfile:
-    with open(logfile, 'w') as log:
-      for line in lines_iterator:
-        log.write(line)
-        log.flush()
-        output += line
-  else:
+def log_from_iterator(lines_iterator, logfile):
+  with open(logfile, 'a') as log:
     for line in lines_iterator:
-      print line
-      output += line
-  return output
+      log.write(line)
+      log.flush()
 
-def execute(command, logfile=None, silent=False):
-  if not silent:
-    print 'Executing ', ' '.join(command)
+def print_and_log(logfile, line):
+  with open(logfile, 'a') as log:
+    log.write(line)
+    log.flush()
+  print line
+
+def log(logfile, line):
+  with open(logfile, 'a') as log:
+    log.write(line)
+    log.flush()
+
+def execute(command, logfile):
+  err_logfile = logfile + '.err'
+
+  command_str = ' '.join(command)
+  log(logfile, 'Executing:     {}'.format(command_str))
+  log(logfile, '  log:         {}'.format(logfile))
+  log(logfile, '  errlog:      {}'.format(err_logfile))
+
   popen = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-
-  output = None
-  output_err = None
-  if logfile or not silent:
-    output = print_from_iterator(iter(popen.stdout.readline, b"") , logfile)
-    err_log = logfile + '.err' if logfile else None
-    output_err = print_from_iterator(iter(popen.stderr.readline,  b""), err_log)
-
+  log_from_iterator(iter(popen.stdout.readline, b"") , logfile)
+  log_from_iterator(iter(popen.stderr.readline,  b""), err_logfile)
   popen.wait()
-  if popen.returncode != 0:
-    if logfile:
-      print 'log: ', logfile
-      print 'errlog:  ', logfile + '.err'
-    print colored("Error! '{0}' return code {1}".format(
-      ' '.join(command), str(popen.returncode)) ,
-      'red')
 
-  return output, output_err
+  retcode = str(popen.returncode)
+
+  if popen.returncode != 0:
+    print colored('Error! "{}" return code {}'.format(command_str, retcode), 'red')
+
+  return retcode

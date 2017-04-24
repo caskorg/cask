@@ -48,6 +48,7 @@ namespace cask {
         cask::utils::Range numPipesRange{1, 4, 1};
         cask::utils::Range inputWidthRange{1, 3, 1};
         cask::utils::Range cacheSizeRange{1024, 2048, 1024};
+        cask::utils::Range numControllersRange{1, 6, 1};
     };
 
     inline std::ostream& operator<<(std::ostream& s, DseParameters& d) {
@@ -55,6 +56,7 @@ namespace cask {
       s << "  numPipes   = " << d.numPipesRange << std::endl;
       s << "  inputWidth = " << d.inputWidthRange << std::endl;
       s << "  cacheSize  = " << d.cacheSizeRange << std::endl;
+      s << "  numControllers  = " << d.numControllersRange << std::endl;
       s << ")" << std::endl;
       return s;
     }
@@ -79,7 +81,8 @@ namespace cask {
         // returns the best architecture
         std::vector<DseResult> run (
             const Benchmark& benchmark,
-            const DseParameters& dseParams);
+            const DseParameters& dseParams,
+            const cask::model::DeviceModel& deviceModel);
     };
   }
 }

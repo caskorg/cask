@@ -72,7 +72,8 @@ int main(int argc, char** argv) {
 
   cask::dse::Benchmark benchmark;
   benchmark.add_matrix_path(path);
-  dseTool.run(benchmark, params);
+  cask::model::Max4Model deviceModel;
+  dseTool.run(benchmark, params, deviceModel);
   dfesnippets::timing::print_clock_diff("Test took: ", start);
   return 0;
 }

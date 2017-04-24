@@ -2,10 +2,11 @@
 
 f=${1}
 path=`pwd`
-# NB machine name depends on build type, currently this needs to be updated
-# manually
+# XXX machine name depends on build type
 machine="maia01"
 # machine="maxnode2"
+
+echo "Path is ${path}"
 
 ssh ${machine} /bin/bash << EOF
  cd ${path}/..

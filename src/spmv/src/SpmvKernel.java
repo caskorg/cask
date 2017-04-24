@@ -12,6 +12,9 @@ import com.maxeler.maxcompiler.v2.utils.MathUtils;
 import com.custom_computing_ic.dfe_snippets.utils.Reductions;
 import com.custom_computing_ic.dfe_snippets.reductions.LogAddReduce;
 
+import maxpower.kernel.arithmetic.FloatingPointMultiAdder;
+import maxpower.kernel.arithmetic.FloatingPointAccumulator;
+
 class SpmvKernel extends Kernel {
 
   // N x N matrix, nnzs nonzeros
@@ -55,40 +58,20 @@ class SpmvKernel extends Kernel {
     DFEVector<DFEVar> vectorValues = cache.getVectorValues();
     //DFEVector<DFEVar> vectorIndices = cache.getVectorIndices();
 
-    DFEVar result = Reductions.reduce(matrixValues * vectorValues);
+    DFEVector<DFEVar> multResult = matrixValues * vectorValues;
+    DFEVar result = FloatingPointMultiAdder.add(multResult.getElementsAsList());
 
     // --- Accumulation
-
-    // must disable input registering to use as flush trigger
-    //io.pushInputRegistering(false);
-    //DFEVar flushTrigger = io.input("flush", dfeBool());
-    //io.popInputRegistering();
-    //flush.afterTrigger(flushTrigger);
-
-    DFEVar runLength = firstReadPosition + rowLength;
-    DFEVar modulo = KernelMath.modulo(runLength, inputWidth);
-    DFEVar quot = (runLength - modulo.cast(dfeUInt(32))) / inputWidth;
-
-    DFEVar totalCycles = quot + (modulo === 0 ? constant.var(dfeUInt(32), 0) : 1);
-
-    DFEVar carriedSum = dfeFloat(11, mantissaWidth).newInstance(this);
-    DFEVar newSum = result + (cycleCounter < fpL ? 0 : carriedSum);
-    carriedSum <== stream.offset(newSum, -fpL);
-
-    DFEVar firstValidPartialSum = (totalCycles > fpL)? (totalCycles - fpL) : 0;
-    DFEVar validPartialSums = (cycleCounter >= firstValidPartialSum);
-    LogAddReduce r = new LogAddReduce(this,
-        validPartialSums,
-        rowFinished,
-        newSum,
-        dfeFloat(11, mantissaWidth),
-        fpL);
-
+    // XXX accumulateReset may have edge cases in between blocks or iterations;
+    // when rowFinished is not set; behaviour may differ in hardware from
+    // simulation, so should confirm this behaves as expected
+    DFEVar accumulateReset = stream.offset(rowFinished, -1);
+    DFEVar r = FloatingPointAccumulator.accumulateWithReset(result, constant.var(true), accumulateReset, true);
 
     // TODO: remove prefetch
     DFEVar emptyRow = (rowLength === 0);
     DFEVar outputEnable = (~vRomLoadEnable & (rowFinished | emptyRow)); // | flushTrigger;
-    io.output("output", r.getOutput(), dfeFloat(11, mantissaWidth), outputEnable);
+    io.output("output", r, dfeFloat(11, mantissaWidth), outputEnable);
     //io.output("flushTriggerOut", flushTrigger, dfeBool(), outputEnable);
     // if we find a sequence of empty rows, tell downstream reduction kernrel
     DFEVar skipCount = emptyRow ? cycleCounter : 0;
@@ -103,8 +86,8 @@ class SpmvKernel extends Kernel {
         DFEVar rowCounter = control.count.makeCounter(rowCounterParams).getCount();
       debug.dfePrintf(
           printEnable,
-          "Kernel -- row %d totalCycles %d, readmask %d rowFinished %d rowLength %d output: %f cycleCounter %d validPartialSums %d newSum %f firstRead %d skipCount %d",
-          rowCounter, totalCycles, readMask, rowFinished, rowLength, r.getOutput(), cycleCounter, validPartialSums, newSum, firstReadPosition, skipCount);
+          "Kernel " + getName() + " -- row %d, readmask %d rowFinished %d rowLength %d multiplyAdd: %f, output: %f cycleCounter %d  firstRead %d skipCount %d",
+          rowCounter, readMask, rowFinished, rowLength, result, r, cycleCounter, firstReadPosition, skipCount);
 
       debug.dfePrintf(printEnable, "\n");
       debug.dfePrintf(printEnable, "Values: ");
@@ -345,7 +328,7 @@ class PaddingKernel extends Kernel {
 
 // extracts trailing zeros from input stream, after nInputs have been processed
 class UnpaddingKernel extends Kernel {
-  protected UnpaddingKernel(KernelParameters parameters, int bitWidth, int id) {
+  protected UnpaddingKernel(KernelParameters parameters, int bitWidth, boolean dbg) {
     super(parameters);
     DFEVar nInputs = io.scalarInput("nInputs", dfeUInt(32));
     DFEVar totalCycles = io.scalarInput("totalCycles", dfeUInt(32));
@@ -355,10 +338,9 @@ class UnpaddingKernel extends Kernel {
 
     DFEVar input = io.input("paddingIn", dfeRawBits(bitWidth));
     io.output("pout", input, dfeRawBits(bitWidth), ~unpaddingCycles);
-    //if (id == 2) {
-      //debug.simPrintf("id: %d cycles %d nInputs %d totalCycles %d unpadding %d\n",
-          //id, cycles, nInputs, totalCycles, unpaddingCycles);
-      //debug.simPrintf("input %d\n", input);
-    //}
+    if (dbg) {
+      debug.simPrintf("Kernel " + getName() + " cycles %d nInputs %d totalCycles %d input %d\n",
+          cycles, nInputs, totalCycles, input);
+    }
   }
 }

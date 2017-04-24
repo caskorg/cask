@@ -47,21 +47,21 @@ graphs:
 
 hw-flow:
 	mkdir -p build
-	cd build && $(CMAKE) -DBUILD_SIM=true -DBUILD_HW=true ..
+	cd build && $(CMAKE) -DBUILD_SIM=true -DBUILD_HW=true -DCMAKE_BUILD_TYPE=Release ..
 	make -C build Eigen3
 	make -C build
 	cd build && ctest -E Client*
 
 sim-flow:
 	mkdir -p build
-	cd build && $(CMAKE) -DBUILD_SIM=true -DBUILD_HW=false ..
+	cd build && $(CMAKE) -DBUILD_SIM=true -DBUILD_HW=false -DCMAKE_BUILD_TYPE=Release ..
 	make -C build Eigen3
 	make -C build
 	cd build && ctest -E Client*
 
 mock-flow:
 	mkdir -p build
-	cd build && $(CMAKE) -DCMAKE_CXX_COMPILER=$(CXX) -DBUILD_SIM=false -DBUILD_HW=false ..
+	cd build && $(CMAKE) -DCMAKE_CXX_COMPILER=$(CXX) -DBUILD_SIM=false -DBUILD_HW=false -DCMAKE_BUILD_TYPE=Release ..
 	make -C build Eigen3
 	make -C build -j8
 	cd build && ctest -E Client*
@@ -84,7 +84,7 @@ clean-tags:
 	rm -f tags
 
 tags:
-	ctags include/ src/ -R *
+	ctags src/spmv/src/*.java src/runtime/*.hpp src/runtime/*.cpp
 
 gtags:
 	find src/runtime/ include/ test/ -type f -print | gtags -f -
@@ -93,7 +93,7 @@ doc:
 	doxygen docs/doxygen.conf
 
 clean-all-dist:
-	rm -rf src/spmv/build/Spmv* src/spmv/build/*.class
+	rm -rf src/spmv/build/{Spmv*,*.class,com,maxpower}
 
 upd-doc: doc
 	rm -rf ${TMP_PATH}

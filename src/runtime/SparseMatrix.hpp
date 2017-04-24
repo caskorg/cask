@@ -18,9 +18,7 @@
 namespace cask {
   namespace sparse {
 
-    using CsrMatrix = std::tuple<std::vector<uint32_t>, std::vector<int>, std::vector<double>>;
     using EigenSparseMatrix = Eigen::SparseMatrix<double, Eigen::RowMajor, int32_t>;
-    using PartitionedCsrMatrix = std::vector<CsrMatrix>;
 
     template<typename value_type>
   class SparkCooMatrix {
@@ -442,6 +440,45 @@ class CsrMatrix {
     }
     newRowPtr.push_back(newValues.size());
     return CsrMatrix(nRows, this->m, nnzs, newValues, newColInd, newRowPtr);
+  }
+
+
+  /** Slices columns from this matrix into blocks. Each block has as
+      many rows as this matrix but at most blockSize columns.  All
+      blocks except the last one have exactly blockSize columns.
+
+      Example:
+
+      This matrix:
+      1 2 3 4
+      5 6 7 8
+      sliceColumns(3) returns:
+      1 2 3 | 4
+      5 6 7 | 8
+  */
+  std::vector<cask::CsrMatrix> sliceColumns(int blockSize) const {
+    // XXX constructing a CSR matrix this way is not safe because m and n are not updated
+    int nBlocks = m / blockSize + (m % blockSize == 0 ? 0 : 1);
+    std::vector<cask::CsrMatrix> partitions(nBlocks);
+    for (int i = 0; i < n; i++) {
+      for (int j = 0; j < nBlocks; j++) {
+        auto& p = partitions[j].row_ptr;
+        if (p.size() == 0)
+          p.push_back(0);
+        else
+          p.push_back(p.back());
+      }
+      //std::cout << "i = " << i << std::endl;
+      //std::cout << "colptr" << colptr[i] << std::endl;
+      for (int j = row_ptr[i]; j < row_ptr[i+1]; j++) {
+        auto& p = partitions[col_ind[j] / blockSize];
+        int idxInPartition = col_ind[j] - (col_ind[j] / blockSize ) * blockSize;
+        p.col_ind.push_back(idxInPartition);
+        p.values.push_back(values[j]);
+        p.row_ptr.back()++;
+      }
+    }
+    return partitions;
   }
 
 };

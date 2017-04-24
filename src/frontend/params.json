@@ -6,6 +6,12 @@
       "step":1,
       "default":2
     },
+    "num_controllers": {
+      "start":1,
+      "stop":3,
+      "step":1,
+      "default":2
+    },
     "cache_size": {
       "start":1024,
       "stop":4096,

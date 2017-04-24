@@ -1,10 +1,10 @@
 import com.maxeler.maxcompiler.v2.managers.custom.CustomManager;
 import com.maxeler.maxcompiler.v2.managers.custom.DFELink;
 import com.maxeler.maxcompiler.v2.managers.custom.blocks.*;
-import com.maxeler.maxcompiler.v2.managers.custom.stdlib.MemoryControlGroup;
+import com.maxeler.maxcompiler.v2.managers.custom.stdlib.*;
 import com.maxeler.maxcompiler.v2.managers.engine_interfaces.*;
+import com.maxeler.maxcompiler.v2.managers.engine_interfaces.EngineInterface.*;
 import com.maxeler.maxcompiler.v2.managers.BuildConfig;
-import com.maxeler.maxcompiler.v2.statemachine.manager.ManagerStateMachine;
 
 import com.custom_computing_ic.dfe_snippets.manager.*;
 
@@ -13,7 +13,10 @@ public class SpmvManager extends CustomManager{
     private final int cacheSize;
     private final int inputWidth;
     private final int maxRows;
-    private final int numPipes;
+    public final int numPipes;
+    public final int numControllers;
+    private final int pipesPerController;
+    private final int burstSizeBytes = 384;
 
     // parameters of CSR format used: float64 values, int32 index.
     private static final int mantissaWidth = 53;
@@ -24,42 +27,83 @@ public class SpmvManager extends CustomManager{
     private static final boolean DBG_PAR_CSR_CTL = false;
     private static final boolean DBG_SPMV_KERNEL = false;
     private static final boolean DBG_REDUCTION_KERNEL = false;
+    private static final boolean DBG_UNPADDING_KERNEL = false;
     private static final boolean dramReductionEnabled = false;
-
 
     SpmvManager(SpmvEngineParams ep) {
         super(ep);
 
         inputWidth = ep.getInputWidth();
         cacheSize = ep.getVectorCacheSize();
-        maxRows = ep.getMaxRows();
         numPipes = ep.getNumPipes();
+        numControllers = ep.getNumControllers();
+        pipesPerController = numPipes / numControllers;
 
-        if (384 % inputWidth != 0) {
-          throw new RuntimeException("Error! 384 is not a multiple of INPUT WIDTH: " +
+        if (ep.getMaxRows() % numPipes != 0) {
+          maxRows = ep.getMaxRows() / numPipes + 1;
+        } else {
+          maxRows = ep.getMaxRows() / numPipes;
+        }
+
+        if (burstSizeBytes % inputWidth != 0) {
+          throw new RuntimeException("Error! " + burstSizeBytes + " is not a multiple of INPUT WIDTH: " +
               "This may lead to stalls due to padding / unpadding ");
+        }
+
+        if (numPipes % numControllers != 0) {
+          throw new RuntimeException("Error! numPipes must be a multiple of numControllers." +
+              " Pipes will be distributed equally among controllers");
         }
 
         addMaxFileConstant("inputWidth", inputWidth);
         addMaxFileConstant("cacheSize", cacheSize);
         addMaxFileConstant("maxRows", maxRows);
         addMaxFileConstant("numPipes", numPipes);
+        addMaxFileConstant("numControllers", numControllers);
         addMaxFileConstant("dramReductionEnabled", dramReductionEnabled ? 1 : 0);
 
-        ManagerUtils.setDRAMMaxDeviceFrequency(this, ep);
+        ManagerUtils.setDRAMFreq(this, ep, 400);
         config.setAllowNonMultipleTransitions(true);
+        config.setDefaultStreamClockFrequency(150);
 
-        for (int i = 0; i < numPipes; i++)
-          addComputePipe(i, inputWidth);
+        // CPU --> Demux
+        DFELink fromCpu = addStreamFromCPU("fromcpu");
+        Demux split = demux("split");
+        split.getInput() <== fromCpu;
+
+        // LMEM --> CPU IO
+        DFELink toCpu = addStreamToCPU("tocpu");
+        Mux join = mux("join");
+        toCpu <== join.getOutput();
+
+        int ctrlId = -1;
+        LMemInterface iface = null;
+        for (int i = 0; i < numPipes; i++) {
+            if (i % pipesPerController == 0) {
+              ctrlId++;
+              iface = addLMemInterface("ctrl" + ctrlId, 1);
+
+              // Demux --> LMem
+              DFELink cpu2lmem = iface.addStreamToLMem("cpu2lmem" + ctrlId,
+                  LMemCommandGroup.MemoryAccessPattern.LINEAR_1D);
+              cpu2lmem <== split.addOutput("tomem" + ctrlId);
+
+              // LMem --> Mux
+              DFELink lmem2cpu = iface.addStreamFromLMem("lmem2cpu" + ctrlId,
+                  LMemCommandGroup.MemoryAccessPattern.LINEAR_1D);
+              join.addInput("frommem" + ctrlId) <== lmem2cpu;
+            }
+
+            addComputePipe(i, inputWidth, iface);
+        }
     }
 
-
-    void addComputePipe(int id, int inputWidth) {
+    void addComputePipe(int id, int inputWidth, LMemInterface iface) {
         StateMachineBlock readControlBlock = addStateMachine(
             getReadControl(id),
             new ParallelCsrReadControl(this, inputWidth, DBG_PAR_CSR_CTL));
 
-        readControlBlock.getInput("length") <== addUnpaddingKernel("colptr" + id, 32, id * 10 + 1);
+        readControlBlock.getInput("length") <== addUnpaddingKernel("colptr" + id, 32, id * 10 + 1, iface);
 
         KernelBlock k = addKernel(new SpmvKernel(
               makeKernelParameters(getComputeKernel(id)),
@@ -70,15 +114,15 @@ public class SpmvManager extends CustomManager{
               DBG_SPMV_KERNEL
               ));
 
-        k.getInput("indptr_values") <== addUnpaddingKernel("indptr_values" + id, inputWidth * 96, id * 10 + 2);
-        k.getInput("vromLoad") <== addUnpaddingKernel("vromLoad" + id, 64, id * 10 + 3);
+        k.getInput("indptr_values") <== addUnpaddingKernel("indptr_values" + id, inputWidth * 96, id * 10 + 2, iface);
+        k.getInput("vromLoad") <== addUnpaddingKernel("vromLoad" + id, 64, id * 10 + 3, iface);
         k.getInput("control") <== readControlBlock.getOutput("control");
 
         KernelBlock r = null;
         if (dramReductionEnabled) {
           r = addKernel(new DramSpmvReductionKernel(makeKernelParameters(getReductionKernel(id))));
 
-          r.getInput("prevb") <== addUnpaddingKernel("prevb" + id, 64, id * 10 + 5);
+          r.getInput("prevb") <== addUnpaddingKernel("prevb" + id, 64, id * 10 + 5, iface);
 
         }
         else {
@@ -89,31 +133,28 @@ public class SpmvManager extends CustomManager{
                 DBG_REDUCTION_KERNEL));
         }
 
-        addPaddingKernel("reductionOut" + id) <== r.getOutput("reductionOut");
+        addPaddingKernel("reductionOut" + id, iface) <== r.getOutput("reductionOut");
         r.getInput("reductionIn") <== k.getOutput("output");
         r.getInput("skipCount") <== k.getOutput("skipCount");
-
     }
 
-    DFELink addPaddingKernel(String stream)
-    {
+    DFELink addPaddingKernel(String stream, LMemInterface iface) {
       System.out.println("Creating kernel  " + getPaddingKernel(stream));
       KernelBlock p = addKernel(new PaddingKernel(
             makeKernelParameters(getPaddingKernel(stream))));
-      addStreamToOnCardMemory(stream,
-          MemoryControlGroup.MemoryAccessPattern.LINEAR_1D) <== p.getOutput("paddingOut");
+      iface.addStreamToLMem(stream, LMemCommandGroup.MemoryAccessPattern.LINEAR_1D) <== p.getOutput("paddingOut");
       return p.getInput("paddingIn");
     }
 
     DFELink addUnpaddingKernel(
         String stream,
         int bitwidth,
-        int id)
+        int id,
+        LMemInterface iface)
    {
      KernelBlock k = addKernel(new
-         UnpaddingKernel(makeKernelParameters(getUnpaddingKernel(stream)), bitwidth, id));
-     k.getInput("paddingIn") <== addStreamFromOnCardMemory(stream,
-         MemoryControlGroup.MemoryAccessPattern.LINEAR_1D);
+         UnpaddingKernel(makeKernelParameters(getUnpaddingKernel(stream)), bitwidth, DBG_UNPADDING_KERNEL));
+     k.getInput("paddingIn") <== iface.addStreamFromLMem(stream, LMemCommandGroup.MemoryAccessPattern.LINEAR_1D);
      return k.getOutput("pout");
    }
 
@@ -159,7 +200,6 @@ public class SpmvManager extends CustomManager{
 
       String computeKernel = getComputeKernel(id);
       String reductionKernel = getReductionKernel(id);
-      String paddingKernel = getPaddingKernel("" + id);
       String readControl = getReadControl(id);
 
       ei.setTicks(computeKernel, totalCycles * nIterations);
@@ -170,6 +210,9 @@ public class SpmvManager extends CustomManager{
       ei.setScalar(reductionKernel, "nRows", n);
       ei.setScalar(reductionKernel, "totalCycles", reductionCycles);
 
+      String memoryController = "ctrl" + (id / pipesPerController);
+
+      System.out.println("Setting up pipe " + id + " with controller " + memoryController);
 
       String stream = "vromLoad" + id;
       setupUnpaddingKernel(
@@ -179,7 +222,8 @@ public class SpmvManager extends CustomManager{
           vectorLoadCycles * nPartitions,
           ei.addConstant(8), // XXX magic constant...
           nIterations,
-          vStartAddress
+          vStartAddress,
+          memoryController
           );
 
       InterfaceParam colptrEntries = colptrSize / CPUTypes.INT32.sizeInBytes();
@@ -191,7 +235,8 @@ public class SpmvManager extends CustomManager{
           colptrEntries,
           ei.addConstant(4),
           nIterations,
-          colPtrStartAddress);
+          colPtrStartAddress,
+          memoryController);
 
       InterfaceParam valueEntries = indptrValuesSize / (8 + 4) / inputWidth; // 12 bytes per entry
       stream = "indptr_values" + id;
@@ -202,17 +247,13 @@ public class SpmvManager extends CustomManager{
           valueEntries,
           inputWidth * ei.addConstant(8 + 4),
           nIterations,
-          indptrValuesStartAddress);
-
-      InterfaceParam zero = ei.addConstant(0l);
+          indptrValuesStartAddress,
+          memoryController);
 
       ei.setScalar(readControl, "nrows", n);
       ei.setScalar(readControl, "vectorLoadCycles", vectorLoadCycles);
       ei.setScalar(readControl, "nPartitions", nPartitions);
       ei.setScalar(readControl, "nIterations", nIterations);
-
-      InterfaceParam spmvOutputWidthBytes = ei.addConstant(CPUTypes.DOUBLE.sizeInBytes());
-      InterfaceParam spmvOutputSizeBytes = n * spmvOutputWidthBytes;
 
       InterfaceParam size = nIterations;
       if (dramReductionEnabled) {
@@ -222,20 +263,23 @@ public class SpmvManager extends CustomManager{
             n,
             ei.addConstant(8),
             nIterations * nPartitions,
-            outResultStartAddress
+                             outResultStartAddress,
+                             memoryController
             );
         size *= nPartitions;
       }
 
       stream = "reductionOut" + id;
       setupUnpaddingKernel(ei,
-          getPaddingKernel(stream),
-          stream,
-          n,
-          ei.addConstant(8),
-          size,
-          outResultStartAddress);
+                           getPaddingKernel(stream),
+                           stream,
+                           n,
+                           ei.addConstant(8),
+                           size,
+                           outResultStartAddress,
+                           memoryController);
     }
+
 
     /**
      * An unpadding kernel reads a stream from memory and discards the bytes
@@ -253,22 +297,25 @@ public class SpmvManager extends CustomManager{
         InterfaceParam size,
         InterfaceParam inputWidthBytes,
         InterfaceParam iterations,
-        InterfaceParam startAddress
+        InterfaceParam startAddress,
+        String memoryController
         ) {
 
       InterfaceParam unpaddingCycles = getPaddingCycles(size * inputWidthBytes, inputWidthBytes);
       InterfaceParam totalSize = unpaddingCycles + size;
       System.out.println("Setting ticks for kernel  " + kernelId);
+      System.out.println("Setting up queue for controller" + memoryController);
 
       ei.setTicks(kernelId, totalSize * iterations);
       ei.setScalar(kernelId, "nInputs", size);
       ei.setScalar(kernelId, "totalCycles", totalSize);
 
-      ei.setLMemLinearWrapped(memoryStream,
-          startAddress,
-          totalSize * inputWidthBytes,
-          totalSize * inputWidthBytes * iterations,
-          ei.addConstant(0));
+      ei.setLMemLinearWrapped(memoryController,
+                              memoryStream,
+                              startAddress,
+                              totalSize * inputWidthBytes,
+                              totalSize * inputWidthBytes * iterations,
+                              ei.addConstant(0));
     }
 
     private InterfaceParam smallestMultipleLargerThan(InterfaceParam x, long y) {
@@ -282,7 +329,6 @@ public class SpmvManager extends CustomManager{
         InterfaceParam outSizeBytes,
         InterfaceParam outWidthBytes)
     {
-      final int burstSizeBytes = 384;
       InterfaceParam writeSize = smallestMultipleLargerThan(outSizeBytes, burstSizeBytes);
       return (writeSize - outSizeBytes) / outWidthBytes;
     }
@@ -325,21 +371,74 @@ public class SpmvManager extends CustomManager{
             reductionCycles.get(i),
             nIterations);
 
-      ei.ignoreLMem("cpu2lmem");
-      ei.ignoreStream("fromcpu");
-      ei.ignoreStream("tocpu");
-      ei.ignoreLMem("lmem2cpu");
+      ei.ignoreAll(Direction.IN_OUT);
       return ei;
+    }
+
+    public static EngineInterface dramWrite(SpmvManager m) {
+        EngineInterface ei = new EngineInterface("dramWrite");
+        CPUTypes TYPE = CPUTypes.INT;
+        InterfaceParamArray size = ei.addParamArray("size_bytes_memory_ctl", TYPE);
+        InterfaceParamArray start = ei.addParamArray("start_bytes_memory_ctl", TYPE);
+        InterfaceParam sizeCPU = ei.addParam("size_bytes_cpu", TYPE);
+        ei.setStream("fromcpu", CPUTypes.UINT8, sizeCPU);
+        for (int i = 0; i < m.numControllers; i++ ) {
+            ei.setLMemLinear("ctrl" + i, "cpu2lmem" + i, start.get(i), size.get(i));
+            ei.ignoreLMem("lmem2cpu" + i);
+        }
+        ignoreKernels(m, ei);
+        ei.ignoreStream("tocpu");
+        ei.ignoreRoute("join");
+        return ei;
+    }
+
+    /**
+     * Ignore all compute kernels and associated streams. Necessary because
+     * ignoreAll() also ignores routes and it is not possible to unignore a
+     * route afterwards. Use in CPU read / write interfaces, where compute
+     * kernels don't need to be active.
+     */
+    private static void ignoreKernels(SpmvManager m, EngineInterface ei) {
+        for (int i = 0; i < m.numPipes; i++) {
+          ei.ignoreKernel(m.getReductionKernel(i));
+          ei.ignoreKernel(m.getComputeKernel(i));
+          ei.ignoreKernel(m.getPaddingKernel("reductionOut" + i));
+          ei.ignoreKernel(m.getUnpaddingKernel("colptr" + i));
+          ei.ignoreKernel(m.getUnpaddingKernel("vromLoad" + i));
+          ei.ignoreKernel(m.getUnpaddingKernel("indptr_values" + i));
+          ei.ignoreKernel(m.getReadControl(i));
+          ei.ignoreLMem("colptr" + i);
+          ei.ignoreLMem("indptr_values" + i);
+          ei.ignoreLMem("reductionOut" + i);
+          ei.ignoreLMem("vromLoad" + i);
+        }
+    }
+
+    private static EngineInterface dramRead(SpmvManager m) {
+        EngineInterface ei = new EngineInterface("dramRead");
+        CPUTypes TYPE = CPUTypes.INT;
+        InterfaceParamArray size = ei.addParamArray("size_bytes_memory_ctl", TYPE);
+        InterfaceParamArray start = ei.addParamArray("start_bytes_memory_ctl", TYPE);
+        InterfaceParam sizeCPU = ei.addParam("size_bytes_cpu", TYPE);
+        ei.setStream("tocpu", CPUTypes.UINT8, sizeCPU);
+        for (int i = 0; i < m.numControllers; i++ ) {
+            ei.setLMemLinear("ctrl" + i, "lmem2cpu" + i, start.get(i), size.get(i));
+            ei.ignoreLMem("cpu2lmem" + i);
+        }
+        ignoreKernels(m, ei);
+        ei.ignoreStream("fromcpu");
+        ei.ignoreRoute("split");
+        return ei;
     }
 
     public static void main(String[] args) {
 
       SpmvManager manager = new SpmvManager(new SpmvEngineParams(args));
-      //ManagerUtils.debug(manager);
-      manager.createSLiCinterface(ManagerUtils.dramWrite(manager));
-      manager.createSLiCinterface(ManagerUtils.dramRead(manager));
+      // ManagerUtils.debug(manager);
+      manager.createSLiCinterface(dramWrite(manager));
+      manager.createSLiCinterface(dramRead(manager));
       manager.createSLiCinterface(manager.interfaceDefault());
-      ManagerUtils.setFullBuild(manager, BuildConfig.Effort.HIGH, 2, 2);
+      ManagerUtils.setFullBuild(manager, BuildConfig.Effort.HIGH, 6, 6);
       manager.build();
     }
 }

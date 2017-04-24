@@ -39,20 +39,14 @@ REP_HTML  = 'html'
 DIR_PATH_RESULTS = 'results'
 DIR_PATH_LOG = 'logs'
 DIR_PATH_RUNS = 'runs'
-
 DSE_LOG_FILE = 'dse_run.log'
 
-# ABS_PATH_TO_ROOT=
-
-print 'Path and stuff......'
 PATH_TO_CASK_FILE = os.path.dirname(os.path.abspath(__file__))
 PATH_TO_ROOT = os.path.abspath(os.path.join(PATH_TO_CASK_FILE, '../../'))
 WORKING_DIR = os.getcwd()
 BUILD_DIR = os.path.join(PATH_TO_ROOT, 'build')
 SOURCE_DIR = os.path.join(PATH_TO_ROOT, 'src')
 OUTPUT_DIR = WORKING_DIR
-
-print WORKING_DIR, PATH_TO_ROOT, PATH_TO_CASK_FILE
 
 pd.options.display.float_format = '{:.2f}'.format
 
@@ -115,7 +109,8 @@ def runDse(benchFile, paramsFile, target, skipExecution=False):
           [ os.path.basename(matrix).replace('.mtx', ''),
             prj_id,
             int(ps['cache_size']), int(ps['input_width']),
-            int(ps['num_pipes']), int(ps['max_rows']),
+            int(ps['num_pipes']), int(ps['num_controllers']),
+            int(ps['max_rows']),
             # The model uses BRAM36, the McTools use BRAM18
             int(est_impl_ps['BRAMs']) * 2,
             int(est_impl_ps['LUTs']),
@@ -138,7 +133,7 @@ def runClient(benchmark, target, prj=None):
   for p in benchmark:
     cmd = []
     if target == TARGET_DFE:
-      cmd = ['bash', 'spark_dfe_run.sh', p]
+      cmd = ['bash', src_path('frontend/spark_dfe_run.sh'), p]
     elif target == TARGET_SIM:
       cmd = ['bash', src_path('frontend/simrunner'), build_path('test_spmv_sim'), p]
     elif target == TARGET_DFE_MOCK:
@@ -235,7 +230,7 @@ class Spark:
         '-lslic',])
 
     cmd.extend(['-lm', '-lpthread'])
-    utils.execute(cmd)
+    utils.execute(cmd, 'lib_build.log')
 
     # copy the generated library
     libDir = 'lib-generated'
@@ -264,33 +259,34 @@ class Spark:
       for i in range(len(prjs)):
         p = prjs[i]
         f.write('this->impls.push_back(')
+        runFunction = p.name
+        writeFunction = p.name + '_dramWrite'
+        readFunction = p.name + '_dramRead'
+        dramReductionEnabled = p.name + '_dramReductionEnabled'
         if self.target == TARGET_DFE_MOCK:
-          f.write(
-              'new GeneratedSpmvImplementationMock({0}, {1}, {2}, {3}, false));'.format(
-                p.getParam('max_rows'),
-                p.getParam('num_pipes'),
-                p.getParam('cache_size'),
-                p.getParam('input_width')))
-        else:
-          f.write(
-              'new GeneratedSpmvImplementation({0}, {1}, {2}, {3}, {4}, {5}, {6}, {7}, {8}));'.format(
+            runFunction = 'cask::runtime::spmvRunMock'
+            writeFunction = 'cask::runtime::spmvWriteMock'
+            readFunction = 'cask::runtime::spmvReadMock'
+            dramReductionEnabled = 'false'
+        f.write(
+              'new GeneratedSpmvImplementation({0}, {1}, {2}, {3}, {4}, {5}, {6}, {7}, {8}, {9}));'.format(
                 p.prj_id,
-                p.name,
-                p.name + '_dramWrite',
-                p.name + '_dramRead',
+                runFunction,
+                writeFunction,
+                readFunction,
                 p.getParam('max_rows'),
                 p.getParam('num_pipes'),
                 p.getParam('cache_size'),
                 p.getParam('input_width'),
-                p.name + '_dramReductionEnabled'))
-
+                dramReductionEnabled,
+                p.getParam('num_controllers')))
       f.write('\n}')
 
   def runBuilds(self):
 
     print ' >> Building Hardware Implementations'
     if self.target != TARGET_DFE_MOCK:
-      b = maxbuild.MaxBuildRunner()
+      b = maxbuild.MaxBuildRunner(poolSize=6)
       b.runBuilds(self.prjs)
 
     # library generation is sequential
@@ -351,7 +347,7 @@ def logDseResults(benchmark_df, arch_df):
 
 
 def postProcessResults(prjs, benchmark, benchmark_df, arch_df, arch_build_df, dirpath):
-  print colored('Post-processing results', 'red')
+  utils.info('Post-processing results')
   # need to reconstruct a (matrix, architecture) relation from run files;
   # this relation also stores execution results (e.g.  bwidth, gflops)
   df = pd.DataFrame([], columns=['Id', 'Matrix', 'GFLOPs'])
@@ -488,10 +484,11 @@ def main():
       ps = {}
       for k, v in data['dse_params'].iteritems():
         ps[k] = str(v['default'])
+        # XXX prj_id is not defined at this point, how do we create a project with the default values?
     params = [maxbuild.PrjConfig(ps, args.target, PRJ, prj_id, '../spmv/build/')]
 
   arch_df = pd.DataFrame(log_archs,
-          columns = ['Matrix', 'Id', 'Cx', 'k', 'Np', 'Cb', 'BRAMs', 'LUTs', 'FFs', 'DSPs', 'BWidth', 'GFLOPs'])
+          columns = ['Matrix', 'Id', 'Cx', 'k', 'Np', 'Nc', 'Cb', 'BRAMs', 'LUTs', 'FFs', 'DSPs', 'BWidth', 'GFLOPs'])
   merged_df = logDseResults(benchmark_df, arch_df)
   print merged_df
 
@@ -507,7 +504,7 @@ def main():
   spark = Spark(args.target, ps, args.cpp_compiler)
 
   if args.run_builds:
-    print colored('Running builds', 'red')
+    utils.info('Running builds')
     spark.runBuilds()
 
   if args.target == TARGET_DFE:
@@ -517,7 +514,9 @@ def main():
       resUsage = p.getBuildResourceUsage()
       logic = resUsage['Logic utilization']
       dsps = resUsage['DSP blocks']
-      brams = resUsage['Block memory (BRAM18)']
+      # XXX: block memory type depends on the device
+      # brams = resUsage['Block memory (BRAM18)']
+      brams = resUsage['Block memory (M20K)']
       prj_info.append([
         p.prj_id,
         logic[0], logic[0] / float(logic[1]) * 100,
@@ -527,7 +526,7 @@ def main():
     arch_build_df = pd.DataFrame(prj_info, columns = header)
 
   if args.benchmarking_mode != BENCHMARK_NONE:
-    print colored('Running benchmark', 'red')
+    utils.info('Running benchmark')
     spark.runBenchmark(benchmark, args.benchmarking_mode)
 
   # Post-process results

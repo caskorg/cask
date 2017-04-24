@@ -1,0 +1,26 @@
+# Run the given binary on a Maxeler Maia machine:
+# 1. Create reservation
+# 2. Run the design
+# 3. Clear reservation
+# 4. Wait for timeout
+
+HARDWARE_SO_DIR=../build
+
+MAXOS_HW=/opt/maxeler/maxeleros/lib/libmaxeleros.so
+
+# create a reservation
+/opt/maxeler/maxeleros/utils/maxorch -r 192.168.0.1 -c reserve -i caskidt -t "MAIA*1"
+sleep 2
+SLIC_CONF="default_engine_resource=caskidt^192.168.0.1"
+#SLIC_CONF="default_pcie_timeout=360"
+
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${HARDWARE_SO_DIR}
+
+prj=$1
+
+#set -o xtrace
+SLIC_CONF=${SLIC_CONF} LD_PRELOAD=${MAXOS_HW} $@
+#set +o xtrace
+
+/opt/maxeler/maxeleros/utils/maxorch -r 192.168.0.1 -c unreserve -i caskidt
+sleep 10

@@ -28,12 +28,12 @@ namespace cask {
         virtual double getEstimatedClockCycles() = 0;
         virtual double getGFlopsCount() = 0;
         virtual std::string to_string() = 0;
-        virtual cask::model::ImplementationParameters getImplementationParameters() = 0;
+        virtual cask::model::ImplementationParameters getImplementationParameters(const cask::model::DeviceModel&) = 0;
         virtual void preprocess(const cask::CsrMatrix& mat) = 0;
         virtual cask::Vector spmv(const cask::Vector& x) = 0;
         virtual std::string get_name() = 0;
         virtual boost::property_tree::ptree write_params() = 0;
-        virtual boost::property_tree::ptree write_est_impl_params() = 0;
+        virtual boost::property_tree::ptree write_est_impl_params(const cask::model::DeviceModel&) = 0;
         virtual std::string getLibraryName() = 0;
         bool operator==(const Spmv& other) {
           return equals(other);
@@ -42,8 +42,8 @@ namespace cask {
         virtual ~Spmv() {}
 
       protected:
-        virtual cask::sparse::CsrMatrix preprocessBlock(
-            const cask::sparse::CsrMatrix& in,
+        virtual cask::CsrMatrix preprocessBlock(
+            const cask::CsrMatrix& in,
             int blockNumber,
             int nBlocks) {
           return in;
@@ -83,6 +83,9 @@ namespace cask {
     } __attribute__((packed));
 #pragma pack()
 
+    /* A partition is a horizontal stripe of an input matrix. Each
+     partition can be further divided into vertical stripes, which
+     we call blocks. */
     struct Partition {
       int nBlocks, n, paddingCycles, totalCycles, vector_load_cycles, outSize;
       int reductionCycles, emptyCycles;
@@ -114,13 +117,13 @@ namespace cask {
       protected:
 
       // design parameters
-      const int cacheSize, inputWidth, numPipes, maxRows;
+      const int cacheSize, inputWidth, numPipes, maxRows, numControllers;
 
       cask::CsrMatrix mat;
       std::vector<Partition> partitions;
       cask::runtime::GeneratedSpmvImplementation* impl;
 
-      virtual int countComputeCycles(uint32_t* v, int size, int inputWidth);
+      virtual int countComputeCycles(int32_t* v, int size, int inputWidth);
 
       virtual bool equals(const Spmv& a) const override {
         const BasicSpmv* other = dynamic_cast<const BasicSpmv*>(&a);
@@ -134,11 +137,12 @@ namespace cask {
             cacheSize == other.cacheSize &&
             inputWidth == other.inputWidth &&
             numPipes == other.numPipes &&
+            numControllers == other.numControllers &&
             maxRows == other.maxRows;
         }
 
-        virtual boost::property_tree::ptree write_est_impl_params() override {
-          auto params = getImplementationParameters();
+        virtual boost::property_tree::ptree write_est_impl_params(const cask::model::DeviceModel &dm) override {
+          auto params = getImplementationParameters(dm);
           boost::property_tree::ptree tree;
           tree.put("memory_bandwidth", params.memoryBandwidth);
           tree.put("BRAMs", params.ru.brams);
@@ -154,14 +158,16 @@ namespace cask {
           tree.put("cache_size", cacheSize);
           tree.put("input_width", inputWidth);
           tree.put("max_rows", maxRows);
+          tree.put("num_controllers", numControllers);
           return tree;
         }
 
-        BasicSpmv(int _cacheSize, int  _inputWidth, int _numPipes, int _maxRows) :
+        BasicSpmv(int _cacheSize, int  _inputWidth, int _numPipes, int _maxRows, int _numControllers) :
           cacheSize(_cacheSize),
           inputWidth(_inputWidth),
           numPipes(_numPipes),
-          maxRows(_maxRows) {}
+          maxRows(_maxRows),
+          numControllers(_numControllers) {}
 
         /**
          * For execution we build the architecture and give it a pointer to the
@@ -172,6 +178,7 @@ namespace cask {
           inputWidth(_impl->inputWidth()),
           numPipes(_impl->numPipes()),
           maxRows(_impl->maxRows()),
+          numControllers(_impl->numControllers()),
           impl(_impl) { }
 
         virtual std::string getLibraryName() {
@@ -184,6 +191,7 @@ namespace cask {
           ss << "inputwidth" << inputWidth << "_";
           ss << "numpipes" << numPipes << "_";
           ss << "maxrows" << maxRows;
+          ss << "numControllers" << numControllers << "_";
           ss << ".so";
           return ss.str();
         }
@@ -203,36 +211,52 @@ namespace cask {
         // NOTE: only call this after a call to preprocessMatrix
         // XXX this should be renamed to estimated
         // XXX This can't really be done at compile time
-        virtual cask::model::ImplementationParameters getImplementationParameters() {
+        /* Returns the expected values for implementing this design on the given deviceModel. */
+        virtual cask::model::ImplementationParameters getImplementationParameters(const cask::model::DeviceModel& deviceModel) override {
           // XXX bram usage for altera in double precision only (512 deep, 40 bits wide, so need 2 BRAMs)
           //int brams = (double)cacheSize * (double)inputWidth / 512.0 * 2.0;
           using namespace cask::model;
 
-          // XXX these should be architecture params
-          int maxRows = (this->mat.n / 512) * 512;
-          const int virtex6EntriesPerBram = 512;
+          // It's hard to do this polymorphically; this hack should be fine for
+          // small device numbers
+          if (deviceModel.getId() == "Max4") {
+            // TODO this should be architecture parameter
+            const int vectorDataWidthInBits = 64;
+            const int entriesPerBram = deviceModel.entriesPerBram(vectorDataWidthInBits);
+            const int maxRows = cask::utils::ceilDivide(this->mat.n, numPipes);
 
-          LogicResourceUsage interPartitionReductionKernel(2768,1505, maxRows / virtex6EntriesPerBram, 0);
-          LogicResourceUsage paddingKernel{400, 500, 0, 0};
-          LogicResourceUsage spmvKernelPerInput{1466, 2060, cacheSize / virtex6EntriesPerBram, 10}; // includes cache
-          LogicResourceUsage sm{800, 500, 0, 0};
+            LogicResourceUsage bramReductionKernel{10069, 12965,  cask::utils::ceilDivide(maxRows, entriesPerBram), 0};
+            LogicResourceUsage paddingKernel{363, 543, 0, 0};
+            LogicResourceUsage unpaddingKernel{364, 474, 0, 0};
+            LogicResourceUsage spmvKernelPerInput{1458, 2031, cacheSize / entriesPerBram + 14, 4};
+            LogicResourceUsage sm{1235, 643, 0, 0};
 
-          LogicResourceUsage spmvPerPipe =
-            interPartitionReductionKernel +
-            paddingKernel +
-            spmvKernelPerInput * inputWidth +
-            sm;
+            LogicResourceUsage spmvPerPipe =
+              bramReductionKernel +
+              paddingKernel +
+              unpaddingKernel * 3 +
+              spmvKernelPerInput * inputWidth +
+              sm;
 
-          LogicResourceUsage memoryPerPipe{3922, 8393, 160, 0};
-          LogicResourceUsage memory{24000, 32000, 0, 0};
+            std::cout << "Spmv Per pipe usage " << spmvPerPipe.to_string() << std::endl;
+            std::cout << "Spmv per kernel usage " << spmvKernelPerInput.to_string() << std::endl;
+            std::cout << "Spmv reduction per pipe" << bramReductionKernel.to_string() << std::endl;
 
-          //LogicResourceUsage designOther{};
-          LogicResourceUsage designUsage = (spmvPerPipe + memoryPerPipe) * numPipes + memory;
 
-          double memoryBandwidth =(double)inputWidth * numPipes * getFrequency() * 12.0 / 1E9;
-          ImplementationParameters ip{designUsage, memoryBandwidth};
-          //ip.clockFrequency = getFrequency() / 1E6; // MHz
-          return ip;
+            // NB these assume an 800Mhz memory bandwidth build
+            LogicResourceUsage memoryPerPipe{5325, 12184, 108, 0};
+            LogicResourceUsage memory{15330, 17606, 56, 0};
+
+            LogicResourceUsage designUsage = (spmvPerPipe + memoryPerPipe) * numPipes + memory;
+
+            double memoryBandwidth =(double)inputWidth * numPipes * getFrequency() * 12.0 / 1E9;
+            ImplementationParameters ip{designUsage, memoryBandwidth};
+            //ip.clockFrequency = getFrequency() / 1E6; // MHz
+            return ip;
+
+          }
+
+          throw std::invalid_argument("Unsupported device model " + deviceModel.getId());
         }
 
         virtual std::string to_string() {
@@ -241,6 +265,7 @@ namespace cask {
           s << " " << cacheSize;
           s << " " << inputWidth;
           s << " " << numPipes;
+          s << " " << numControllers;
           s << " " << getEstimatedClockCycles();
           s << " " << getEstimatedGFlops();
           return s.str();
@@ -255,10 +280,6 @@ namespace cask {
         }
 
       private:
-        std::vector<cask::CsrMatrix> do_partition(
-            const cask::CsrMatrix& mat,
-            int numPipes);
-
         Partition do_blocking(
             const cask::CsrMatrix& mat,
             int blockSize,
@@ -300,6 +321,7 @@ namespace cask {
       cask::utils::Range cacheSizeR{1024, 4096, 512};
       cask::utils::Range inputWidthR{8, 100, 8};
       cask::utils::Range numPipesR{1, 6, 1};
+      cask::utils::Range numControllersR{1, 6, 1};
       int maxRows;
 
       bool last = false;
@@ -310,11 +332,13 @@ namespace cask {
           cask::utils::Range numPipesRange,
           cask::utils::Range inputWidthRange,
           cask::utils::Range cacheSizeRange,
+          cask::utils::Range numControllersRange,
           int _maxRows) {
         cacheSizeR = cacheSizeRange;
         inputWidthR = inputWidthRange;
         numPipesR = numPipesRange;
         maxRows = _maxRows;
+        numControllersR = numControllersRange;
       }
 
       SimpleSpmvArchitectureSpace() {
@@ -325,6 +349,7 @@ namespace cask {
         cacheSizeR.restart();
         inputWidthR.restart();
         numPipesR.restart();
+        numControllersR.restart();
         last = false;
       }
 
@@ -332,15 +357,18 @@ namespace cask {
         if (last)
           return nullptr;
 
-        T* result = new T(cacheSizeR.crt, inputWidthR.crt, numPipesR.crt, maxRows);
+        T* result = new T(cacheSizeR.crt, inputWidthR.crt, numPipesR.crt, maxRows, numControllersR.crt);
 
-        ++cacheSizeR;
-        if (cacheSizeR.at_start()) {
-          ++inputWidthR;
-          if (inputWidthR.at_start()) {
-            ++numPipesR;
-            if (numPipesR.at_start())
-              last = true;
+        ++numControllersR;
+        if (numControllersR.at_start()) {
+          ++cacheSizeR;
+          if (cacheSizeR.at_start()) {
+            ++inputWidthR;
+            if (inputWidthR.at_start()) {
+              ++numPipesR;
+              if (numPipesR.at_start())
+                last = true;
+            }
           }
         }
 
@@ -353,8 +381,8 @@ namespace cask {
     class SkipEmptyRowsSpmv : public BasicSpmv {
       protected:
 
-        std::vector<uint32_t> encodeEmptyRows(std::vector<uint32_t> pin, bool encode) {
-          std::vector<uint32_t> encoded;
+        std::vector<int32_t> encodeEmptyRows(std::vector<int32_t> pin, bool encode) {
+          std::vector<int32_t> encoded;
           if (!encode) {
             return pin;
           }
@@ -380,20 +408,21 @@ namespace cask {
           return encoded;
         }
 
-        virtual cask::sparse::CsrMatrix preprocessBlock(
-            const cask::sparse::CsrMatrix& in,
+        virtual cask::CsrMatrix preprocessBlock(
+            const cask::CsrMatrix& in,
             int blockNumber,
             int nBlocks) override {
           bool encode = blockNumber != 0 && blockNumber != nBlocks - 1;
-          return std::make_tuple(
-              encodeEmptyRows(std::get<0>(in), encode),
-              std::get<1>(in),
-              std::get<2>(in));
+          cask::CsrMatrix m;
+          m.row_ptr = encodeEmptyRows(in.row_ptr, encode);
+          m.values = in.values;
+          m.col_ind = in.col_ind;
+          return m;
         }
 
       public:
-      SkipEmptyRowsSpmv(int _cacheSize, int  _inputWidth, int _numPipes, int _maxRows) :
-        BasicSpmv(_cacheSize, _inputWidth, _numPipes, maxRows) {}
+      SkipEmptyRowsSpmv(int _cacheSize, int  _inputWidth, int _numPipes, int _maxRows, int _numControllers) :
+        BasicSpmv(_cacheSize, _inputWidth, _numPipes, maxRows, _numControllers) {}
 
       virtual std::string get_name() override {
         return std::string("SkipEmpty");

@@ -1,6 +1,7 @@
 # ---- Source files ----
 ENGINEFILES?=$(wildcard ../src/*.maxj)
 
+MAXPOWER?=$(WHEREISROOT)/lib/maxpower/src
 DFESNIPPETS?=$(WHEREISROOT)/lib/dfe-snippets
 
 JFLAGS=-cp $(MAXCOMPILERDIR)/lib/MaxCompiler.jar:$(DFESNIPPETS)/src -1.6 -d .
@@ -9,4 +10,4 @@ JFLAGS=-cp $(MAXCOMPILERDIR)/lib/MaxCompiler.jar:$(DFESNIPPETS)/src -1.6 -d .
 %.max: $(ENGINEFILES)
 	echo $(MXFILEPATH)
 	maxjc $(JFLAGS) $(ENGINEFILES)
-	MAXAPPJCP=. MAXSOURCEDIRS='../src' maxJavaRun -v -m 8192 $(MANAGER) DFEModel=$(DFEModel) enableMPCX=$(MPCX)
+	MAXAPPJCP=.:$(MAXPOWER) MAXSOURCEDIRS='../src' maxJavaRun -v -m 8192 $(MANAGER) DFEModel=$(DFEModel) enableMPCX=$(MPCX)
