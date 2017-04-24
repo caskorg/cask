@@ -30,12 +30,12 @@ int test(string path, int implId) {
   cask::runtime::SpmvImplementationLoader implLoader;
   // TODO find the best architecture somehow
   int maxRows = eigenMatrix->rows();
-  cask::runtime::GeneratedSpmvImplementation deviceImpl =
+  cask::runtime::GeneratedSpmvImplementation* deviceImpl =
     implId == -1 ?
     implLoader.architectureWithParams(maxRows) :
     implLoader.architectureWithId(implId);
 
-  cask::spmv::Spmv a(deviceImpl);
+  cask::spmv::Spmv a(*deviceImpl);
   auto csrMatrix = cask::io::readMatrix(path);
   a.preprocess(csrMatrix);
   // TODO need a consistent way to handle params
