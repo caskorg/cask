@@ -88,7 +88,6 @@ Partition ssarch::do_blocking(
   Partition br;
   br.m_colptr_unpaddedLength = m_colptr.size();
   br.m_indptr_values_unpaddedLength = m_indptr_value.size();
-  //std::cout << "m_colptr unaligned size" << m_colptr.size() << std::endl;
   std::vector<double> out(n, 0);
   cutils::align(out, burst_size_bytes);
   cutils::align(v, sizeof(double) * blockSize);
@@ -214,7 +213,6 @@ cask::Vector ssarch::spmv(const cask::Vector& x)
   cutils::align(v, burst_size_bytes);
 
   vector<int> nrows, totalCycles, reductionCycles, paddingCycles, colptrSizes, indptrValuesSizes, outputResultSizes;
-  vector<int> colptrUnpaddedSizes, indptrValuesUnpaddedLengths;
   vector<long> outputStartAddresses, colptrStartAddresses;
   vector<long> vStartAddresses, indptrValuesStartAddresses;
 
@@ -229,8 +227,6 @@ cask::Vector ssarch::spmv(const cask::Vector& x)
     paddingCycles.push_back(p.paddingCycles);
     totalCycles.push_back(p.totalCycles);
     reductionCycles.push_back(p.reductionCycles);
-    colptrUnpaddedSizes.push_back(p.m_colptr_unpaddedLength);
-    indptrValuesUnpaddedLengths.push_back(p.m_indptr_values_unpaddedLength);
 
     int nc = impl.num_controllers;
     int pipesPerController = impl.num_pipes / nc;
@@ -245,7 +241,7 @@ cask::Vector ssarch::spmv(const cask::Vector& x)
     colptrStartAddresses.push_back(pr.colptrStartAddress);
     colptrSizes.push_back(cutils::size_bytes(p.m_colptr));
     vStartAddresses.push_back(pr.vStartAddress);
-    indptrValuesSizes.push_back(pr.indptrValuesSize);
+    indptrValuesSizes.push_back(cutils::size_bytes(p.m_indptr_values));
     indptrValuesStartAddresses.push_back(pr.indptrValuesStartAddress);
 
     offset = pr.outStartAddr + p.outSize;
