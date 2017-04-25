@@ -308,6 +308,12 @@ cask::Vector ssarch::spmv(const cask::Vector& x)
   }
 
   // remove the elements which were only for padding
+  if (mat.n < impl.num_pipes) {
+    // handles the case where n < num_pipes; in this case extra work is added
+    // to prevent a design pipeline stall; here we must remove these
+    // unnecessary fller elements from the output
+    total.resize(mat.n);
+  }
   return Vector{total};
 }
 void ssarch::preprocess(
@@ -317,6 +323,23 @@ void ssarch::preprocess(
   partitions.clear();
   int rowsPerPartition = mat.n / impl.num_pipes;
   int start = 0;
+
+  if (rowsPerPartition == 0) {
+    // handles the relatively uninteresting case where there are fewer rows
+    // than pipes; this  arises in several tiny tests, but is unlikely in
+    // practice, where there should be more rows than pipes; NB that we need to
+    // assign some workload to the pipes, leaving them empty stalls the design;
+    Partition p = do_blocking(mat.sliceRows(start, mat.n), impl.cache_size, impl.input_width);
+    this->partitions.assign(impl.num_pipes, p);
+    for (auto&& p : this->partitions) {
+      for (auto&& t : p.m_indptr_values) {
+        t.value = 0;
+      }
+    }
+    this->partitions[0] = p;
+    return;
+  }
+
   for (int i = 0; i < impl.num_pipes - 1; i++) {
     this->partitions.push_back(
         do_blocking(
@@ -329,5 +352,4 @@ void ssarch::preprocess(
   this->partitions.push_back(
       do_blocking(mat.sliceRows(start, mat.n - start),
         impl.cache_size, impl.input_width));
-
 }
