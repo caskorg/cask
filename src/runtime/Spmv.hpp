@@ -77,12 +77,19 @@ struct Partition {
           int blockSize,
           int inputWidth);
 
-      double getEstimatedGFlops() {
-        return  getGFlopsCount() * getFrequency() / getEstimatedClockCycles();
+      double getEstimatedGFlops(const model::DeviceModel& deviceModel) {
+        auto hardwareModel = getEstimatedHardwareModel(deviceModel);
+        double gflops = getGFlopsCount() * getFrequency() / getEstimatedClockCycles();
+        double deviceMaxBandwidth = deviceModel.maxParams().memoryBandwidth;
+        if (hardwareModel.memoryBandwidth < deviceMaxBandwidth) {
+          return gflops;
+        }
+        // design is memory bound
+        return gflops * deviceMaxBandwidth/ hardwareModel.memoryBandwidth;
       }
 
       double getFrequency() {
-        return 100 * 1E6;
+        return 200.0 * 1E6;
       }
 
       virtual std::string get_name() {
@@ -105,22 +112,37 @@ struct Partition {
         return 2 * this->mat.nnzs / 1E9;
       }
 
+      virtual bool isValid() {
+        //return impl.num_pipes % impl.num_controllers == 0 && impl.num_pipes >= impl.num_controllers;
+        return impl.num_pipes >= impl.num_controllers;
+      }
+
+      model::HardwareModel getEstimatedHardwareModel(
+          const model::DeviceModel& deviceModel) {
+        if (this->mat.n == 0) {
+          throw "Matrix not defined - run preprocess on the matrix";
+        }
+        return getEstimatedHardwareModel(deviceModel, this->mat.n);
+      }
+
       /* Returns the expected values for implementing this design on the given deviceModel. */
-      model::HardwareModel getEstimatedHardwareModel(const model::DeviceModel& deviceModel) {
+      model::HardwareModel getEstimatedHardwareModel(
+          const model::DeviceModel& deviceModel,
+          const int matrixDimension) {
         // XXX bram usage for altera in double precision only (512 deep, 40 bits wide, so need 2 BRAMs)
         //int brams = (double)cacheSize * (double)inputWidth / 512.0 * 2.0;
         using namespace model;
 
         // It's hard to do this polymorphically; this hack should be fine for
         // small device numbers
-        if (deviceModel.getId() != "Max4") {
+        if (deviceModel.getId() != "Max4" && deviceModel.getId() != "Max5") {
           throw std::invalid_argument("Unsupported device model " + deviceModel.getId());
         }
 
         // TODO this should be architecture parameter
         const int vectorDataWidthInBits = 64;
         const int entriesPerBram = deviceModel.entriesPerBram(vectorDataWidthInBits);
-        const int maxRows = utils::ceilDivide(this->mat.n, impl.num_pipes);
+        const int maxRows = utils::ceilDivide(matrixDimension, impl.num_pipes);
 
         LogicResourceUsage bramReductionKernel{10069, 12965, utils::ceilDivide(maxRows, entriesPerBram), 0};
         LogicResourceUsage paddingKernel{363, 543, 0, 0};
@@ -151,7 +173,7 @@ struct Partition {
         return ip;
       }
 
-      std::string to_string() {
+      std::string to_string(const model::DeviceModel& deviceModel) {
         std::stringstream s;
         s << get_name();
         s << " " << impl.cache_size;
@@ -159,7 +181,7 @@ struct Partition {
         s << " " << impl.num_pipes;
         s << " " << impl.num_controllers;
         s << " " << getEstimatedClockCycles();
-        s << " " << getEstimatedGFlops();
+        s << " " << getEstimatedGFlops(deviceModel);
         return s.str();
       }
 

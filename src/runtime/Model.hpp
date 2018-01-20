@@ -74,7 +74,7 @@ namespace cask {
         bool operator<(const HardwareModel& other) const {
           return
             ru < other.ru &&
-            memoryBandwidth < other.memoryBandwidth;
+             memoryBandwidth < other.memoryBandwidth;
           //stream < other.streams &&
           //clockFrequency < other.clockFrequency &&
           //memoryClockFrequency < other.memoryClockFrequency;
@@ -105,6 +105,33 @@ namespace cask {
         }
         cask::model::HardwareModel maxParams() const override {
           return HardwareModel{LogicResourceUsage{524800, 1049600, 2567, 1963}, 65};
+        }
+    };
+
+    /** Abstract representation of a Max4 device with 200Gb Memory */
+    class Max4ModelMoreMemory : public Max4Model {
+      public:
+        cask::model::HardwareModel maxParams() const override {
+          return HardwareModel{LogicResourceUsage{524800, 1049600, 2567, 1963}, 208};
+        }
+    };
+
+    /* Abstract representation of a Max5 board GX 2500*/
+    class Max5Model : public DeviceModel {
+      public:
+        int entriesPerBram(int bitwidth) const override {
+          if (bitwidth == 64) {
+            // On SV we need two BRAMs to store 512 entries of 64 bits wide, so
+            // on average we store 256 values per BRAM
+            return 256;
+          }
+          throw std::invalid_argument("Only bitwidth == 64 supported for now");
+        }
+        std::string getId() const override {
+          return "Max5";
+        }
+        cask::model::HardwareModel maxParams() const override {
+          return HardwareModel{LogicResourceUsage{4 * 524800, 4 * 1049600, 11721, 11520}, 208};
         }
     };
 

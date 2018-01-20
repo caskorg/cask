@@ -219,9 +219,18 @@ cask::Vector ssarch::spmv(const cask::Vector& x)
   int offset = 0;
   int i = 0;
 
-  assert(partitions.size() == impl.num_pipes && "numPipes should equal numPartitions");
-  assert(impl.num_pipes % impl.num_controllers == 0 && "numPipes should be a multiple of numControllers");
-  assert(impl.num_controllers <= impl.num_pipes && "numPipes should be larger than numControllers");
+  if (partitions.size() != impl.num_pipes) {
+    throw std::runtime_error("numPipes should equal numPartitions");
+  }
+
+  if (impl.num_pipes % impl.num_controllers != 0) {
+    throw std::runtime_error("numPipes should be a multiple of numControllers");
+  }
+
+  if (impl.num_controllers > impl.num_pipes) {
+     throw std::runtime_error("numPipes should be larger than numControllers");
+  }
+
   for (auto& p : partitions) {
     nrows.push_back(p.n);
     paddingCycles.push_back(p.paddingCycles);
@@ -274,12 +283,13 @@ cask::Vector ssarch::spmv(const cask::Vector& x)
       &vStartAddresses[0]
       );
   double took = dfesnippets::timing::clock_diff(start) / nIterations;
-  double est =(double) totalCycles[0] / getFrequency();
-  double gflopsEst = (2.0 * (double)this->mat.nnzs / est) / 1E9;
+  double maxCycles = *std::max_element(totalCycles.begin(), totalCycles.end());
+  double bwidthEst = impl.num_pipes * impl.input_width * getFrequency() * 12 / 1E9;
+  double scalingFactor = max(bwidthEst / 65.0, 1.0);
+  double est = maxCycles / getFrequency();
+  double gflopsEst = (2.0 * (double)this->mat.nnzs / (est * scalingFactor)) / 1E9;
   double gflopsActual = (2.0 * (double)this->mat.nnzs / took) / 1E9;
 
-  double bwidthEst = impl.num_pipes * impl.input_width * getFrequency() / (1024.0  *
-      1024 * 1024) * (8 + 4);
   utils::logResult("Input width ", impl.input_width);
   utils::logResult("Pipes ", impl.num_pipes);
 

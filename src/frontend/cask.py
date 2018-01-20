@@ -112,7 +112,7 @@ def runDse(benchFile, paramsFile, target, skipExecution=False):
             int(ps['num_pipes']), int(ps['num_controllers']),
             int(ps['max_rows']),
             # The model uses BRAM36, the McTools use BRAM18
-            int(est_impl_ps['BRAMs']) * 2,
+            int(est_impl_ps['BRAMs']),
             int(est_impl_ps['LUTs']),
             int(est_impl_ps['FFs']),
             int(est_impl_ps['DSPs']),

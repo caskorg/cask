@@ -95,11 +95,12 @@ void write_dse_results(
     std::string arch_name = arch->get_name();
     pt::ptree archJson;
     archJson.put("name", arch_name);
-    archJson.put("estimated_gflops", arch->getEstimatedGFlops());
+    archJson.put("estimated_gflops", arch->getEstimatedGFlops(deviceModel));
     archJson.put("estimated_clock_cycles", arch->getEstimatedClockCycles());
 
     archJson.add_child("architecture_params", write_params(arch->impl));
-    archJson.add_child("estimated_impl_params", write_est_impl_params(arch->getEstimatedHardwareModel(deviceModel)));
+    archJson.add_child("estimated_impl_params",
+        write_est_impl_params(arch->getEstimatedHardwareModel(deviceModel)));
 
     pt::ptree matrices;
     for (int i = 0; i < dseResult.matrices.size(); i++) {
@@ -189,6 +190,8 @@ int main(int argc, char** argv) {
   // -- setup device model
   auto start = std::chrono::high_resolution_clock::now();
   cask::model::Max4Model deviceModel;
+  //cask::model::Max4ModelMoreMemory deviceModel;
+  //cask::model::Max5Model deviceModel;
   std::cout << "Device Model " << deviceModel << std::endl;
   auto results = dseTool.run(
       benchmark,

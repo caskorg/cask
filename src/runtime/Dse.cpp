@@ -13,15 +13,16 @@ std::shared_ptr<Spmv>
 better(
     std::shared_ptr<Spmv> a1,
     std::shared_ptr<Spmv> a2,
-    const cask::model::DeviceModel& deviceModel) {
+    const cask::model::DeviceModel& deviceModel,
+    int matrixDimension) {
 
   if (a1 == nullptr)
     return a2;
 
   bool a1Better =
-    a1->getEstimatedGFlops() > a2->getEstimatedGFlops() ||
-    (a1->getEstimatedGFlops() == a2->getEstimatedGFlops() &&
-     a1->getEstimatedHardwareModel(deviceModel).ru < a2->getEstimatedHardwareModel(deviceModel).ru);
+    a1->getEstimatedGFlops(deviceModel) > a2->getEstimatedGFlops(deviceModel) ||
+    (a1->getEstimatedGFlops(deviceModel) == a2->getEstimatedGFlops(deviceModel) &&
+     a1->getEstimatedHardwareModel(deviceModel, matrixDimension).ru < a2->getEstimatedHardwareModel(deviceModel, matrixDimension).ru);
 
   if (a1Better)
     return a1;
@@ -37,7 +38,7 @@ std::shared_ptr<Spmv> dse_run(
 {
   std::shared_ptr<Spmv> bestArchitecture, a;
   while (af.hasNext()) {
-    a = std::make_shared<cask::spmv::Spmv>(af.getParam("cacheSize").value,
+    a = std::make_shared<cask::spmv::SkipEmptyRowsSpmv>(af.getParam("cacheSize").value,
                                            af.getParam("inputWidth").value,
                                            af.getParam("numPipes").value,
                                            af.getParam("maxRows").value,
@@ -45,13 +46,16 @@ std::shared_ptr<Spmv> dse_run(
 
     af.next();
     auto start = std::chrono::high_resolution_clock::now();
+    if (!a->isValid()) {
+      continue;
+    }
+    if (!(a->getEstimatedHardwareModel(deviceModel, mat.n).ru < deviceModel.maxParams().ru)) {
+      continue;
+    }
     a->preprocess(mat); // do spmv?
     //dfesnippets::timing::print_clock_diff("Took: ", start);
-    if (!(a->getEstimatedHardwareModel(deviceModel) < deviceModel.maxParams()))
-      continue;
-
-    std::cout << basename << " " << a->to_string() << " " << a->getEstimatedHardwareModel(deviceModel).to_string() << std::endl;
-    bestArchitecture = better(bestArchitecture, a, deviceModel);
+    std::cout << basename << " " << a->to_string(deviceModel) << " " << a->getEstimatedHardwareModel(deviceModel, mat.n).to_string() << std::endl;
+    bestArchitecture = better(bestArchitecture, a, deviceModel, mat.n);
   }
 
   if (!bestArchitecture)
@@ -59,11 +63,11 @@ std::shared_ptr<Spmv> dse_run(
 
   std::cout << basename << " ";
   if (params.gflopsOnly) {
-    std::cout << bestArchitecture->getEstimatedGFlops();
+    std::cout << bestArchitecture->getEstimatedGFlops(deviceModel);
     std::cout << bestArchitecture->getEstimatedClockCycles();
   } else {
-    std::cout << bestArchitecture->to_string();
-    std::cout << " " << bestArchitecture->getEstimatedHardwareModel(deviceModel).to_string();
+    std::cout << bestArchitecture->to_string(deviceModel);
+    std::cout << " " << bestArchitecture->getEstimatedHardwareModel(deviceModel, mat.n).to_string();
   }
   std::cout << " Best " << std::endl;
   return bestArchitecture;
@@ -112,19 +116,23 @@ std::vector<DseResult> cask::dse::SparkDse::run (
 
     std::cout  << basename << " ";
     if (params.gflopsOnly) {
-      std::cout << bestOverall->getEstimatedGFlops();
+      std::cout << bestOverall->getEstimatedGFlops(deviceModel);
       std::cout << bestOverall->getEstimatedClockCycles();
     } else {
-      std::cout << bestOverall->to_string();
-      std::cout << " "  << bestOverall->getEstimatedHardwareModel(deviceModel).to_string();
+      std::cout << bestOverall->to_string(deviceModel);
+      std::cout << " "  << bestOverall->getEstimatedHardwareModel(deviceModel, matrix.n).to_string();
     }
     std::cout << " BestOverall " << std::endl;
-    std::cout << bestOverall->to_string() << " "  << bestOverall->getEstimatedHardwareModel(deviceModel).to_string() << std::endl;
+    std::cout << "Matrix: " << basename << " Best architecture: " << bestOverall->to_string(deviceModel) << " "  << bestOverall->getEstimatedHardwareModel(deviceModel, matrix.n).to_string() << std::endl;
 
     // do SpmvFor this architecture, to check the results for profiling
     cask::Vector lhs(matrix.n);
     bestOverall->preprocess(matrix);
-    auto result = bestOverall->spmv(lhs);
+    try {
+      auto result = bestOverall->spmv(lhs);
+    } catch (std::exception& e) {
+      std::cout << "Could not run design " << e.what() << std::endl;
+    }
     bestArchitectures.push_back(DseResult{path, bestOverall});
   }
 

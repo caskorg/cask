@@ -1,27 +1,27 @@
 {
   "dse_params": {
     "num_pipes": {
-      "start":1,
-      "stop":3,
-      "step":1,
+      "start":2,
+      "stop":18,
+      "step":2,
       "default":2
     },
     "num_controllers": {
-      "start":1,
-      "stop":3,
+      "start":6,
+      "stop":6,
       "step":1,
       "default":2
     },
     "cache_size": {
-      "start":1024,
-      "stop":4096,
-      "step":1024,
+      "start":256,
+      "stop":5120,
+      "step":256,
       "default": 1024
     },
     "input_width": {
-      "start": 2,
-      "stop": 18,
-      "step": 2,
+      "start": 1,
+      "stop": 16,
+      "step": 1,
       "default":  16
     },
     "max_rows": {
